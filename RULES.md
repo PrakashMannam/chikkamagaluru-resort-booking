@@ -7,5 +7,6 @@ Rules for this repo:
 - Validate inputs on the backend. Check roles on every endpoint.
 - Write a test for any business logic and run it.
 - Use BigDecimal for money, never floats.
+- Never edit already-applied Flyway migrations (e.g. V1, V2, V3). Flyway rejects checksum changes; any schema fix must go into a new migration (e.g. V4__...).
 - Do not add features I did not ask for. Do not touch files I did not name.
 - Small commits with clear messages after each task.
