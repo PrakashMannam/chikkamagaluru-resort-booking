@@ -50,6 +50,17 @@ npm run dev
 
 The UI starts on **http://localhost:5173**.
 
+## Demo Profile & Demo Logins
+
+When running the backend with the `demo` Spring profile (`--spring.profiles.active=demo` or `export SPRING_PROFILES_ACTIVE=demo`), `DemoDataSeeder` automatically seeds the 4 staff accounts from Section 8 of the design pack with password `DEMO-ONLY-NOT-REAL-PASS-2026!`:
+
+| Email | Full Name | Role | Specialty Lane | GM Privileges |
+|---|---|---|---|---|
+| `gm.demo@companya-estate.test` | Vikram Rao (GM) | `STAFF` | `GM_ESCALATION` | `true` |
+| `rooms.demo@companya-estate.test` | Ananya Hegde (Reservations) | `STAFF` | `ROOM` | `false` |
+| `weddings.demo@companya-estate.test` | Karthik Urs (Weddings) | `STAFF` | `WEDDING` | `false` |
+| `offsites.demo@companya-estate.test` | Meera Nair (Corporate Offsites) | `STAFF` | `OFFSITE` | `false` |
+
 ## Running Backend Tests
 
 ```bash
