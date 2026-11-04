@@ -101,8 +101,8 @@ public class BookingPaymentServiceTest {
         booking.setAdults(2);
         booking.setChildren(0);
         booking.setGuestName("Test Guest");
-        booking.setGuestEmail("a***@gmail.com");
-        booking.setGuestPhone("98XXXXXX21");
+        booking.setGuestEmail("ananya.hegde@gmail.com");
+        booking.setGuestPhone("9876543221");
         booking.setStatus(status);
         booking.setExpiresAt(expiresAt);
         booking.setTotalPayableInr(new BigDecimal("17000.00"));
@@ -141,17 +141,27 @@ public class BookingPaymentServiceTest {
         when(paymentRepository.findByBookingId(booking.getId())).thenReturn(Optional.of(payment));
         when(dailyInventoryRateRepository.findAndLockByRoomCategoryIdAndStayDateRange(booking.getRoomCategory().getId(), checkIn, checkOut))
                 .thenReturn(rates);
-        when(bookingTransactionService.mapToBookingResponseDto(any(), any())).thenReturn(new BookingResponseDto());
+        when(bookingTransactionService.mapToBookingResponseDto(any(), any())).thenAnswer(inv -> {
+            BookingResponseDto d = new BookingResponseDto();
+            d.setBookingRef(bookingRef);
+            d.setGuestEmail(booking.getGuestEmail());
+            d.setGuestPhone(booking.getGuestPhone());
+            return d;
+        });
 
         PaymentWebhookRequest request = new PaymentWebhookRequest(validToken, "FAILURE", "MOCK-REF-123", "MOCK_CARD");
 
-        bookingPaymentService.processMockWebhook(bookingRef, validToken, request);
+        BookingResponseDto webhookResponse = bookingPaymentService.processMockWebhook(bookingRef, validToken, request);
 
         assertEquals(BookingStatus.FAILED, booking.getStatus());
         assertTrue(payment.getTokenUsed());
         assertEquals(PaymentStatus.FAILURE, payment.getStatus());
         assertEquals(0, rates.get(0).getBookedCount(), "Nov 14 booked_count must be decremented by 1");
         assertEquals(0, rates.get(1).getBookedCount(), "Nov 15 booked_count must be decremented by 1");
+        assertNotEquals("ananya.hegde@gmail.com", webhookResponse.getGuestEmail());
+        assertNotEquals("9876543221", webhookResponse.getGuestPhone());
+        assertEquals("a***@gmail.com", webhookResponse.getGuestEmail());
+        assertEquals("98XXXXXX21", webhookResponse.getGuestPhone());
         verify(dailyInventoryRateRepository, times(2)).save(any(DailyInventoryRate.class));
     }
 
@@ -224,14 +234,24 @@ public class BookingPaymentServiceTest {
         when(paymentRepository.findByBookingId(booking.getId())).thenReturn(Optional.of(payment));
         when(dailyInventoryRateRepository.findAndLockByRoomCategoryIdAndStayDateRange(booking.getRoomCategory().getId(), checkIn, checkOut))
                 .thenReturn(rates);
-        when(bookingTransactionService.mapToBookingResponseDto(any(), any())).thenReturn(new BookingResponseDto());
+        when(bookingTransactionService.mapToBookingResponseDto(any(), any())).thenAnswer(inv -> {
+            BookingResponseDto d = new BookingResponseDto();
+            d.setBookingRef(bookingRef);
+            d.setGuestEmail(booking.getGuestEmail());
+            d.setGuestPhone(booking.getGuestPhone());
+            return d;
+        });
 
-        bookingPaymentService.cancelHold(bookingRef, validToken);
+        BookingResponseDto cancelResponse = bookingPaymentService.cancelHold(bookingRef, validToken);
 
         assertEquals(BookingStatus.CANCELLED, booking.getStatus());
         assertTrue(payment.getTokenUsed());
         assertEquals(0, rates.get(0).getBookedCount());
         assertEquals(0, rates.get(1).getBookedCount());
+        assertNotEquals("ananya.hegde@gmail.com", cancelResponse.getGuestEmail());
+        assertNotEquals("9876543221", cancelResponse.getGuestPhone());
+        assertEquals("a***@gmail.com", cancelResponse.getGuestEmail());
+        assertEquals("98XXXXXX21", cancelResponse.getGuestPhone());
         verify(dailyInventoryRateRepository, times(2)).save(any(DailyInventoryRate.class));
     }
 
@@ -288,6 +308,254 @@ public class BookingPaymentServiceTest {
         MockHttpServletResponse responseDiffIp = new MockHttpServletResponse();
         filter.doFilter(requestDiffIp, responseDiffIp, (req, res) -> {});
         assertEquals(200, responseDiffIp.getStatus());
+    }
+
+    @Test
+    void rateLimitingFilter_forgedLeftmostXForwardedFor_isLimitedByTrustedProxyHop() throws Exception {
+        RateLimitingFilter filter = new RateLimitingFilter(1, 1); // 1 request per minute, 1 trusted hop
+
+        // Request 1: forged leftmost "1.2.3.4", trusted proxy hop from right is 9.9.9.9
+        MockHttpServletRequest request1 = new MockHttpServletRequest("GET", "/api/v1/public/bookings/XYZ123456789");
+        request1.addHeader("X-Forwarded-For", "1.2.3.4, 9.9.9.9");
+        MockHttpServletResponse response1 = new MockHttpServletResponse();
+        filter.doFilter(request1, response1, (req, res) -> {});
+        assertEquals(200, response1.getStatus());
+
+        // Request 2: forged leftmost is different ("5.6.7.8, 9.9.9.9"), but trusted proxy hop is still 9.9.9.9 -> 429
+        MockHttpServletRequest request2 = new MockHttpServletRequest("GET", "/api/v1/public/bookings/XYZ123456789");
+        request2.addHeader("X-Forwarded-For", "5.6.7.8, 9.9.9.9");
+        MockHttpServletResponse response2 = new MockHttpServletResponse();
+        filter.doFilter(request2, response2, (req, res) -> {});
+        assertEquals(429, response2.getStatus());
+
+        // Request 3: different trusted proxy hop "8.8.8.8" -> 200 (not limited by forged 1.2.3.4)
+        MockHttpServletRequest request3 = new MockHttpServletRequest("GET", "/api/v1/public/bookings/XYZ123456789");
+        request3.addHeader("X-Forwarded-For", "1.2.3.4, 8.8.8.8");
+        MockHttpServletResponse response3 = new MockHttpServletResponse();
+        filter.doFilter(request3, response3, (req, res) -> {});
+        assertEquals(200, response3.getStatus());
+    }
+
+    @Test
+    void rateLimitingFilter_noXForwardedForHeader_limitedByRemoteAddress() throws Exception {
+        RateLimitingFilter filter = new RateLimitingFilter(1, 1);
+
+        MockHttpServletRequest request1 = new MockHttpServletRequest("GET", "/api/v1/public/bookings/XYZ123456789");
+        request1.setRemoteAddr("192.168.1.100");
+        MockHttpServletResponse response1 = new MockHttpServletResponse();
+        filter.doFilter(request1, response1, (req, res) -> {});
+        assertEquals(200, response1.getStatus());
+
+        // Second request from same remoteAddr -> 429
+        MockHttpServletRequest request2 = new MockHttpServletRequest("GET", "/api/v1/public/bookings/XYZ123456789");
+        request2.setRemoteAddr("192.168.1.100");
+        MockHttpServletResponse response2 = new MockHttpServletResponse();
+        filter.doFilter(request2, response2, (req, res) -> {});
+        assertEquals(429, response2.getStatus());
+
+        // Request from different remoteAddr -> 200
+        MockHttpServletRequest request3 = new MockHttpServletRequest("GET", "/api/v1/public/bookings/XYZ123456789");
+        request3.setRemoteAddr("192.168.1.101");
+        MockHttpServletResponse response3 = new MockHttpServletResponse();
+        filter.doFilter(request3, response3, (req, res) -> {});
+        assertEquals(200, response3.getStatus());
+    }
+
+    @Test
+    void rateLimitingFilter_afterWindowPassesAndCleanupRuns_mapIsEmpty() {
+        RateLimitingFilter filter = new RateLimitingFilter(10, 1);
+        long now = System.currentTimeMillis();
+
+        assertTrue(filter.tryAcquire("10.0.0.1", now));
+        assertTrue(filter.tryAcquire("10.0.0.2", now));
+        assertEquals(2, filter.getTrackedIpCount());
+        assertFalse(filter.isMapEmpty());
+
+        // Cleanup before window passes: entries remain
+        filter.cleanupExpiredEntries(now + 30_000L);
+        assertEquals(2, filter.getTrackedIpCount());
+
+        // Cleanup after window passes (61 seconds later): map is completely empty
+        filter.cleanupExpiredEntries(now + 61_000L);
+        assertTrue(filter.isMapEmpty());
+        assertEquals(0, filter.getTrackedIpCount());
+    }
+
+    @Test
+    void rateLimitingFilter_mapCappedAt10000Keys() {
+        RateLimitingFilter filter = new RateLimitingFilter(10, 1);
+        long now = System.currentTimeMillis();
+
+        for (int i = 0; i < RateLimitingFilter.MAX_MAP_KEYS; i++) {
+            filter.tryAcquire("ip-" + i, now);
+        }
+        assertEquals(RateLimitingFilter.MAX_MAP_KEYS, filter.getTrackedIpCount());
+
+        // 10,001st key within same window cannot be added and is rejected
+        boolean acquired = filter.tryAcquire("ip-excess", now);
+        assertFalse(acquired, "Requests beyond 10,000 keys must be rejected to prevent unbounded memory growth");
+        assertEquals(RateLimitingFilter.MAX_MAP_KEYS, filter.getTrackedIpCount());
+    }
+
+    @Test
+    void rateLimitingFilter_bucketWithCount5WhoseWindowPassed_isRemovedByCleanup() {
+        RateLimitingFilter filter = new RateLimitingFilter(10, 1);
+        long now = System.currentTimeMillis();
+
+        // 5 requests from same IP in initial window
+        for (int i = 0; i < 5; i++) {
+            assertTrue(filter.tryAcquire("10.0.0.5", now));
+        }
+        assertNotNull(filter.getBucket("10.0.0.5"));
+        assertEquals(5, filter.getBucket("10.0.0.5").getCount());
+        assertEquals(1, filter.getTrackedIpCount());
+
+        // Cleanup before window passes: bucket with count 5 remains
+        filter.cleanupExpiredEntries(now + 30_000L);
+        assertEquals(1, filter.getTrackedIpCount());
+        assertNotNull(filter.getBucket("10.0.0.5"));
+        assertEquals(5, filter.getBucket("10.0.0.5").getCount());
+
+        // Cleanup after window passes (61 seconds later): bucket with count 5 is removed regardless of count
+        filter.cleanupExpiredEntries(now + 61_000L);
+        assertNull(filter.getBucket("10.0.0.5"));
+        assertEquals(0, filter.getTrackedIpCount());
+        assertTrue(filter.isMapEmpty());
+    }
+
+    @Test
+    void rateLimitingFilter_withMapAtCap_newIpGets429AndExistingIpsStillWork() throws Exception {
+        RateLimitingFilter filter = new RateLimitingFilter(10, 1);
+        long now = System.currentTimeMillis();
+
+        // Pre-fill map to exactly MAX_MAP_KEYS (10,000)
+        for (int i = 0; i < RateLimitingFilter.MAX_MAP_KEYS; i++) {
+            filter.tryAcquire("10.1." + (i / 250) + "." + (i % 250), RateLimitingFilter.EndpointGroup.PUBLIC_READ, now);
+        }
+        assertEquals(RateLimitingFilter.MAX_MAP_KEYS, filter.getTrackedIpCount());
+
+        // A NEW IP makes a request through the filter -> gets 429 and Retry-After header
+        MockHttpServletRequest newRequest = new MockHttpServletRequest("GET", "/api/v1/public/bookings/REF123");
+        newRequest.addHeader("X-Forwarded-For", "198.51.100.99");
+        MockHttpServletResponse newResponse = new MockHttpServletResponse();
+        filter.doFilter(newRequest, newResponse, (req, res) -> {});
+        assertEquals(429, newResponse.getStatus());
+        assertEquals("60", newResponse.getHeader("Retry-After"));
+        assertTrue(newResponse.getContentAsString().contains("Rate limit exceeded"));
+        assertEquals(RateLimitingFilter.MAX_MAP_KEYS, filter.getTrackedIpCount());
+
+        // An EXISTING IP with remaining quota makes a request -> gets 200 OK
+        MockHttpServletRequest existingRequest = new MockHttpServletRequest("GET", "/api/v1/public/bookings/REF123");
+        existingRequest.addHeader("X-Forwarded-For", "10.1.0.0");
+        MockHttpServletResponse existingResponse = new MockHttpServletResponse();
+        filter.doFilter(existingRequest, existingResponse, (req, res) -> {});
+        assertEquals(200, existingResponse.getStatus());
+    }
+
+    @Test
+    void rateLimitingFilter_headerWithFewerEntriesThanHops_fallsBackToRemoteAddress() {
+        RateLimitingFilter filter = new RateLimitingFilter(10, 2); // 2 hops required
+
+        // Header has only 1 entry (fewer than 2 hops) -> falls back to remote address
+        MockHttpServletRequest req1 = new MockHttpServletRequest();
+        req1.addHeader("X-Forwarded-For", "1.2.3.4");
+        req1.setRemoteAddr("172.16.0.1");
+        assertEquals("172.16.0.1", filter.extractClientIp(req1));
+
+        // Header has 2 entries (>= 2 hops) -> uses the entry 2 hops from the right (parts[0])
+        MockHttpServletRequest req2 = new MockHttpServletRequest();
+        req2.addHeader("X-Forwarded-For", "1.2.3.4, 5.6.7.8");
+        req2.setRemoteAddr("172.16.0.1");
+        assertEquals("1.2.3.4", filter.extractClientIp(req2));
+
+        // Header has 3 entries (>= 2 hops) -> uses parts[parts.length - 2] = parts[1]
+        MockHttpServletRequest req3 = new MockHttpServletRequest();
+        req3.addHeader("X-Forwarded-For", "10.0.0.1, 10.0.0.2, 10.0.0.3");
+        req3.setRemoteAddr("172.16.0.1");
+        assertEquals("10.0.0.2", filter.extractClientIp(req3));
+    }
+
+    @Test
+    void rateLimitingFilter_separateBucketsPerEndpointGroup_bookingCreationWebhookAndGetRequestsAllSucceed() throws Exception {
+        // In the TDD, note: "10 per minute per IP is a demo setting that avoids blocking reviewers behind one office connection."
+        RateLimitingFilter filter = new RateLimitingFilter(10, 30, 120, 1);
+        String clientIp = "203.0.113.50";
+
+        // 1. One booking creation request (POST /api/v1/public/bookings)
+        MockHttpServletRequest postBooking = new MockHttpServletRequest("POST", "/api/v1/public/bookings");
+        postBooking.addHeader("X-Forwarded-For", clientIp);
+        MockHttpServletResponse resBooking = new MockHttpServletResponse();
+        filter.doFilter(postBooking, resBooking, (req, res) -> {});
+        assertEquals(200, resBooking.getStatus());
+
+        // 2. One webhook request (POST /api/v1/public/payments/BK123/mock-webhook)
+        MockHttpServletRequest postWebhook = new MockHttpServletRequest("POST", "/api/v1/public/payments/BK123/mock-webhook");
+        postWebhook.addHeader("X-Forwarded-For", clientIp);
+        MockHttpServletResponse resWebhook = new MockHttpServletResponse();
+        filter.doFilter(postWebhook, resWebhook, (req, res) -> {});
+        assertEquals(200, resWebhook.getStatus());
+
+        // 3. Three GET requests (availability and booking lookup)
+        String[] getUris = {
+                "/api/v1/public/rooms/availability",
+                "/api/v1/public/bookings/BK123",
+                "/api/v1/public/rooms/availability"
+        };
+        for (String uri : getUris) {
+            MockHttpServletRequest getReq = new MockHttpServletRequest("GET", uri);
+            getReq.addHeader("X-Forwarded-For", clientIp);
+            MockHttpServletResponse getRes = new MockHttpServletResponse();
+            filter.doFilter(getReq, getRes, (req, res) -> {});
+            assertEquals(200, getRes.getStatus());
+        }
+
+        // Verify separate buckets were created and tracked for this IP
+        assertNotNull(filter.getBucket(clientIp, RateLimitingFilter.EndpointGroup.BOOKING_CREATION));
+        assertEquals(1, filter.getBucket(clientIp, RateLimitingFilter.EndpointGroup.BOOKING_CREATION).getCount());
+
+        assertNotNull(filter.getBucket(clientIp, RateLimitingFilter.EndpointGroup.PAYMENT_MUTATION));
+        assertEquals(1, filter.getBucket(clientIp, RateLimitingFilter.EndpointGroup.PAYMENT_MUTATION).getCount());
+
+        assertNotNull(filter.getBucket(clientIp, RateLimitingFilter.EndpointGroup.PUBLIC_READ));
+        assertEquals(3, filter.getBucket(clientIp, RateLimitingFilter.EndpointGroup.PUBLIC_READ).getCount());
+    }
+
+    @Test
+    void mockWebhookAndCancelHold_responsesDoNotContainFullEmailOrPhone_andAreMasked() {
+        Booking booking = createSampleBooking(BookingStatus.PENDING_PAYMENT, LocalDateTime.now(fixedClock).plusMinutes(10));
+        booking.setGuestEmail("ananya.hegde@gmail.com");
+        booking.setGuestPhone("9876543221");
+        Payment payment = createSamplePayment(booking);
+        List<DailyInventoryRate> rates = createSampleRates(booking.getRoomCategory(), 1);
+
+        when(bookingRepository.findAndLockByBookingRef(bookingRef)).thenReturn(Optional.of(booking));
+        when(paymentRepository.findByBookingId(booking.getId())).thenReturn(Optional.of(payment));
+        when(dailyInventoryRateRepository.findAndLockByRoomCategoryIdAndStayDateRange(booking.getRoomCategory().getId(), checkIn, checkOut))
+                .thenReturn(rates);
+        when(bookingTransactionService.mapToBookingResponseDto(eq(booking), any())).thenAnswer(inv -> {
+            BookingResponseDto d = new BookingResponseDto();
+            d.setBookingRef(booking.getBookingRef());
+            d.setGuestEmail(booking.getGuestEmail());
+            d.setGuestPhone(booking.getGuestPhone());
+            return d;
+        });
+
+        // Test cancel-hold response
+        BookingResponseDto cancelResponse = bookingPaymentService.cancelHold(bookingRef, validToken);
+        assertNotEquals("ananya.hegde@gmail.com", cancelResponse.getGuestEmail());
+        assertNotEquals("9876543221", cancelResponse.getGuestPhone());
+        assertEquals("a***@gmail.com", cancelResponse.getGuestEmail());
+        assertEquals("98XXXXXX21", cancelResponse.getGuestPhone());
+
+        // Test mock-webhook response
+        booking.setStatus(BookingStatus.PENDING_PAYMENT);
+        payment.setTokenUsed(false);
+        PaymentWebhookRequest req = new PaymentWebhookRequest(validToken, "SUCCESS");
+        BookingResponseDto webhookResponse = bookingPaymentService.processMockWebhook(bookingRef, validToken, req);
+        assertNotEquals("ananya.hegde@gmail.com", webhookResponse.getGuestEmail());
+        assertNotEquals("9876543221", webhookResponse.getGuestPhone());
+        assertEquals("a***@gmail.com", webhookResponse.getGuestEmail());
+        assertEquals("98XXXXXX21", webhookResponse.getGuestPhone());
     }
 
     @Test

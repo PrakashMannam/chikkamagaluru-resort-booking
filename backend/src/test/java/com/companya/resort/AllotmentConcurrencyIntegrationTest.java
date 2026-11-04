@@ -2,7 +2,9 @@ package com.companya.resort;
 
 import com.companya.resort.dto.BookingResponseDto;
 import com.companya.resort.dto.CreateBookingRequest;
+import com.companya.resort.entity.*;
 import com.companya.resort.exception.InsufficientAllotmentException;
+import com.companya.resort.repository.*;
 import com.companya.resort.service.BookingService;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterAll;
@@ -14,7 +16,10 @@ import org.springframework.context.ConfigurableApplicationContext;
 
 import java.math.BigDecimal;
 import java.sql.*;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -32,6 +37,11 @@ class AllotmentConcurrencyIntegrationTest {
     private static BookingService bookingService;
     private static com.companya.resort.service.BookingPaymentService bookingPaymentService;
     private static com.companya.resort.service.BookingExpiryService bookingExpiryService;
+    private static BookingRepository bookingRepository;
+    private static PaymentRepository paymentRepository;
+    private static RoomCategoryRepository roomCategoryRepository;
+    private static RatePlanRepository ratePlanRepository;
+    private static Clock clock;
 
     @BeforeAll
     static void setUp() {
@@ -66,6 +76,7 @@ class AllotmentConcurrencyIntegrationTest {
                         "spring.datasource.username=" + testDbUser,
                         "spring.datasource.password=" + testDbPassword,
                         "spring.jpa.hibernate.ddl-auto=none",
+                        "spring.jpa.properties.hibernate.jdbc.time_zone=UTC",
                         "spring.flyway.enabled=false",
                         "JWT_SECRET=12345678901234567890123456789012",
                         "app.jwt.secret=12345678901234567890123456789012",
@@ -76,6 +87,11 @@ class AllotmentConcurrencyIntegrationTest {
         bookingService = applicationContext.getBean(BookingService.class);
         bookingPaymentService = applicationContext.getBean(com.companya.resort.service.BookingPaymentService.class);
         bookingExpiryService = applicationContext.getBean(com.companya.resort.service.BookingExpiryService.class);
+        bookingRepository = applicationContext.getBean(BookingRepository.class);
+        paymentRepository = applicationContext.getBean(PaymentRepository.class);
+        roomCategoryRepository = applicationContext.getBean(RoomCategoryRepository.class);
+        ratePlanRepository = applicationContext.getBean(RatePlanRepository.class);
+        clock = applicationContext.getBean(Clock.class);
     }
 
     @AfterAll
@@ -506,13 +522,14 @@ class AllotmentConcurrencyIntegrationTest {
             long bookingId;
             try (PreparedStatement insertBooking = conn.prepareStatement(
                     "INSERT INTO bookings (booking_ref, idempotency_key, room_category_id, rate_plan_id, check_in_date, check_out_date, nights, rooms_count, adults, children, guest_name, guest_email, guest_phone, dpdp_consent_given, subtotal_before_discount_inr, discount_amount_inr, taxable_amount_inr, gst_percentage_applied, gst_amount_inr, total_payable_inr, status, expires_at) " +
-                            "VALUES (?, ?, ?, 1, ?, ?, 2, 1, 2, 0, 'Race Guest', 'race@guest.com', '9876543210', 1, 17000.00, 0.00, 17000.00, 0.00, 0.00, 17000.00, 'PENDING_PAYMENT', DATE_SUB(NOW(), INTERVAL 10 SECOND))",
+                            "VALUES (?, ?, ?, 1, ?, ?, 2, 1, 2, 0, 'Race Guest', 'race@guest.com', '9876543210', 1, 17000.00, 0.00, 17000.00, 0.00, 0.00, 17000.00, 'PENDING_PAYMENT', ?)",
                     Statement.RETURN_GENERATED_KEYS)) {
                 insertBooking.setString(1, bookingRef);
                 insertBooking.setString(2, idempotencyKey);
                 insertBooking.setLong(3, roomCategoryId);
                 insertBooking.setDate(4, Date.valueOf(d1));
                 insertBooking.setDate(5, Date.valueOf(d2.plusDays(1)));
+                insertBooking.setTimestamp(6, Timestamp.from(Instant.now().minusSeconds(30)));
                 insertBooking.executeUpdate();
                 try (ResultSet rs = insertBooking.getGeneratedKeys()) {
                     assertTrue(rs.next());
@@ -576,6 +593,124 @@ class AllotmentConcurrencyIntegrationTest {
                 while (rs.next()) {
                     int booked = rs.getInt("booked_count");
                     assertEquals(0, booked, "Stock must be released exactly once (booked_count = 0)");
+                }
+            }
+        }
+    }
+
+    @Test
+    void runScheduledExpiryJob_releasesExpiredPendingPaymentBookingAndStock() throws Exception {
+        Long roomCategoryId = 1L;
+        LocalDate d1 = LocalDate.of(2026, 12, 15);
+        LocalDate d2 = LocalDate.of(2026, 12, 16);
+        String bookingRef = "EXPIRE123456";
+        String idempotencyKey = "expire-idem-" + System.currentTimeMillis();
+        String paymentToken = "expire_token_" + System.currentTimeMillis();
+
+        long bookingId;
+        try (Connection conn = getConnection()) {
+            try (PreparedStatement clean = conn.prepareStatement(
+                    "DELETE FROM payments WHERE booking_id IN (SELECT id FROM bookings WHERE status = 'PENDING_PAYMENT' OR booking_ref = ? OR idempotency_key = ?)")) {
+                clean.setString(1, bookingRef);
+                clean.setString(2, idempotencyKey);
+                clean.executeUpdate();
+            }
+            try (PreparedStatement clean = conn.prepareStatement(
+                    "DELETE FROM bookings WHERE status = 'PENDING_PAYMENT' OR booking_ref = ? OR idempotency_key = ?")) {
+                clean.setString(1, bookingRef);
+                clean.setString(2, idempotencyKey);
+                clean.executeUpdate();
+            }
+            try (PreparedStatement deleteStmt = conn.prepareStatement(
+                    "DELETE FROM daily_inventory_rates WHERE room_category_id = ? AND stay_date IN (?, ?)")) {
+                deleteStmt.setLong(1, roomCategoryId);
+                deleteStmt.setDate(2, Date.valueOf(d1));
+                deleteStmt.setDate(3, Date.valueOf(d2));
+                deleteStmt.executeUpdate();
+            }
+            try (PreparedStatement insertStmt = conn.prepareStatement(
+                    "INSERT INTO daily_inventory_rates (room_category_id, stay_date, base_rate_inr, website_allotment_total, booked_count, version) VALUES (?, ?, ?, ?, ?, ?)")) {
+                insertStmt.setLong(1, roomCategoryId);
+                insertStmt.setDate(2, Date.valueOf(d1));
+                insertStmt.setBigDecimal(3, new BigDecimal("8500.00"));
+                insertStmt.setInt(4, 5);
+                insertStmt.setInt(5, 1); // 1 unit held
+                insertStmt.setLong(6, 0L);
+                insertStmt.executeUpdate();
+
+                insertStmt.setLong(1, roomCategoryId);
+                insertStmt.setDate(2, Date.valueOf(d2));
+                insertStmt.setBigDecimal(3, new BigDecimal("8500.00"));
+                insertStmt.setInt(4, 5);
+                insertStmt.setInt(5, 1); // 1 unit held
+                insertStmt.setLong(6, 0L);
+                insertStmt.executeUpdate();
+            }
+
+            conn.commit();
+        }
+
+        RoomCategory category = roomCategoryRepository.findById(roomCategoryId).orElseThrow();
+        RatePlan ratePlan = ratePlanRepository.findById(1L).orElseThrow();
+
+        Booking booking = new Booking();
+        booking.setBookingRef(bookingRef);
+        booking.setIdempotencyKey(idempotencyKey);
+        booking.setRoomCategory(category);
+        booking.setRatePlan(ratePlan);
+        booking.setCheckInDate(d1);
+        booking.setCheckOutDate(d2.plusDays(1));
+        booking.setNights(2);
+        booking.setRoomsCount(1);
+        booking.setAdults(2);
+        booking.setChildren(0);
+        booking.setGuestName("Expire Guest");
+        booking.setGuestEmail("expire@guest.com");
+        booking.setGuestPhone("9876543210");
+        booking.setDpdpConsentGiven(true);
+        booking.setSubtotalBeforeDiscountInr(new BigDecimal("17000.00"));
+        booking.setDiscountAmountInr(BigDecimal.ZERO);
+        booking.setTaxableAmountInr(new BigDecimal("17000.00"));
+        booking.setGstPercentageApplied(BigDecimal.ZERO);
+        booking.setGstAmountInr(BigDecimal.ZERO);
+        booking.setTotalPayableInr(new BigDecimal("17000.00"));
+        booking.setStatus(BookingStatus.PENDING_PAYMENT);
+        booking.setExpiresAt(LocalDateTime.now(clock).minusMinutes(2));
+        booking = bookingRepository.save(booking);
+        bookingId = booking.getId();
+
+        Payment payment = new Payment();
+        payment.setBooking(booking);
+        payment.setOneTimePaymentToken(paymentToken);
+        payment.setTokenUsed(false);
+        payment.setAmountInr(new BigDecimal("17000.00"));
+        payment.setStatus(PaymentStatus.INITIATED);
+        paymentRepository.save(payment);
+
+        // Call the scheduled entry point (runScheduledExpiryJob)
+        bookingExpiryService.runScheduledExpiryJob();
+
+        // Verify that the booking became EXPIRED
+        try (Connection conn = getConnection();
+             PreparedStatement checkBooking = conn.prepareStatement("SELECT status FROM bookings WHERE id = ?")) {
+            checkBooking.setLong(1, bookingId);
+            try (ResultSet rs = checkBooking.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals("EXPIRED", rs.getString("status"), "Booking status must be updated to EXPIRED");
+            }
+        }
+
+        // Verify that booked_count was released (decremented from 1 back to 0)
+        try (Connection conn = getConnection();
+             PreparedStatement checkRates = conn.prepareStatement(
+                     "SELECT stay_date, booked_count FROM daily_inventory_rates WHERE room_category_id = ? AND stay_date IN (?, ?)")) {
+            checkRates.setLong(1, roomCategoryId);
+            checkRates.setDate(2, Date.valueOf(d1));
+            checkRates.setDate(3, Date.valueOf(d2));
+            try (ResultSet rs = checkRates.executeQuery()) {
+                while (rs.next()) {
+                    int booked = rs.getInt("booked_count");
+                    assertEquals(0, booked, "Stock must be released back to 0");
                 }
             }
         }

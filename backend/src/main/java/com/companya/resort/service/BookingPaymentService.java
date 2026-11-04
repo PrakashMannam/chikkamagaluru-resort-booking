@@ -123,7 +123,10 @@ public class BookingPaymentService {
             }
         }
 
-        return bookingTransactionService.mapToBookingResponseDto(booking, payment.getOneTimePaymentToken());
+        BookingResponseDto dto = bookingTransactionService.mapToBookingResponseDto(booking, payment.getOneTimePaymentToken());
+        dto.setGuestEmail(maskEmail(booking.getGuestEmail()));
+        dto.setGuestPhone(maskPhone(booking.getGuestPhone()));
+        return dto;
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -169,7 +172,10 @@ public class BookingPaymentService {
             dailyInventoryRateRepository.save(rate);
         }
 
-        return bookingTransactionService.mapToBookingResponseDto(booking, payment.getOneTimePaymentToken());
+        BookingResponseDto dto = bookingTransactionService.mapToBookingResponseDto(booking, payment.getOneTimePaymentToken());
+        dto.setGuestEmail(maskEmail(booking.getGuestEmail()));
+        dto.setGuestPhone(maskPhone(booking.getGuestPhone()));
+        return dto;
     }
 
     public BookingResponseDto getBookingMasked(String bookingRef) {

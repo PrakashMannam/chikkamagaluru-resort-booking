@@ -63,6 +63,8 @@ public class BookingEndpointsWebMvcTest {
         BookingResponseDto dto = new BookingResponseDto();
         dto.setBookingRef("BKG123456789");
         dto.setStatus("CONFIRMED");
+        dto.setGuestEmail("a***@gmail.com");
+        dto.setGuestPhone("98XXXXXX21");
 
         when(bookingPaymentService.processMockWebhook(eq("BKG123456789"), eq("tok123"), any()))
                 .thenReturn(dto);
@@ -74,7 +76,9 @@ public class BookingEndpointsWebMvcTest {
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("CONFIRMED"))
-                .andExpect(jsonPath("$.bookingRef").value("BKG123456789"));
+                .andExpect(jsonPath("$.bookingRef").value("BKG123456789"))
+                .andExpect(jsonPath("$.guestEmail").value("a***@gmail.com"))
+                .andExpect(jsonPath("$.guestPhone").value("98XXXXXX21"));
     }
 
     @Test
@@ -110,6 +114,8 @@ public class BookingEndpointsWebMvcTest {
         BookingResponseDto dto = new BookingResponseDto();
         dto.setBookingRef("BKG123456789");
         dto.setStatus("CANCELLED");
+        dto.setGuestEmail("a***@gmail.com");
+        dto.setGuestPhone("98XXXXXX21");
 
         when(bookingPaymentService.cancelHold(eq("BKG123456789"), eq("tok123")))
                 .thenReturn(dto);
@@ -120,7 +126,9 @@ public class BookingEndpointsWebMvcTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("CANCELLED"));
+                .andExpect(jsonPath("$.status").value("CANCELLED"))
+                .andExpect(jsonPath("$.guestEmail").value("a***@gmail.com"))
+                .andExpect(jsonPath("$.guestPhone").value("98XXXXXX21"));
     }
 
     @Test

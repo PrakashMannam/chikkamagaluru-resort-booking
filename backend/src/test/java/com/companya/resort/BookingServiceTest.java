@@ -229,6 +229,8 @@ class BookingServiceTest {
         assertEquals("idem-12345", response.getIdempotencyKey());
         assertEquals(64, response.getOneTimePaymentToken().length(), "Payment token must be 64 characters");
         assertEquals(new BigDecimal("17000.00"), response.getTotalPayableInr());
+        assertEquals("vikram@example.com", response.getGuestEmail(), "Booking creation response stays unmasked");
+        assertEquals("9876543210", response.getGuestPhone(), "Booking creation response stays unmasked");
 
         // Verify allotment was incremented
         assertEquals(2, rateDay1.getBookedCount());
