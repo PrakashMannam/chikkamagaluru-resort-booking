@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -108,6 +109,50 @@ class DatabaseMigrationIntegrationTest {
             try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM rate_plans")) {
                 assertTrue(rs.next());
                 assertEquals(6, rs.getInt(1), "Expected 6 rate plans (3 per category)");
+            }
+        }
+    }
+
+    @Test
+    void v4GstTaxSlabsSeededAndQueryHalfOpenIntervalCorrectly() throws SQLException {
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement()) {
+
+            // Assert exactly 2 slabs exist
+            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM gst_tax_slabs")) {
+                assertTrue(rs.next());
+                assertEquals(2, rs.getInt(1), "Expected exactly 2 GST tax slabs after V4 migration");
+            }
+
+            // Verify half-open interval query in database:
+            String query = "SELECT gst_percentage FROM gst_tax_slabs " +
+                    "WHERE effective_from <= '2026-11-14' AND (effective_to IS NULL OR effective_to >= '2026-11-14') " +
+                    "AND ? > min_tariff_inr AND (max_tariff_inr IS NULL OR ? <= max_tariff_inr)";
+
+            try (PreparedStatement ps = conn.prepareStatement(query)) {
+                // 7500.00 -> 5.00
+                ps.setBigDecimal(1, new BigDecimal("7500.00"));
+                ps.setBigDecimal(2, new BigDecimal("7500.00"));
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(new BigDecimal("5.00"), rs.getBigDecimal(1));
+                }
+
+                // 7500.01 -> 18.00
+                ps.setBigDecimal(1, new BigDecimal("7500.01"));
+                ps.setBigDecimal(2, new BigDecimal("7500.01"));
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(new BigDecimal("18.00"), rs.getBigDecimal(1));
+                }
+
+                // 7500.004 -> 18.00
+                ps.setBigDecimal(1, new BigDecimal("7500.004"));
+                ps.setBigDecimal(2, new BigDecimal("7500.004"));
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next());
+                    assertEquals(new BigDecimal("18.00"), rs.getBigDecimal(1));
+                }
             }
         }
     }
