@@ -1,0 +1,89 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
+  padding: var(--space-2) var(--space-4);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-body);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background-color var(--motion-fast) ease,
+              border-color var(--motion-fast) ease,
+              color var(--motion-fast) ease,
+              box-shadow var(--motion-fast) ease;
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Primary */
+.btn--primary {
+  background-color: var(--color-accent);
+  color: var(--color-surface);
+  border-color: var(--color-accent);
+}
+
+.btn--primary:hover:not(:disabled) {
+  box-shadow: var(--shadow-hover);
+}
+
+/* Secondary */
+.btn--secondary {
+  background-color: var(--color-surface);
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.btn--secondary:hover:not(:disabled) {
+  background-color: var(--color-accent-soft);
+}
+
+/* Ghost */
+.btn--ghost {
+  background-color: transparent;
+  color: var(--color-accent);
+  border-color: transparent;
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background-color: var(--color-accent-soft);
+}
+
+/* Disabled */
+.btn:disabled,
+.btn--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Loading Spinner */
+.btn--loading {
+  position: relative;
+  cursor: wait;
+}
+
+.btn__spinner {
+  display: inline-block;
+  width: 1.125rem;
+  height: 1.125rem;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: btn-spin 0.6s linear infinite;
+}
+
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

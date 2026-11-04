@@ -1,0 +1,99 @@
+.error-banner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+}
+
+@media (min-width: 768px) {
+  .error-banner {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-3) var(--space-4);
+  }
+}
+
+.error-banner--error {
+  background-color: var(--color-danger-tint);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
+}
+
+.error-banner--warning {
+  background-color: var(--color-warning-tint);
+  color: var(--color-warning-text);
+  border: 1px solid var(--color-warning);
+}
+
+.error-banner__content {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  flex: 1;
+}
+
+.error-banner__icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-top: 0.125rem;
+}
+
+.error-banner__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.error-banner__title {
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-body);
+  color: inherit;
+}
+
+.error-banner__message {
+  font-size: var(--text-small);
+  color: inherit;
+}
+
+.error-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.error-banner__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
+  padding: var(--space-1) var(--space-3);
+  font-family: var(--font-body);
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  border: 1px solid currentColor;
+  cursor: pointer;
+  transition: opacity var(--motion-fast) ease;
+}
+
+.error-banner__btn:hover {
+  opacity: 0.8;
+}
+
+.error-banner__btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}

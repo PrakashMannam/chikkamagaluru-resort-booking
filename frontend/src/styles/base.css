@@ -1,0 +1,86 @@
+@import './tokens.css';
+
+/* Reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  font-weight: var(--weight-regular);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Headings */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  line-height: var(--leading-heading);
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+}
+
+h1 {
+  font-size: var(--text-h1);
+}
+
+h2 {
+  font-size: var(--text-h2);
+}
+
+h3 {
+  font-size: var(--text-h3);
+}
+
+/* Links */
+a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color var(--motion-fast) ease;
+}
+
+a:hover {
+  color: var(--color-text);
+}
+
+/* Focus visible */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Form element defaults */
+input,
+button,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+img,
+picture,
+svg,
+video {
+  display: block;
+  max-width: 100%;
+}
