@@ -12,10 +12,17 @@
   font-family: var(--font-body);
   font-size: var(--text-body);
   line-height: var(--leading-body);
-  min-width: 18rem;
+  width: 100%;
   max-width: 28rem;
   transition: opacity var(--motion-fast) ease,
               transform var(--motion-fast) ease;
+}
+
+@media (min-width: 768px) {
+  .toast {
+    width: auto;
+    min-width: 18rem;
+  }
 }
 
 .toast--fixed {
@@ -23,13 +30,14 @@
   bottom: var(--space-4);
   right: var(--space-4);
   z-index: 1100;
+  width: auto;
 }
 
 @media (max-width: 767px) {
   .toast--fixed {
     left: var(--space-4);
     right: var(--space-4);
-    min-width: auto;
+    width: auto;
   }
 }
 

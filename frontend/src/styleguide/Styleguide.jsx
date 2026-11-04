@@ -81,7 +81,9 @@ export function Styleguide() {
               Small text: Taxes shown are indicative in this test build.
             </p>
             <p style={{ marginTop: 'var(--space-2)' }}>
-              <a href="#sec-tokens">Accessible link with visible focus and fast transition</a>
+              <a href="#sec-tokens" className="styleguide__link">
+                Accessible link with visible focus and fast transition
+              </a>
             </p>
           </div>
 
@@ -250,32 +252,30 @@ export function Styleguide() {
         <h2 id="sec-cards" className="styleguide__section-title">
           4. Card (standard, interactive)
         </h2>
-        <div className="styleguide__grid">
-          <div className="styleguide__row">
-            <Card style={{ flex: 1, minWidth: '16rem' }}>
-              <h3>Plantation Cottage</h3>
-              <p style={{ marginTop: 'var(--space-2)', color: 'var(--color-text-muted)' }}>
-                Standard surface card with subtle elevation and 1px border.
-              </p>
-              <div style={{ marginTop: 'var(--space-3)' }}>
-                <Badge variant="success">Available</Badge>
-              </div>
-            </Card>
+        <div className="styleguide__cards">
+          <Card className="styleguide__card">
+            <h3>Plantation Cottage</h3>
+            <p style={{ marginTop: 'var(--space-2)', color: 'var(--color-text-muted)' }}>
+              Standard surface card with subtle elevation and 1px border.
+            </p>
+            <div style={{ marginTop: 'var(--space-3)' }}>
+              <Badge variant="success">Available</Badge>
+            </div>
+          </Card>
 
-            <Card
-              interactive
-              onClick={() => alert('Card clicked')}
-              style={{ flex: 1, minWidth: '16rem' }}
-            >
-              <h3>Estate Pool Villa (Interactive)</h3>
-              <p style={{ marginTop: 'var(--space-2)', color: 'var(--color-text-muted)' }}>
-                Hover or focus with keyboard to view elevation change.
-              </p>
-              <div style={{ marginTop: 'var(--space-3)' }}>
-                <Button variant="secondary">View details</Button>
-              </div>
-            </Card>
-          </div>
+          <Card
+            interactive
+            onClick={() => alert('Card clicked')}
+            className="styleguide__card"
+          >
+            <h3>Estate Pool Villa (Interactive)</h3>
+            <p style={{ marginTop: 'var(--space-2)', color: 'var(--color-text-muted)' }}>
+              Hover or focus with keyboard to view elevation change.
+            </p>
+            <div style={{ marginTop: 'var(--space-3)' }}>
+              <Button variant="secondary">View details</Button>
+            </div>
+          </Card>
         </div>
       </section>
 
@@ -424,7 +424,7 @@ export function Styleguide() {
         </h2>
         <div className="styleguide__grid">
           <p style={{ color: 'var(--color-text-muted)' }}>Static variants:</p>
-          <div className="styleguide__row">
+          <div className="styleguide__toasts">
             <Toast variant="neutral" message="Draft enquiry saved to session." onClose={() => {}} />
             <Toast variant="success" message="Hold confirmed for 10 minutes." onClose={() => {}} />
             <Toast variant="warning" message="High demand: only 1 villa remaining." onClose={() => {}} />
