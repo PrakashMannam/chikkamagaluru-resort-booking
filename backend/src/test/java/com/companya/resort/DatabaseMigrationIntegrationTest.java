@@ -170,4 +170,22 @@ class DatabaseMigrationIntegrationTest {
             }, "Expected CHECK constraint chk_daily_inventory_rates_booked_count to reject booked_count > website_allotment_total");
         }
     }
+
+    @Test
+    void v5EnquiryAiColumnsExist() throws SQLException {
+        Set<String> columns = new HashSet<>();
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(
+                 "SELECT column_name FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'enquiries'")) {
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    columns.add(rs.getString(1).toLowerCase());
+                }
+            }
+        }
+
+        assertTrue(columns.contains("ai_summary"), "Expected column ai_summary to exist in enquiries table");
+        assertTrue(columns.contains("extracted_rooms"), "Expected column extracted_rooms to exist in enquiries table");
+        assertTrue(columns.contains("ai_error_status"), "Expected column ai_error_status to exist in enquiries table");
+    }
 }

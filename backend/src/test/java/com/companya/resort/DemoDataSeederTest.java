@@ -40,11 +40,17 @@ public class DemoDataSeederTest {
     @Mock
     private DailyInventoryRateRepository dailyInventoryRateRepository;
 
+    @Mock
+    private com.companya.resort.repository.EnquiryRepository enquiryRepository;
+
+    @Mock
+    private com.companya.resort.repository.EnquiryDraftRepository enquiryDraftRepository;
+
     private DemoDataSeeder demoDataSeeder;
 
     @BeforeEach
     void setUp() {
-        demoDataSeeder = new DemoDataSeeder(userRepository, passwordEncoder, roomCategoryRepository, dailyInventoryRateRepository);
+        demoDataSeeder = new DemoDataSeeder(userRepository, passwordEncoder, roomCategoryRepository, dailyInventoryRateRepository, enquiryRepository, enquiryDraftRepository);
     }
 
     @Test
@@ -100,5 +106,24 @@ public class DemoDataSeederTest {
         when(dailyInventoryRateRepository.existsByRoomCategoryIdAndStayDate(anyLong(), any())).thenReturn(true);
         demoDataSeeder.seedDemoInventoryRates();
         verify(dailyInventoryRateRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void seedDemoEnquiries_seedsFiveEnquiriesWithDrafts_andIsIdempotent() {
+        when(enquiryRepository.existsByEnquiryCode(anyString())).thenReturn(false);
+
+        demoDataSeeder.seedDemoEnquiries();
+
+        verify(enquiryRepository, times(5)).save(any(com.companya.resort.entity.Enquiry.class));
+        verify(enquiryDraftRepository, times(5)).save(any(com.companya.resort.entity.EnquiryDraft.class));
+
+        // Idempotency: when all 5 codes exist, nothing is saved
+        reset(enquiryRepository, enquiryDraftRepository);
+        when(enquiryRepository.existsByEnquiryCode(anyString())).thenReturn(true);
+
+        demoDataSeeder.seedDemoEnquiries();
+
+        verify(enquiryRepository, never()).save(any());
+        verify(enquiryDraftRepository, never()).save(any());
     }
 }

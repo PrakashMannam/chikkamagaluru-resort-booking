@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 800" width="1600" height="800">
+  <defs>
+    <linearGradient id="sky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#EFE7E1" />
+      <stop offset="65%" stop-color="#F7F5F2" />
+      <stop offset="100%" stop-color="#E4ECE3" />
+    </linearGradient>
+    <linearGradient id="hillFar" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#57534E" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#2E5C31" stop-opacity="0.3" />
+    </linearGradient>
+    <linearGradient id="hillMid" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2E5C31" stop-opacity="0.45" />
+      <stop offset="100%" stop-color="#3E2723" stop-opacity="0.55" />
+    </linearGradient>
+    <linearGradient id="hillNear" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3E2723" stop-opacity="0.75" />
+      <stop offset="100%" stop-color="#292524" stop-opacity="0.9" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="800" fill="url(#sky)" />
+
+  <!-- Distant Ghats ridge -->
+  <path d="M0 430 Q220 330 500 390 T1050 350 Q1300 320 1600 380 L1600 800 L0 800 Z" fill="url(#hillFar)" />
+
+  <!-- Mid-distance coffee slopes -->
+  <path d="M0 520 Q350 420 780 490 T1600 450 L1600 800 L0 800 Z" fill="url(#hillMid)" />
+
+  <!-- Foreground canopy silhouettes -->
+  <path d="M0 620 Q280 540 620 590 T1200 560 Q1420 530 1600 580 L1600 800 L0 800 Z" fill="url(#hillNear)" />
+
+  <!-- Plantation canopy canopy dots/trees -->
+  <g fill="#2E5C31" opacity="0.4">
+    <circle cx="120" cy="580" r="45" />
+    <circle cx="170" cy="570" r="35" />
+    <circle cx="230" cy="590" r="50" />
+    <circle cx="480" cy="550" r="40" />
+    <circle cx="530" cy="540" r="30" />
+    <circle cx="820" cy="530" r="45" />
+    <circle cx="880" cy="520" r="35" />
+    <circle cx="1340" cy="540" r="40" />
+    <circle cx="1400" cy="525" r="50" />
+  </g>
+</svg>

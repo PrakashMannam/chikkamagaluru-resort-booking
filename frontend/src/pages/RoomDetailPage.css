@@ -1,0 +1,340 @@
+.room-detail-page {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-3) var(--space-7);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+@media (min-width: 768px) {
+  .room-detail-page {
+    padding: var(--space-6) var(--space-5) var(--space-7);
+    gap: var(--space-6);
+  }
+}
+
+.room-detail__nav {
+  display: flex;
+  align-items: center;
+}
+
+.room-detail__back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--tap-min);
+  padding: 0 var(--space-2);
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  border-radius: var(--radius-sm);
+  transition: color var(--motion-fast) ease;
+  width: fit-content;
+}
+
+.room-detail__back-link:hover {
+  color: var(--color-text);
+}
+
+.room-detail__back-link:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Header & Meta */
+.room-detail__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.room-detail__meta-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.room-detail__title {
+  font-family: var(--font-heading);
+  font-size: var(--text-h1);
+  color: var(--color-accent);
+  line-height: var(--leading-heading);
+}
+
+.room-detail__stay-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-small);
+  color: var(--color-text);
+  width: fit-content;
+}
+
+.room-detail__stay-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.room-detail__stay-divider {
+  color: var(--color-border-input);
+}
+
+/* Layout Split */
+.room-detail__layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+@media (min-width: 1024px) {
+  .room-detail__layout {
+    display: grid;
+    grid-template-columns: 1fr 1.08fr;
+    gap: var(--space-6);
+    align-items: start;
+  }
+}
+
+/* Photo Gallery */
+.room-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.room-gallery__main-wrap {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-accent-soft);
+  overflow: hidden;
+  box-shadow: var(--shadow-subtle);
+}
+
+.room-gallery__main-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background-color: var(--color-skeleton);
+}
+
+.room-gallery__thumbnails {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding-bottom: var(--space-1);
+}
+
+.room-gallery__thumb-btn {
+  width: 5.5rem;
+  height: 3.75rem;
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-soft);
+  overflow: hidden;
+  padding: 0;
+  cursor: pointer;
+  transition: border-color var(--motion-fast) ease, transform var(--motion-fast) ease;
+}
+
+.room-gallery__thumb-btn:hover {
+  border-color: var(--color-border-input);
+}
+
+.room-gallery__thumb-btn--active {
+  border-color: var(--color-accent);
+}
+
+.room-gallery__thumb-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.room-gallery__thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background-color: var(--color-skeleton);
+}
+
+/* Details and Rate Plans */
+.room-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.room-info__description {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  box-shadow: var(--shadow-subtle);
+}
+
+@media (min-width: 768px) {
+  .room-info__description {
+    padding: var(--space-5);
+  }
+}
+
+.room-info__heading {
+  font-family: var(--font-heading);
+  font-size: var(--text-h3);
+  color: var(--color-text);
+}
+
+.room-info__body {
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  color: var(--color-text);
+}
+
+.room-info__amenities {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+@media (min-width: 768px) {
+  .room-info__amenities {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.room-info__amenity-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-small);
+  color: var(--color-text-muted);
+}
+
+.room-info__bullet {
+  color: var(--color-accent);
+  font-weight: bold;
+}
+
+/* Rate Plans Section */
+.rate-plans {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.rate-plans__title {
+  font-family: var(--font-heading);
+  font-size: var(--text-h2);
+  color: var(--color-text);
+}
+
+.rate-plan-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-subtle);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease;
+}
+
+@media (min-width: 768px) {
+  .rate-plan-card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+  }
+}
+
+.rate-plan-card:hover {
+  border-color: var(--color-border-input);
+  box-shadow: var(--shadow-hover);
+}
+
+.rate-plan-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.rate-plan-card__title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.rate-plan-card__name {
+  font-family: var(--font-heading);
+  font-size: var(--text-h3);
+  color: var(--color-text);
+}
+
+.rate-plan-card__desc {
+  font-size: var(--text-small);
+  color: var(--color-text-muted);
+  line-height: var(--leading-body);
+}
+
+.rate-plan-card__action-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-start;
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .rate-plan-card__action-group {
+    align-items: flex-end;
+    text-align: right;
+    min-width: 180px;
+  }
+}
+
+.rate-plan-card__price {
+  font-size: 1.5rem;
+  font-weight: var(--weight-semibold);
+  color: var(--color-accent);
+}
+
+.rate-plan-card__tax-note {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-align: left;
+}
+
+@media (min-width: 768px) {
+  .rate-plan-card__tax-note {
+    text-align: right;
+    max-width: 220px;
+  }
+}

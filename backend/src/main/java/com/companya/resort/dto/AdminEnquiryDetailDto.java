@@ -1,0 +1,384 @@
+package com.companya.resort.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+public class AdminEnquiryDetailDto {
+
+    private Long id;
+
+    @JsonProperty("enquiry_code")
+    private String enquiryCode;
+
+    @JsonProperty("source_channel")
+    private String sourceChannel;
+
+    @JsonProperty("sender_name")
+    private String senderName;
+
+    @JsonProperty("sender_contact")
+    private String senderContact;
+
+    @JsonProperty("raw_message")
+    private String rawMessage;
+
+    @JsonProperty("ai_summary")
+    private String aiSummary;
+
+    private String category;
+
+    @JsonProperty("ai_confidence")
+    private BigDecimal aiConfidence;
+
+    @JsonProperty("routing_method")
+    private String routingMethod;
+
+    @JsonProperty("extracted_check_in")
+    private LocalDate extractedCheckIn;
+
+    @JsonProperty("extracted_check_out")
+    private LocalDate extractedCheckOut;
+
+    @JsonProperty("extracted_nights")
+    private Integer extractedNights;
+
+    @JsonProperty("extracted_guests")
+    private Integer extractedGuests;
+
+    @JsonProperty("extracted_rooms")
+    private Integer extractedRooms;
+
+    @JsonProperty("extracted_budget_inr")
+    private BigDecimal extractedBudgetInr;
+
+    @JsonProperty("assigned_to_user_id")
+    private Long assignedToUserId;
+
+    @JsonProperty("assigned_to_user_name")
+    private String assignedToUserName;
+
+    @JsonProperty("assigned_to_user_lane")
+    private String assignedToUserLane;
+
+    @JsonProperty("gm_alerted")
+    private Boolean gmAlerted;
+
+    @JsonProperty("ai_error_status")
+    private String aiErrorStatus;
+
+    private String status;
+
+    @JsonProperty("received_at")
+    private LocalDateTime receivedAt;
+
+    @JsonProperty("first_replied_at")
+    private LocalDateTime firstRepliedAt;
+
+    @JsonProperty("active_draft")
+    private ActiveDraftDto activeDraft;
+
+    public static class ActiveDraftDto {
+        private Long id;
+
+        @JsonProperty("draft_body")
+        private String draftBody;
+
+        private String status;
+
+        @JsonProperty("quoted_rate_breakdown_json")
+        private String quotedRateBreakdownJson;
+
+        @JsonProperty("generated_by")
+        private String generatedBy;
+
+        @JsonProperty("sent_by_user_id")
+        private Long sentByUserId;
+
+        @JsonProperty("sent_by_user_name")
+        private String sentByUserName;
+
+        @JsonProperty("sent_at")
+        private LocalDateTime sentAt;
+
+        @JsonProperty("created_at")
+        private LocalDateTime createdAt;
+
+        public Long getId() {
+            return id;
+        }
+
+        public void setId(Long id) {
+            this.id = id;
+        }
+
+        public String getDraftBody() {
+            return draftBody;
+        }
+
+        public void setDraftBody(String draftBody) {
+            this.draftBody = draftBody;
+        }
+
+        public String getStatus() {
+            return status;
+        }
+
+        public void setStatus(String status) {
+            this.status = status;
+        }
+
+        public String getQuotedRateBreakdownJson() {
+            return quotedRateBreakdownJson;
+        }
+
+        public void setQuotedRateBreakdownJson(String quotedRateBreakdownJson) {
+            this.quotedRateBreakdownJson = quotedRateBreakdownJson;
+        }
+
+        public String getGeneratedBy() {
+            return generatedBy;
+        }
+
+        public void setGeneratedBy(String generatedBy) {
+            this.generatedBy = generatedBy;
+        }
+
+        public Long getSentByUserId() {
+            return sentByUserId;
+        }
+
+        public void setSentByUserId(Long sentByUserId) {
+            this.sentByUserId = sentByUserId;
+        }
+
+        public String getSentByUserName() {
+            return sentByUserName;
+        }
+
+        public void setSentByUserName(String sentByUserName) {
+            this.sentByUserName = sentByUserName;
+        }
+
+        public LocalDateTime getSentAt() {
+            return sentAt;
+        }
+
+        public void setSentAt(LocalDateTime sentAt) {
+            this.sentAt = sentAt;
+        }
+
+        public LocalDateTime getCreatedAt() {
+            return createdAt;
+        }
+
+        public void setCreatedAt(LocalDateTime createdAt) {
+            this.createdAt = createdAt;
+        }
+    }
+
+    public AdminEnquiryDetailDto() {
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getEnquiryCode() {
+        return enquiryCode;
+    }
+
+    public void setEnquiryCode(String enquiryCode) {
+        this.enquiryCode = enquiryCode;
+    }
+
+    public String getSourceChannel() {
+        return sourceChannel;
+    }
+
+    public void setSourceChannel(String sourceChannel) {
+        this.sourceChannel = sourceChannel;
+    }
+
+    public String getSenderName() {
+        return senderName;
+    }
+
+    public void setSenderName(String senderName) {
+        this.senderName = senderName;
+    }
+
+    public String getSenderContact() {
+        return senderContact;
+    }
+
+    public void setSenderContact(String senderContact) {
+        this.senderContact = senderContact;
+    }
+
+    public String getRawMessage() {
+        return rawMessage;
+    }
+
+    public void setRawMessage(String rawMessage) {
+        this.rawMessage = rawMessage;
+    }
+
+    public String getAiSummary() {
+        return aiSummary;
+    }
+
+    public void setAiSummary(String aiSummary) {
+        this.aiSummary = aiSummary;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public BigDecimal getAiConfidence() {
+        return aiConfidence;
+    }
+
+    public void setAiConfidence(BigDecimal aiConfidence) {
+        this.aiConfidence = aiConfidence;
+    }
+
+    public String getRoutingMethod() {
+        return routingMethod;
+    }
+
+    public void setRoutingMethod(String routingMethod) {
+        this.routingMethod = routingMethod;
+    }
+
+    public LocalDate getExtractedCheckIn() {
+        return extractedCheckIn;
+    }
+
+    public void setExtractedCheckIn(LocalDate extractedCheckIn) {
+        this.extractedCheckIn = extractedCheckIn;
+    }
+
+    public LocalDate getExtractedCheckOut() {
+        return extractedCheckOut;
+    }
+
+    public void setExtractedCheckOut(LocalDate extractedCheckOut) {
+        this.extractedCheckOut = extractedCheckOut;
+    }
+
+    public Integer getExtractedNights() {
+        return extractedNights;
+    }
+
+    public void setExtractedNights(Integer extractedNights) {
+        this.extractedNights = extractedNights;
+    }
+
+    public Integer getExtractedGuests() {
+        return extractedGuests;
+    }
+
+    public void setExtractedGuests(Integer extractedGuests) {
+        this.extractedGuests = extractedGuests;
+    }
+
+    public Integer getExtractedRooms() {
+        return extractedRooms;
+    }
+
+    public void setExtractedRooms(Integer extractedRooms) {
+        this.extractedRooms = extractedRooms;
+    }
+
+    public BigDecimal getExtractedBudgetInr() {
+        return extractedBudgetInr;
+    }
+
+    public void setExtractedBudgetInr(BigDecimal extractedBudgetInr) {
+        this.extractedBudgetInr = extractedBudgetInr;
+    }
+
+    public Long getAssignedToUserId() {
+        return assignedToUserId;
+    }
+
+    public void setAssignedToUserId(Long assignedToUserId) {
+        this.assignedToUserId = assignedToUserId;
+    }
+
+    public String getAssignedToUserName() {
+        return assignedToUserName;
+    }
+
+    public void setAssignedToUserName(String assignedToUserName) {
+        this.assignedToUserName = assignedToUserName;
+    }
+
+    public String getAssignedToUserLane() {
+        return assignedToUserLane;
+    }
+
+    public void setAssignedToUserLane(String assignedToUserLane) {
+        this.assignedToUserLane = assignedToUserLane;
+    }
+
+    public Boolean getGmAlerted() {
+        return gmAlerted;
+    }
+
+    public void setGmAlerted(Boolean gmAlerted) {
+        this.gmAlerted = gmAlerted;
+    }
+
+    public String getAiErrorStatus() {
+        return aiErrorStatus;
+    }
+
+    public void setAiErrorStatus(String aiErrorStatus) {
+        this.aiErrorStatus = aiErrorStatus;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getReceivedAt() {
+        return receivedAt;
+    }
+
+    public void setReceivedAt(LocalDateTime receivedAt) {
+        this.receivedAt = receivedAt;
+    }
+
+    public LocalDateTime getFirstRepliedAt() {
+        return firstRepliedAt;
+    }
+
+    public void setFirstRepliedAt(LocalDateTime firstRepliedAt) {
+        this.firstRepliedAt = firstRepliedAt;
+    }
+
+    public ActiveDraftDto getActiveDraft() {
+        return activeDraft;
+    }
+
+    public void setActiveDraft(ActiveDraftDto activeDraft) {
+        this.activeDraft = activeDraft;
+    }
+}

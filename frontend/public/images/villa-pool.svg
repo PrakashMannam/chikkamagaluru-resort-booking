@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <defs>
+    <linearGradient id="villaSky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#EFE7E1" />
+      <stop offset="60%" stop-color="#F7F5F2" />
+      <stop offset="100%" stop-color="#E4ECE3" />
+    </linearGradient>
+    <linearGradient id="poolWater" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E4ECE3" />
+      <stop offset="100%" stop-color="#2E5C31" stop-opacity="0.3" />
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="600" fill="url(#villaSky)" />
+
+  <!-- Mountain Backdrop -->
+  <path d="M0 320 Q240 220 520 280 T800 250 L800 600 L0 600 Z" fill="#2E5C31" opacity="0.25" />
+  <path d="M0 380 Q320 290 640 360 L800 340 L800 600 L0 600 Z" fill="#2E5C31" opacity="0.45" />
+
+  <!-- Villa Stone Deck -->
+  <path d="M0 430 L800 410 L800 600 L0 600 Z" fill="#EFE7E1" stroke="#E7E5E4" stroke-width="2" />
+
+  <!-- Infinity Plunge Pool -->
+  <polygon points="120,440 680,425 720,550 80,570" fill="url(#poolWater)" stroke="#3E2723" stroke-width="3" />
+  <line x1="120" y1="440" x2="680" y2="425" stroke="#FFFFFF" stroke-width="2" opacity="0.8" />
+
+  <!-- Pergola Shadow / Overhang -->
+  <rect x="0" y="0" width="800" height="40" fill="#3E2723" opacity="0.1" />
+</svg>

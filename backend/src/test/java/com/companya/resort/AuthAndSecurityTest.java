@@ -219,6 +219,7 @@ class AuthAndSecurityTest {
             new SpringApplicationBuilder(ResortApplication.class)
                     .properties(
                             "app.jwt.secret=too-short",
+                            "JWT_SECRET=too-short",
                             "spring.datasource.url=jdbc:mysql://localhost:3306/dummy",
                             "spring.flyway.enabled=false"
                     )
@@ -234,6 +235,7 @@ class AuthAndSecurityTest {
             new SpringApplicationBuilder(ResortApplication.class)
                     .properties(
                             "app.jwt.secret=",
+                            "JWT_SECRET=",
                             "spring.datasource.url=jdbc:mysql://localhost:3306/dummy",
                             "spring.flyway.enabled=false"
                     )

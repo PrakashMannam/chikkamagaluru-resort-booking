@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+  <defs>
+    <linearGradient id="canopyWall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#EFE7E1" />
+      <stop offset="100%" stop-color="#E7E5E4" />
+    </linearGradient>
+    <linearGradient id="canopyView" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E4ECE3" />
+      <stop offset="100%" stop-color="#F7F5F2" />
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="600" fill="url(#canopyWall)" />
+
+  <!-- Verandah Arch Opening -->
+  <path d="M120 540 L120 220 Q400 120 680 220 L680 540 Z" fill="url(#canopyView)" stroke="#3E2723" stroke-width="4" />
+
+  <!-- Distant Hill through Verandah -->
+  <path d="M120 440 Q380 340 680 400 L680 540 L120 540 Z" fill="#2E5C31" opacity="0.35" />
+  <path d="M120 480 Q320 410 680 470 L680 540 L120 540 Z" fill="#2E5C31" opacity="0.55" />
+
+  <!-- Verandah Railing -->
+  <rect x="120" y="500" width="560" height="12" fill="#3E2723" />
+  <line x1="200" y1="512" x2="200" y2="540" stroke="#3E2723" stroke-width="6" />
+  <line x1="300" y1="512" x2="300" y2="540" stroke="#3E2723" stroke-width="6" />
+  <line x1="400" y1="512" x2="400" y2="540" stroke="#3E2723" stroke-width="6" />
+  <line x1="500" y1="512" x2="500" y2="540" stroke="#3E2723" stroke-width="6" />
+  <line x1="600" y1="512" x2="600" y2="540" stroke="#3E2723" stroke-width="6" />
+
+  <!-- Teak Deck Base -->
+  <rect x="0" y="540" width="800" height="60" fill="#3E2723" />
+  <line x1="0" y1="560" x2="800" y2="560" stroke="#57534E" stroke-width="1" opacity="0.4" />
+  <line x1="0" y1="580" x2="800" y2="580" stroke="#57534E" stroke-width="1" opacity="0.4" />
+</svg>

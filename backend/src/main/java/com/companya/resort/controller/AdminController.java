@@ -50,4 +50,24 @@ public class AdminController {
 
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/staff")
+    public ResponseEntity<?> getStaffMembers() {
+        java.util.List<User> users = userRepository.findAll();
+        java.util.List<Map<String, Object>> staffList = users.stream().map(u -> {
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("id", u.getId());
+            map.put("fullName", u.getFullName());
+            map.put("full_name", u.getFullName());
+            map.put("email", u.getEmail());
+            map.put("role", u.getRole().name());
+            map.put("isGm", u.getIsGm());
+            map.put("is_gm", u.getIsGm());
+            map.put("specialtyLane", u.getSpecialtyLane() != null ? u.getSpecialtyLane().name() : null);
+            map.put("specialty_lane", u.getSpecialtyLane() != null ? u.getSpecialtyLane().name() : null);
+            return map;
+        }).toList();
+
+        return ResponseEntity.ok(staffList);
+    }
 }

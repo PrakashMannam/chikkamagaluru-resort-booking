@@ -1,0 +1,425 @@
+.staff-enquiry-detail-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.staff-detail-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.staff-detail-back-link {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #2E5A44;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.staff-detail-back-link:hover {
+  text-decoration: underline;
+  color: #1E3D2F;
+}
+
+.staff-detail-nav__badges {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* GM Complaint Alert Banner */
+.gm-complaint-banner {
+  background-color: #FDEDEC;
+  border: 1px solid #F5B7B1;
+  border-left: 4px solid #C62828;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.gm-complaint-banner__icon {
+  font-size: 1.75rem;
+}
+
+.gm-complaint-banner__text strong {
+  display: block;
+  font-size: 0.9375rem;
+  color: #922B21;
+}
+
+.gm-complaint-banner__text p {
+  margin: 0.2rem 0 0 0;
+  font-size: 0.8125rem;
+  color: #78281F;
+}
+
+/* Two-column layout */
+.staff-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.staff-detail-left,
+.staff-detail-right {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.staff-detail-card {
+  background-color: #FFFFFF;
+  border: 1px solid #EFE7E1;
+  border-radius: 8px;
+}
+
+.staff-detail-card__title {
+  font-family: "Lora", Georgia, serif;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #3E2723;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #F5EFEB;
+}
+
+.staff-card-desc {
+  font-size: 0.8125rem;
+  color: #6D4C41;
+  margin: -0.5rem 0 0.875rem 0;
+}
+
+/* Metadata Grid */
+.staff-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.875rem 1rem;
+}
+
+.staff-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.staff-meta-item--span2 {
+  grid-column: span 2;
+}
+
+.staff-meta-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #8D6E63;
+}
+
+.staff-meta-value {
+  font-size: 0.875rem;
+  color: #3E2723;
+}
+
+.staff-meta-value--bold {
+  font-weight: 700;
+}
+
+.staff-raw-message {
+  margin: 0;
+  padding: 0.875rem 1rem;
+  background-color: #FAF7F2;
+  border-left: 3px solid #3E2723;
+  border-radius: 0 6px 6px 0;
+  font-style: normal;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: #3E2723;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.staff-error-tag {
+  background-color: #FEE2E2;
+  color: #991B1B;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.staff-ai-summary-text {
+  font-size: 0.8125rem;
+  color: #5D4037;
+  line-height: 1.4;
+  margin: 0.2rem 0 0 0;
+}
+
+/* Reroute form */
+.staff-reroute-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.staff-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.staff-form-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #5D4037;
+}
+
+.staff-form-select {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #D7CCC8;
+  border-radius: 6px;
+  background-color: #FAF7F2;
+  font-size: 0.8125rem;
+  color: #3E2723;
+  box-sizing: border-box;
+}
+
+.staff-form-select:focus {
+  outline: none;
+  border-color: #2E5A44;
+  background-color: #FFFFFF;
+  box-shadow: 0 0 0 2px rgba(46, 90, 68, 0.15);
+}
+
+.staff-success-alert {
+  background-color: #DCFCE7;
+  color: #166534;
+  border: 1px solid #BBF7D0;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.staff-error-alert {
+  background-color: #FEE2E2;
+  color: #991B1B;
+  border: 1px solid #FECACA;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+/* Draft Review Card */
+.staff-draft-card {
+  position: sticky;
+  top: 5rem;
+}
+
+.staff-draft-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.staff-draft-badge {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: #8D6E63;
+}
+
+.staff-draft-title {
+  font-family: "Lora", Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #3E2723;
+  margin: 0.2rem 0 0 0;
+}
+
+.staff-draft-explainer {
+  font-size: 0.8125rem;
+  color: #6D4C41;
+  line-height: 1.5;
+  margin: 0.75rem 0 1.25rem 0;
+}
+
+.staff-quote-breakdown-box {
+  background-color: #FAF7F2;
+  border: 1px solid #EFE7E1;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.staff-quote-breakdown-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #2E5A44;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.5rem 0;
+}
+
+.staff-quote-code {
+  margin: 0;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 0.75rem;
+  color: #3E2723;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  max-height: 140px;
+}
+
+.staff-delivery-success-card {
+  background-color: #DCFCE7;
+  border: 1px solid #86EFAC;
+  border-radius: 8px;
+  padding: 0.875rem 1.25rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.staff-delivery-success__icon {
+  font-size: 1.25rem;
+  color: #166534;
+  font-weight: 700;
+}
+
+.staff-delivery-success__content strong {
+  display: block;
+  font-size: 0.875rem;
+  color: #14532D;
+}
+
+.staff-delivery-success__content p {
+  margin: 0.2rem 0;
+  font-size: 0.8125rem;
+  color: #166534;
+}
+
+.staff-delivery-note {
+  font-size: 0.6875rem;
+  color: #15803D;
+  font-style: italic;
+}
+
+.staff-draft-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.staff-draft-textarea {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 1px solid #D7CCC8;
+  border-radius: 8px;
+  background-color: #FAF7F2;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: #3E2723;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.staff-draft-textarea:focus {
+  outline: none;
+  border-color: #2E5A44;
+  background-color: #FFFFFF;
+  box-shadow: 0 0 0 2px rgba(46, 90, 68, 0.15);
+}
+
+.staff-draft-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.75rem;
+  color: #8D6E63;
+  margin-top: 0.625rem;
+  padding-top: 0.625rem;
+  border-top: 1px dashed #EFE7E1;
+}
+
+.staff-draft-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  margin-top: 1.25rem;
+}
+
+.staff-simulation-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: #6D4C41;
+  background-color: #FAF7F2;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #EFE7E1;
+}
+
+.staff-draft-btn-group {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.staff-btn--discard {
+  color: #C62828 !important;
+}
+
+.staff-btn--discard:hover {
+  background-color: #FEE2E2 !important;
+}
+
+.staff-btn--approve {
+  font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 960px) {
+  .staff-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .staff-draft-card {
+    position: static;
+  }
+}
+
+@media (max-width: 480px) {
+  .staff-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .staff-meta-item--span2 {
+    grid-column: span 1;
+  }
+
+  .staff-draft-btn-group {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .staff-draft-btn-group button {
+    width: 100%;
+  }
+}
