@@ -6,6 +6,7 @@ import { ProtectedRoute } from './components/staff/ProtectedRoute';
 import { StaffAuthProvider } from './context/StaffAuthContext';
 import { Skeleton } from './components/ui';
 
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 const GuestAvailabilityPage = lazy(() => import('./pages/GuestAvailabilityPage'));
 const RoomDetailPage = lazy(() => import('./pages/RoomDetailPage'));
 const GuestCheckoutPage = lazy(() => import('./pages/GuestCheckoutPage'));
@@ -35,8 +36,9 @@ export function App() {
           <Routes>
             {/* Guest Public Flow */}
             <Route element={<GuestLayout />}>
-              <Route path="/" element={<GuestAvailabilityPage />} />
-              <Route path="/rooms" element={<Navigate to="/" replace />} />
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/stay" element={<GuestAvailabilityPage />} />
+              <Route path="/rooms" element={<Navigate to="/stay" replace />} />
               <Route path="/rooms/:code" element={<RoomDetailPage />} />
               <Route path="/checkout" element={<GuestCheckoutPage />} />
               <Route path="/payment/:ref" element={<GuestPaymentPage />} />
