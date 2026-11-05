@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
-import { fetchAvailability, createBooking } from '../api/roomsApi';
+import { fetchAvailability, fetchPricingQuote, createBooking } from '../api/roomsApi';
 import {
   BOOKING_WINDOW,
   calculateNights,
@@ -44,6 +44,7 @@ export function GuestCheckoutPage() {
 
   // Availability & pricing data
   const [availabilityData, setAvailabilityData] = useState(null);
+  const [pricingQuote, setPricingQuote] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
 
@@ -52,7 +53,11 @@ export function GuestCheckoutPage() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [dpdpConsent, setDpdpConsent] = useState(false);
-  const [promoCode, setPromoCode] = useState('');
+
+  // Promo code state
+  const [promoInput, setPromoInput] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState('');
+  const [isApplyingPromo, setIsApplyingPromo] = useState(false);
 
   // Field validation errors
   const [fieldErrors, setFieldErrors] = useState({});
@@ -83,24 +88,91 @@ export function GuestCheckoutPage() {
     setIsLoading(true);
     setLoadError(null);
     try {
-      const data = await fetchAvailability({
+      const [data, quote] = await Promise.all([
+        fetchAvailability({
+          checkIn,
+          checkOut,
+          rooms,
+          adults,
+          children,
+        }),
+        fetchPricingQuote({
+          categoryCode,
+          planCode,
+          checkIn,
+          checkOut,
+          rooms,
+          adults,
+          children,
+        }),
+      ]);
+      setAvailabilityData(data);
+      setPricingQuote(quote);
+    } catch (err) {
+      setLoadError(err.message || 'Unable to retrieve reservation details.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [checkIn, checkOut, rooms, adults, children, categoryCode, planCode]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  async function handleApplyPromo(e) {
+    if (e) e.preventDefault();
+    const cleanCode = promoInput.trim();
+    if (!cleanCode) return;
+
+    setIsApplyingPromo(true);
+    setFieldErrors((prev) => ({ ...prev, promoCode: null }));
+    try {
+      const quote = await fetchPricingQuote({
+        categoryCode,
+        planCode,
+        checkIn,
+        checkOut,
+        rooms,
+        adults,
+        children,
+        promoCode: cleanCode,
+      });
+      setPricingQuote(quote);
+      setAppliedPromo(quote.promoCode || cleanCode);
+      idempotencyKeyRef.current = generateUUID();
+    } catch (err) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        promoCode: err.message || 'Invalid or inactive promotional code.',
+      }));
+    } finally {
+      setIsApplyingPromo(false);
+    }
+  }
+
+  async function handleRemovePromo() {
+    setPromoInput('');
+    setAppliedPromo('');
+    setFieldErrors((prev) => ({ ...prev, promoCode: null }));
+    setIsApplyingPromo(true);
+    try {
+      const quote = await fetchPricingQuote({
+        categoryCode,
+        planCode,
         checkIn,
         checkOut,
         rooms,
         adults,
         children,
       });
-      setAvailabilityData(data);
+      setPricingQuote(quote);
+      idempotencyKeyRef.current = generateUUID();
     } catch (err) {
-      setLoadError(err.message || 'Unable to retrieve reservation details.');
+      setLoadError(err.message || 'Unable to update pricing quote.');
     } finally {
-      setIsLoading(false);
+      setIsApplyingPromo(false);
     }
-  }, [checkIn, checkOut, rooms, adults, children]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  }
 
   const nights = calculateNights(checkIn, checkOut);
 
@@ -144,7 +216,7 @@ export function GuestCheckoutPage() {
       return;
     }
 
-    if (!category || !selectedPlan) {
+    if (!category || !selectedPlan || !pricingQuote) {
       setSubmitError('The selected accommodation or dining plan is unavailable. Please return to room selection.');
       return;
     }
@@ -162,7 +234,7 @@ export function GuestCheckoutPage() {
       guestName: fullName.trim(),
       guestEmail: email.trim(),
       guestPhone: phone.trim(),
-      promoCode: promoCode.trim() || undefined,
+      promoCode: appliedPromo || promoInput.trim() || undefined,
       dpdpConsentGiven: true,
     };
 
@@ -191,7 +263,7 @@ export function GuestCheckoutPage() {
       // Navigate to payment step
       navigate(`/payment/${encodeURIComponent(response.bookingRef)}`);
     } catch (err) {
-      if (err.status === 422 && err.serverBody?.error === 'Invalid Promo Code') {
+      if (err.status === 422 && (err.serverBody?.error === 'Invalid Promo Code' || err.message?.toLowerCase().includes('promo'))) {
         setFieldErrors((prev) => ({
           ...prev,
           promoCode: err.message,
@@ -251,7 +323,7 @@ export function GuestCheckoutPage() {
       )}
 
       {/* Missing or Sold-out Category */}
-      {!isLoading && !loadError && (!category || !selectedPlan) && (
+      {!isLoading && !loadError && (!category || !selectedPlan || !pricingQuote) && (
         <EmptyState
           title="Accommodation or Plan Unavailable"
           description="The selected accommodation tier or dining plan is not currently available for these dates."
@@ -264,7 +336,7 @@ export function GuestCheckoutPage() {
       )}
 
       {/* Main Checkout Experience */}
-      {!isLoading && !loadError && category && selectedPlan && (
+      {!isLoading && !loadError && category && selectedPlan && pricingQuote && (
         <div className="checkout__layout">
           {/* Left Column: Guest Information & Form */}
           <main className="checkout-main">
@@ -332,16 +404,50 @@ export function GuestCheckoutPage() {
 
                 {/* Promotional Code */}
                 <div className="checkout-form__promo-section">
-                  <Input
-                    id="checkout-promo"
-                    label="Promotional Code"
-                    name="promoCode"
-                    value={promoCode}
-                    onChange={handleFieldChange(setPromoCode, 'promoCode')}
-                    placeholder="e.g. DIRECT10"
-                    error={fieldErrors.promoCode}
-                    helperText="Discounts and eligible taxes are computed deterministically by the estate reservation server"
-                  />
+                  <div className="checkout-form__promo-wrap">
+                    <Input
+                      id="checkout-promo"
+                      label="Promotional Code"
+                      name="promoCode"
+                      value={promoInput}
+                      onChange={(e) => {
+                        setPromoInput(e.target.value);
+                        if (fieldErrors.promoCode) {
+                          setFieldErrors((prev) => ({ ...prev, promoCode: null }));
+                        }
+                      }}
+                      placeholder="e.g. DIRECT10"
+                      error={fieldErrors.promoCode}
+                      helperText={
+                        appliedPromo
+                          ? `Promo code "${appliedPromo}" applied successfully!`
+                          : "Discounts and eligible taxes are computed deterministically by the estate reservation server"
+                      }
+                    />
+                    <div className="checkout-form__promo-actions">
+                      {appliedPromo ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={handleRemovePromo}
+                          disabled={isApplyingPromo}
+                          className="checkout-form__promo-btn checkout-form__promo-btn--remove"
+                        >
+                          Remove
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={handleApplyPromo}
+                          disabled={isApplyingPromo || !promoInput.trim()}
+                          className="checkout-form__promo-btn"
+                        >
+                          {isApplyingPromo ? 'Applying…' : 'Apply'}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* International Guest Notice */}
@@ -445,44 +551,75 @@ export function GuestCheckoutPage() {
                   </div>
                 </div>
 
-                {/* Itemized Pricing from Server */}
+                {/* Itemized Pricing from Authoritative Server Quote */}
                 <div className="summary-card__pricing">
                   <h3 className="summary-card__pricing-heading">Tariff Summary</h3>
 
                   <div className="summary-card__price-line">
-                    <span>Base Accommodations</span>
-                    <span>{formatINR(category.startingRatePerNight * nights * rooms)}</span>
+                    <span>Base Accommodations ({nights} {nights === 1 ? 'Night' : 'Nights'})</span>
+                    <span>{formatINR(pricingQuote.baseAccommodationTotalInr)}</span>
                   </div>
 
-                  {selectedPlan.priceModifierValue > 0 && (
+                  {pricingQuote.ratePlanAddonTotalInr > 0 && (
                     <div className="summary-card__price-line">
-                      <span>Dining Plan Addon ({selectedPlan.code})</span>
-                      <span>{formatINR(selectedPlan.priceModifierValue * nights * rooms)}</span>
+                      <span>Dining Plan Addon ({pricingQuote.ratePlanCode || selectedPlan.code})</span>
+                      <span>{formatINR(pricingQuote.ratePlanAddonTotalInr)}</span>
                     </div>
                   )}
 
                   <div className="summary-card__price-line summary-card__price-line--subtotal">
                     <span>Subtotal Before Discount</span>
-                    <span>{formatINR(selectedPlan.subtotalBeforeDiscountInr)}</span>
+                    <span>{formatINR(pricingQuote.subtotalBeforeDiscountInr)}</span>
                   </div>
+
+                  {pricingQuote.discountAmountInr > 0 && (
+                    <div className="summary-card__price-line summary-card__price-line--discount">
+                      <span>Promotional Discount ({pricingQuote.promoCode})</span>
+                      <span>&minus;{formatINR(pricingQuote.discountAmountInr)}</span>
+                    </div>
+                  )}
+
+                  {pricingQuote.discountAmountInr > 0 && (
+                    <div className="summary-card__price-line">
+                      <span>Taxable Amount</span>
+                      <span>{formatINR(pricingQuote.taxableAmountInr)}</span>
+                    </div>
+                  )}
 
                   <div className="summary-card__price-line">
                     <span>
-                      Applicable GST ({selectedPlan.gstPercentageApplied}%)
+                      Applicable GST ({pricingQuote.gstPercentageApplied}%)
                     </span>
-                    <span>{formatINR(selectedPlan.gstAmountInr)}</span>
+                    <span>{formatINR(pricingQuote.gstAmountInr)}</span>
                   </div>
 
                   <div className="summary-card__tax-note">
-                    Taxes shown are indicative in this test build
+                    GST rates are provisional and pending verification. Final tax treatment must be confirmed by the property.
                   </div>
 
                   <div className="summary-card__total-row">
                     <span className="summary-card__total-label">Total Payable</span>
                     <span className="summary-card__total-val">
-                      {formatINR(selectedPlan.totalPayableInr)}
+                      {formatINR(pricingQuote.totalPayableInr)}
                     </span>
                   </div>
+
+                  {/* Nightly breakdown if more than 1 night */}
+                  {pricingQuote.nightlyRates && pricingQuote.nightlyRates.length > 1 && (
+                    <details className="summary-card__nightly-details">
+                      <summary className="summary-card__nightly-summary">
+                        Nightly rate details ({pricingQuote.nightlyRates.length} nights)
+                      </summary>
+                      <div className="summary-card__nightly-list">
+                        {pricingQuote.nightlyRates.map((n) => (
+                          <div key={n.stayDate} className="summary-card__nightly-row">
+                            <span className="summary-card__nightly-date">{n.stayDate}</span>
+                            <span className="summary-card__nightly-rate">{formatINR(n.nightlyTotalInr)}/night</span>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
                 </div>
               </div>
             </div>

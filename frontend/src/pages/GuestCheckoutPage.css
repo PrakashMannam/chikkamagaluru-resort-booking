@@ -132,6 +132,31 @@
   border-top: 1px dashed var(--color-border);
 }
 
+.checkout-form__promo-wrap {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.checkout-form__promo-wrap .input-group {
+  flex: 1;
+}
+
+.checkout-form__promo-actions {
+  display: flex;
+  align-items: center;
+  padding-top: 1.75rem; /* align with input field below label */
+}
+
+.checkout-form__promo-btn {
+  height: var(--tap-min);
+  white-space: nowrap;
+}
+
+.checkout-form__promo-btn--remove {
+  color: var(--color-danger);
+}
+
 /* International Notice */
 .checkout-notice {
   background-color: var(--color-accent-soft);
@@ -363,4 +388,55 @@
   font-size: 1.5rem;
   font-weight: var(--weight-semibold);
   color: var(--color-accent);
+}
+
+.summary-card__price-line--discount {
+  color: #1b5e20;
+  font-weight: var(--weight-medium);
+}
+
+.summary-card__nightly-details {
+  margin-top: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px dashed var(--color-border);
+}
+
+.summary-card__nightly-summary {
+  font-size: var(--text-small);
+  color: var(--color-accent);
+  cursor: pointer;
+  user-select: none;
+  font-weight: var(--weight-medium);
+}
+
+.summary-card__nightly-summary:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.summary-card__nightly-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  background-color: var(--color-bg);
+  border-radius: var(--radius-sm);
+}
+
+.summary-card__nightly-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.summary-card__nightly-date {
+  font-family: monospace;
+}
+
+.summary-card__nightly-rate {
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
 }

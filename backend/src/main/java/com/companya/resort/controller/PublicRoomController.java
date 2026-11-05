@@ -5,6 +5,7 @@ import com.companya.resort.dto.BookingResponseDto;
 import com.companya.resort.dto.CancelHoldRequest;
 import com.companya.resort.dto.CreateBookingRequest;
 import com.companya.resort.dto.PaymentWebhookRequest;
+import com.companya.resort.dto.PricingQuoteDto;
 import com.companya.resort.service.BookingPaymentService;
 import com.companya.resort.service.BookingService;
 import jakarta.validation.Valid;
@@ -40,6 +41,26 @@ public class PublicRoomController {
     ) {
         AvailabilityResponse response = bookingService.checkAvailability(checkIn, checkOut, rooms, adults, children);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping({"/pricing/quote", "/rooms/quote"})
+    public ResponseEntity<PricingQuoteDto> getPricingQuote(
+            @RequestParam(required = false) Long roomCategoryId,
+            @RequestParam(required = false) String categoryCode,
+            @RequestParam(required = false) Long ratePlanId,
+            @RequestParam(required = false) String planCode,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkIn,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut,
+            @RequestParam(defaultValue = "1") int rooms,
+            @RequestParam(defaultValue = "2") int adults,
+            @RequestParam(defaultValue = "0") int children,
+            @RequestParam(required = false) String promoCode
+    ) {
+        PricingQuoteDto quote = bookingService.calculatePricingQuote(
+                roomCategoryId, categoryCode, ratePlanId, planCode,
+                checkIn, checkOut, rooms, adults, children, promoCode
+        );
+        return ResponseEntity.ok(quote);
     }
 
     @PostMapping("/bookings")

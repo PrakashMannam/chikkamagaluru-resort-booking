@@ -331,7 +331,7 @@ export function GuestPaymentPage() {
                     <span>{formatINR(bookingData.gstAmountInr)}</span>
                   </div>
                   <div className="payment-summary__tax-note">
-                    Taxes shown are indicative in this test build
+                    GST rates are provisional and pending verification. Final tax treatment must be confirmed by the property.
                   </div>
                   <div className="payment-summary__total-line">
                     <span className="payment-summary__total-label">Total Payable</span>

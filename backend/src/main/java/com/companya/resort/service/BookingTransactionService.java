@@ -232,6 +232,8 @@ public class BookingTransactionService {
         dto.setGstPercentageApplied(booking.getGstPercentageApplied());
         dto.setGstAmountInr(booking.getGstAmountInr());
         dto.setTotalPayableInr(booking.getTotalPayableInr());
+        dto.setGstVerificationStatus("UNVERIFIED");
+        dto.setExpiresAt(booking.getExpiresAt());
         dto.setOneTimePaymentToken(paymentToken);
         return dto;
     }

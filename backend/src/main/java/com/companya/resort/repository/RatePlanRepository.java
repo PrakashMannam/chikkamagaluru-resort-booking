@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface RatePlanRepository extends JpaRepository<RatePlan, Long> {
     List<RatePlan> findByRoomCategoryIdAndIsActiveTrue(Long roomCategoryId);
     Optional<RatePlan> findByIdAndIsActiveTrue(Long id);
+    Optional<RatePlan> findByRoomCategoryIdAndCodeIgnoreCaseAndIsActiveTrue(Long roomCategoryId, String code);
 }

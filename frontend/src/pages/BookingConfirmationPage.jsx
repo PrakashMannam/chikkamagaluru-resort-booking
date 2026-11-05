@@ -206,6 +206,10 @@ export function BookingConfirmationPage() {
                 <span>{formatINR(booking.gstAmountInr)}</span>
               </div>
 
+              <div className="confirmation-financials__tax-note" style={{ fontSize: 'var(--font-size-xs, 0.75rem)', color: 'var(--color-stone-text-subtle, var(--color-text-muted))', fontStyle: 'italic', margin: 'var(--space-1) 0 var(--space-2)' }}>
+                GST rates are provisional and pending verification. Final tax treatment must be confirmed by the property.
+              </div>
+
               <div className="confirmation-financials__total">
                 <span className="confirmation-financials__total-label">Total Amount Paid</span>
                 <span className="confirmation-financials__total-val">
