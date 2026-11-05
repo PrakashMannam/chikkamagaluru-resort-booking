@@ -559,28 +559,50 @@ public class EnquiryService {
             throw new IllegalStateException("Enquiry has already been replied and draft was dispatched");
         }
 
-        // 3. Reconcile edited draft body: prevent unvalidated or invented prices
+        // 3. Atomic conditional compare-and-swap claim: transition status from DRAFT_PENDING_REVIEW to SENT_MANUALLY.
+        // Guarantees at the database level that exactly one concurrent request can transition the draft.
+        int claimed = enquiryDraftRepository.atomicClaimDraft(
+                draft.getId(),
+                DraftStatus.DRAFT_PENDING_REVIEW,
+                DraftStatus.SENT_MANUALLY
+        );
+
+        if (claimed == 0) {
+            throw new IllegalStateException("Draft approval conflict: draft " + draft.getId() + " is no longer in pending review state or was claimed concurrently");
+        }
+
+        // 4. Reconcile edited draft body: prevent unvalidated or invented prices
+        String finalBody = draft.getDraftBody();
+        String finalQuoteBreakdown = draft.getQuotedRateBreakdownJson();
         if (request != null && request.getDraftBody() != null && !request.getDraftBody().isBlank()) {
             QuoteInjectorService.InjectedQuote reconciled = quoteInjectorService.injectDatabaseQuote(request.getDraftBody(), enquiry);
-            draft.setDraftBody(reconciled.finalDraftBody());
-            draft.setQuotedRateBreakdownJson(reconciled.quotedRateBreakdownJson());
+            finalBody = reconciled.finalDraftBody();
+            finalQuoteBreakdown = reconciled.quotedRateBreakdownJson();
         }
 
+        User sentByUser = null;
         if (staffUserId != null) {
-            userRepository.findById(staffUserId).ifPresent(draft::setSentByUser);
+            sentByUser = userRepository.findById(staffUserId).orElse(null);
         }
+        LocalDateTime now = LocalDateTime.now();
 
+        // 5. Update and persist the claimed draft with the winning approved message
         draft.setStatus(DraftStatus.SENT_MANUALLY);
-        draft.setSentAt(LocalDateTime.now());
+        draft.setSentByUser(sentByUser);
+        draft.setSentAt(now);
+        draft.setDraftBody(finalBody);
+        draft.setQuotedRateBreakdownJson(finalQuoteBreakdown);
         enquiryDraftRepository.save(draft);
 
         enquiry.setStatus(EnquiryStatus.REPLIED);
         if (enquiry.getFirstRepliedAt() == null) {
-            enquiry.setFirstRepliedAt(LocalDateTime.now());
+            enquiry.setFirstRepliedAt(now);
         }
         enquiryRepository.save(enquiry);
 
-        // 4. Simulated delivery
+        // 6. Simulated delivery: invoked strictly and exclusively by the winning thread that claimed the draft.
+        // NOTE: For future real delivery (email / WhatsApp Cloud API), use a transactional outbox pattern
+        // to avoid external network calls succeeding or failing independently of database commit boundaries.
         SimulatedDeliveryAdapter.DeliveryResult deliveryResult = simulatedDeliveryAdapter.deliver(enquiry, draft);
 
         return new DraftApprovalResponse(
@@ -616,10 +638,13 @@ public class EnquiryService {
         EnquiryDraft draft = enquiryDraftRepository.findFirstByEnquiryIdAndStatusOrderByCreatedAtDesc(enquiryId, DraftStatus.DRAFT_PENDING_REVIEW)
                 .orElseThrow(() -> new IllegalStateException("No pending draft found for enquiry id: " + enquiryId));
 
-        draft.setStatus(DraftStatus.DISCARDED);
-        enquiryDraftRepository.save(draft);
+        int updatedRows = enquiryDraftRepository.atomicDiscardDraft(draft.getId(), DraftStatus.DRAFT_PENDING_REVIEW, DraftStatus.DISCARDED);
+        if (updatedRows == 0) {
+            throw new IllegalStateException("Draft discard conflict: draft " + draft.getId() + " is no longer in pending review state or was claimed concurrently");
+        }
 
-        return getEnquiryDetails(enquiryId, principal);
+        EnquiryDraft managedDraft = enquiryDraftRepository.findById(draft.getId()).orElse(draft);
+        return toDetailDto(enquiry, managedDraft);
     }
 
     private AdminEnquirySummaryDto toSummaryDto(Enquiry enquiry) {

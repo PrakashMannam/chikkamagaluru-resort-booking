@@ -132,6 +132,11 @@ public class EnquiryServiceTest {
             return d;
         });
 
+        when(enquiryDraftRepository.atomicClaimDraft(any(), any(), any()))
+                .thenReturn(1);
+        when(enquiryDraftRepository.atomicDiscardDraft(any(), any(), any()))
+                .thenReturn(1);
+
         when(quoteInjectorService.injectDatabaseQuote(anyString(), any(Enquiry.class)))
                 .thenAnswer(invocation -> new QuoteInjectorService.InjectedQuote(invocation.getArgument(0), null));
 
@@ -762,5 +767,36 @@ public class EnquiryServiceTest {
         assertEquals(sanitizedBody, pendingDraft.getDraftBody());
         assertEquals(sanitizedBody, resp.getDeliveredBody());
         verify(quoteInjectorService, times(1)).injectDatabaseQuote(eq(inventedPriceBody), eq(roomEnquiry));
+    }
+
+    @Test
+    @DisplayName("Atomic draft claiming: when concurrent request claims draft first (0 rows updated), throws Conflict and never delivers")
+    void testConcurrentApproval_AtomicClaimFails_ThrowsConflictAndPreventsDelivery() {
+        Enquiry roomEnquiry = new Enquiry();
+        roomEnquiry.setId(510L);
+        roomEnquiry.setCategory(EnquiryCategory.ROOM_BOOKING);
+        roomEnquiry.setAssignedToUser(roomStaff);
+        roomEnquiry.setStatus(EnquiryStatus.OPEN);
+
+        EnquiryDraft pendingDraft = new EnquiryDraft();
+        pendingDraft.setId(610L);
+        pendingDraft.setEnquiry(roomEnquiry);
+        pendingDraft.setStatus(DraftStatus.DRAFT_PENDING_REVIEW);
+
+        when(enquiryRepository.findById(510L)).thenReturn(Optional.of(roomEnquiry));
+        when(enquiryDraftRepository.findFirstByEnquiryIdAndStatusOrderByCreatedAtDesc(510L, DraftStatus.DRAFT_PENDING_REVIEW))
+                .thenReturn(Optional.of(pendingDraft));
+        when(userRepository.findById(roomStaff.getId())).thenReturn(Optional.of(roomStaff));
+
+        // Simulate concurrent atomic claim failure (0 rows updated)
+        when(enquiryDraftRepository.atomicClaimDraft(eq(610L), eq(DraftStatus.DRAFT_PENDING_REVIEW), eq(DraftStatus.SENT_MANUALLY)))
+                .thenReturn(0);
+
+        ApproveDraftRequest approveReq = new ApproveDraftRequest("Losing thread attempt");
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
+                enquiryService.approveDraft(510L, roomPrincipal, approveReq));
+
+        assertTrue(ex.getMessage().contains("Draft approval conflict"));
+        verify(simulatedDeliveryAdapter, never()).deliver(any(), any());
     }
 }
