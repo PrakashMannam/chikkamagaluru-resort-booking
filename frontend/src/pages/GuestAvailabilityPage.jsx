@@ -1,43 +1,100 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { fetchAvailability } from '../api/roomsApi';
 import {
   BOOKING_WINDOW,
   calculateNights,
-  formatDisplayDate,
+  formatCompactDate,
+  formatLocalDate,
+  parseLocalDate,
+  getNextDay,
 } from '../utils/dateUtils';
 import { formatINR } from '../utils/formatUtils';
-import {
-  Button,
-  Badge,
-  Skeleton,
-  EmptyState,
-  ErrorBanner,
-} from '../components/ui';
+import { Skeleton, ErrorBanner } from '../components/ui';
 import './GuestAvailabilityPage.css';
+
+function CalendarIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  );
+}
+
+function UserIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function EditIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+
+function SparklesIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+    </svg>
+  );
+}
 
 export function GuestAvailabilityPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  // Search state from query parameters or defaults
+  // Search parameters from URL with fallbacks
   const checkIn = searchParams.get('checkIn') || BOOKING_WINDOW.DEFAULT_CHECK_IN;
   const checkOut = searchParams.get('checkOut') || BOOKING_WINDOW.DEFAULT_CHECK_OUT;
   const rooms = Number(searchParams.get('rooms')) || 1;
   const adults = Number(searchParams.get('adults')) || 2;
   const children = Number(searchParams.get('children')) || 0;
 
-  // Form controls
+  // Search modifier state
+  const [isModifying, setIsModifying] = useState(false);
   const [formCheckIn, setFormCheckIn] = useState(checkIn);
   const [formCheckOut, setFormCheckOut] = useState(checkOut);
   const [formRooms, setFormRooms] = useState(rooms);
   const [formAdults, setFormAdults] = useState(adults);
   const [formChildren, setFormChildren] = useState(children);
+  const [formError, setFormError] = useState('');
+
+  // Keep form inputs synced when query params change externally
+  useEffect(() => {
+    setFormCheckIn(checkIn);
+    setFormCheckOut(checkOut);
+    setFormRooms(rooms);
+    setFormAdults(adults);
+    setFormChildren(children);
+  }, [checkIn, checkOut, rooms, adults, children]);
 
   // API State
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const todayStr = useMemo(() => formatLocalDate(new Date()), []);
+  const minCheckIn = todayStr > BOOKING_WINDOW.MIN_DATE ? todayStr : BOOKING_WINDOW.MIN_DATE;
 
   const loadAvailability = useCallback(async () => {
     setIsLoading(true);
@@ -53,7 +110,7 @@ export function GuestAvailabilityPage() {
       });
       setData(result);
     } catch (err) {
-      setError(err.message || 'Unable to retrieve live estate availability.');
+      setError(err.message || 'Unable to retrieve live estate availability. Please check your connection and tap Retry.');
     } finally {
       setIsLoading(false);
     }
@@ -63,8 +120,45 @@ export function GuestAvailabilityPage() {
     loadAvailability();
   }, [loadAvailability]);
 
+  function handleCheckInChange(val) {
+    setFormCheckIn(val);
+    setFormError('');
+    if (formCheckOut && val && formCheckOut <= val) {
+      setFormCheckOut(getNextDay(val));
+    }
+  }
+
+  function handleCheckOutChange(val) {
+    setFormCheckOut(val);
+    setFormError('');
+  }
+
   function handleSearchSubmit(e) {
     e.preventDefault();
+    if (!formCheckIn) {
+      setFormError('Please select an arrival date.');
+      return;
+    }
+    if (!formCheckOut) {
+      setFormError('Please select a departure date.');
+      return;
+    }
+    if (formCheckIn < minCheckIn) {
+      setFormError('Arrival date cannot be in the past.');
+      return;
+    }
+    if (formCheckOut <= formCheckIn) {
+      setFormError('Departure date must follow arrival date.');
+      return;
+    }
+    if (formCheckOut > BOOKING_WINDOW.MAX_DATE) {
+      setFormError(`Bookings are accepted up to ${BOOKING_WINDOW.MAX_DATE}.`);
+      return;
+    }
+
+    setFormError('');
+    setIsModifying(false);
+
     setSearchParams({
       checkIn: formCheckIn,
       checkOut: formCheckOut,
@@ -76,287 +170,412 @@ export function GuestAvailabilityPage() {
 
   const nights = calculateNights(checkIn, checkOut);
   const categories = data?.categories || [];
-  const hasAvailableRooms = categories.some((c) => c.hasAllotment && !c.isBlackedOut);
+  const availableCategories = useMemo(() => {
+    return categories.filter((c) => c.hasAllotment && !c.isBlackedOut);
+  }, [categories]);
+  const hasAvailableRooms = availableCategories.length > 0;
 
-  function getRoomImageProps(category) {
+  function getRoomImage(category) {
     if (category.code === 'VILLA') {
       return {
         src: '/images/villa-pool.webp',
         srcSet: '/images/villa-pool.webp 800w, /images/villa-pool-1600w.webp 1600w',
-        sizes: '(max-width: 768px) 100vw, 600px',
-        alt: `${category.name} featuring secluded plunge pool and estate panorama`,
+        sizes: '(max-width: 768px) 100vw, 420px',
+        alt: `${category.name} private plunge pool overlooking coffee estate`,
       };
     }
     return {
       src: '/images/room-canopy.webp',
       srcSet: '/images/room-canopy.webp 800w, /images/room-canopy-1600w.webp 1600w',
-      sizes: '(max-width: 768px) 100vw, 600px',
-      alt: `${category.name} nestled in coffee estate canopy with private balcony`,
+      sizes: '(max-width: 768px) 100vw, 420px',
+      alt: `${category.name} estate canopy room with private balcony`,
     };
   }
 
-  function getRoomHighlights(category) {
+  function getRoomSpecs(category) {
     if (category.code === 'VILLA') {
-      return 'Private heated plunge pool \u2022 Estate valley panorama \u2022 Butler pantry';
+      return {
+        capacity: `Up to ${category.maxAdults} Adults`,
+        view: 'Private Plunge Pool & Panorama',
+        area: '650 sq ft',
+      };
     }
-    return 'Private forest canopy verandah \u2022 Handcrafted teak finishes \u2022 Rainforest shower';
+    return {
+      capacity: `Up to ${category.maxAdults} Adults`,
+      view: 'Estate Canopy & Garden View',
+      area: '330 sq ft',
+    };
   }
 
   return (
-    <div className="availability-page">
-      {/* 1. Atmospheric Estate Sanctuary Hero */}
-      <section className="availability-hero">
-        <div className="availability-hero__image-wrap">
-          <img
-            src="/images/hero-estate.webp"
-            srcSet="/images/hero-estate-800w.webp 800w, /images/hero-estate.webp 1600w"
-            sizes="(max-width: 768px) 100vw, 1200px"
-            alt="Misty Mullayanagiri mountain foothills and Arabica coffee canopy in Chikkamagaluru"
-            width="1600"
-            height="900"
-            loading="eager"
-            className="availability-hero__img"
-          />
-          <div className="availability-hero__overlay" aria-hidden="true" />
-        </div>
-        <div className="availability-hero__content">
-          <span className="availability-hero__kicker">
-            Mullayanagiri, Karnataka &bull; Est. 1924
-          </span>
-          <h1 className="availability-hero__title">
-            Sanctuary in the Coffee Hills
-          </h1>
-          <p className="availability-hero__subtitle">
-            Secluded canopy cottages and private plunge pool villas nestled within centuries-old Arabica plantations in the Western Ghats.
-          </p>
+    <div className="stay-page">
+      {/* 1. Compact Top Search Strip (Storyboard Screen 2) */}
+      <section className="stay-search-strip" aria-label="Reservation Parameters">
+        <div className="stay-search-strip__inner">
+          {!isModifying ? (
+            <div className="stay-search-summary">
+              <div className="stay-search-summary__items">
+                <div className="stay-search-summary__cell">
+                  <span className="stay-search-summary__label">Check-in</span>
+                  <span className="stay-search-summary__val">{formatCompactDate(checkIn)}</span>
+                </div>
+                <div className="stay-search-summary__divider" aria-hidden="true" />
+                <div className="stay-search-summary__cell">
+                  <span className="stay-search-summary__label">Check-out</span>
+                  <span className="stay-search-summary__val">{formatCompactDate(checkOut)}</span>
+                </div>
+                <div className="stay-search-summary__divider" aria-hidden="true" />
+                <div className="stay-search-summary__cell">
+                  <span className="stay-search-summary__label">Guests</span>
+                  <span className="stay-search-summary__val">
+                    {adults} {adults === 1 ? 'Adult' : 'Adults'}
+                    {children > 0 ? `, ${children} ${children === 1 ? 'Child' : 'Children'}` : ''}
+                    {rooms > 1 ? ` • ${rooms} Rooms` : ''}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="stay-search-summary__modify-btn"
+                onClick={() => setIsModifying(true)}
+                aria-expanded={isModifying}
+              >
+                <EditIcon />
+                <span>Modify Search</span>
+              </button>
+            </div>
+          ) : (
+            <form className="stay-search-edit" onSubmit={handleSearchSubmit} noValidate>
+              <div className="stay-search-edit__header">
+                <span className="stay-search-edit__title">Modify Your Stay Dates &amp; Guests</span>
+                <button
+                  type="button"
+                  className="stay-search-edit__close-btn"
+                  onClick={() => {
+                    setFormCheckIn(checkIn);
+                    setFormCheckOut(checkOut);
+                    setFormRooms(rooms);
+                    setFormAdults(adults);
+                    setFormChildren(children);
+                    setFormError('');
+                    setIsModifying(false);
+                  }}
+                  aria-label="Close modification form"
+                >
+                  <CloseIcon />
+                </button>
+              </div>
+
+              <div className="stay-search-edit__grid">
+                <div className="stay-search-edit__field">
+                  <label htmlFor="stay-edit-checkin" className="stay-search-edit__label">Check-in</label>
+                  <input
+                    id="stay-edit-checkin"
+                    type="date"
+                    min={minCheckIn}
+                    max={BOOKING_WINDOW.MAX_DATE}
+                    value={formCheckIn}
+                    onChange={(e) => handleCheckInChange(e.target.value)}
+                    required
+                    className="stay-search-edit__input"
+                  />
+                </div>
+
+                <div className="stay-search-edit__field">
+                  <label htmlFor="stay-edit-checkout" className="stay-search-edit__label">Check-out</label>
+                  <input
+                    id="stay-edit-checkout"
+                    type="date"
+                    min={formCheckIn ? getNextDay(formCheckIn) : minCheckIn}
+                    max={BOOKING_WINDOW.MAX_DATE}
+                    value={formCheckOut}
+                    onChange={(e) => handleCheckOutChange(e.target.value)}
+                    required
+                    className="stay-search-edit__input"
+                  />
+                </div>
+
+                <div className="stay-search-edit__field">
+                  <label htmlFor="stay-edit-rooms" className="stay-search-edit__label">Rooms</label>
+                  <select
+                    id="stay-edit-rooms"
+                    value={formRooms}
+                    onChange={(e) => setFormRooms(Number(e.target.value))}
+                    className="stay-search-edit__select"
+                  >
+                    <option value={1}>1 Suite / Villa</option>
+                    <option value={2}>2 Suites / Villas</option>
+                    <option value={3}>3 Suites / Villas</option>
+                  </select>
+                </div>
+
+                <div className="stay-search-edit__field">
+                  <label htmlFor="stay-edit-adults" className="stay-search-edit__label">Adults</label>
+                  <select
+                    id="stay-edit-adults"
+                    value={formAdults}
+                    onChange={(e) => setFormAdults(Number(e.target.value))}
+                    className="stay-search-edit__select"
+                  >
+                    <option value={1}>1 Adult</option>
+                    <option value={2}>2 Adults</option>
+                    <option value={3}>3 Adults</option>
+                    <option value={4}>4 Adults</option>
+                  </select>
+                </div>
+
+                <div className="stay-search-edit__field">
+                  <label htmlFor="stay-edit-children" className="stay-search-edit__label">Children</label>
+                  <select
+                    id="stay-edit-children"
+                    value={formChildren}
+                    onChange={(e) => setFormChildren(Number(e.target.value))}
+                    className="stay-search-edit__select"
+                  >
+                    <option value={0}>0 Children</option>
+                    <option value={1}>1 Child</option>
+                    <option value={2}>2 Children</option>
+                  </select>
+                </div>
+
+                <div className="stay-search-edit__actions">
+                  <button type="submit" className="stay-search-edit__submit-btn">
+                    Update Search
+                  </button>
+                  <button
+                    type="button"
+                    className="stay-search-edit__cancel-btn"
+                    onClick={() => {
+                      setFormCheckIn(checkIn);
+                      setFormCheckOut(checkOut);
+                      setFormRooms(rooms);
+                      setFormAdults(adults);
+                      setFormChildren(children);
+                      setFormError('');
+                      setIsModifying(false);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+
+              {formError && (
+                <div className="stay-search-edit__error" role="alert">
+                  {formError}
+                </div>
+              )}
+            </form>
+          )}
         </div>
       </section>
 
-      {/* 2. Structured Stay Selection Card */}
-      <div className="availability-container">
-        <div className="search-card">
-          <div className="search-card__header">
-            <h2 className="search-card__title">Plan Your Estate Stay</h2>
+      {/* 2. Main Accommodations List Section */}
+      <section className="stay-content" aria-labelledby="stay-results-heading">
+        <div className="stay-content__inner">
+          {/* Section Heading matching Screen 2 */}
+          <div className="stay-heading-row">
+            <h1 id="stay-results-heading" className="stay-heading-row__title">
+              {isLoading
+                ? 'Checking live availability...'
+                : hasAvailableRooms
+                ? `${availableCategories.length} ${availableCategories.length === 1 ? 'accommodation' : 'accommodations'} available`
+                : 'No accommodations available'}
+            </h1>
+            <span className="stay-heading-row__meta">
+              {formatCompactDate(checkIn)} &ndash; {formatCompactDate(checkOut)} ({nights} {nights === 1 ? 'night' : 'nights'})
+            </span>
           </div>
-          <form className="search-form" onSubmit={handleSearchSubmit}>
-            <div className="search-form__field">
-              <label htmlFor="search-check-in" className="search-form__label">
-                Check-in Date
-              </label>
-              <input
-                id="search-check-in"
-                type="date"
-                min={BOOKING_WINDOW.MIN_DATE}
-                max={BOOKING_WINDOW.MAX_DATE}
-                value={formCheckIn}
-                onChange={(e) => setFormCheckIn(e.target.value)}
-                required
-                className="search-form__input"
+
+          {/* Loading Skeletons */}
+          {isLoading && (
+            <div className="stay-skeleton-list" aria-label="Loading available accommodations" aria-busy="true">
+              {[1, 2].map((idx) => (
+                <div key={idx} className="stay-skeleton-card">
+                  <Skeleton variant="rectangular" className="stay-skeleton-card__img" />
+                  <div className="stay-skeleton-card__body">
+                    <Skeleton variant="text" width="60%" height="2rem" />
+                    <Skeleton variant="text" width="40%" height="1.2rem" style={{ marginTop: '0.5rem' }} />
+                    <Skeleton variant="text" width="90%" height="1rem" style={{ marginTop: '1rem' }} />
+                    <Skeleton variant="text" width="75%" height="1rem" style={{ marginTop: '0.4rem' }} />
+                  </div>
+                  <div className="stay-skeleton-card__pricing">
+                    <Skeleton variant="text" width="80px" height="1.8rem" />
+                    <Skeleton variant="text" width="100px" height="0.9rem" style={{ marginTop: '0.5rem' }} />
+                    <Skeleton variant="rectangular" width="100%" height="44px" style={{ marginTop: '1.5rem' }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Error Banner */}
+          {!isLoading && error && (
+            <div className="stay-error-wrapper">
+              <ErrorBanner
+                variant="error"
+                title="Unable to refresh live availability"
+                message={error}
+                actionLabel="Retry Live Rates"
+                onAction={loadAvailability}
               />
             </div>
+          )}
 
-            <div className="search-form__field">
-              <label htmlFor="search-check-out" className="search-form__label">
-                Check-out Date
-              </label>
-              <input
-                id="search-check-out"
-                type="date"
-                min={formCheckIn || BOOKING_WINDOW.MIN_DATE}
-                max={BOOKING_WINDOW.MAX_DATE}
-                value={formCheckOut}
-                onChange={(e) => setFormCheckOut(e.target.value)}
-                required
-                className="search-form__input"
-              />
-            </div>
-
-            <div className="search-form__field">
-              <label htmlFor="search-rooms" className="search-form__label">
-                Rooms
-              </label>
-              <select
-                id="search-rooms"
-                value={formRooms}
-                onChange={(e) => setFormRooms(Number(e.target.value))}
-                className="search-form__select"
-              >
-                <option value={1}>1 Suite / Villa</option>
-                <option value={2}>2 Suites / Villas</option>
-                <option value={3}>3 Suites / Villas</option>
-              </select>
-            </div>
-
-            <div className="search-form__field">
-              <label htmlFor="search-adults" className="search-form__label">
-                Adults
-              </label>
-              <select
-                id="search-adults"
-                value={formAdults}
-                onChange={(e) => setFormAdults(Number(e.target.value))}
-                className="search-form__select"
-              >
-                <option value={1}>1 Adult</option>
-                <option value={2}>2 Adults</option>
-                <option value={3}>3 Adults</option>
-                <option value={4}>4 Adults</option>
-              </select>
-            </div>
-
-            <div className="search-form__field">
-              <label htmlFor="search-children" className="search-form__label">
-                Children
-              </label>
-              <select
-                id="search-children"
-                value={formChildren}
-                onChange={(e) => setFormChildren(Number(e.target.value))}
-                className="search-form__select"
-              >
-                <option value={0}>0 Children</option>
-                <option value={1}>1 Child</option>
-                <option value={2}>2 Children</option>
-              </select>
-            </div>
-
-            <Button type="submit" variant="primary" className="search-form__btn">
-              Explore availability
-            </Button>
-          </form>
-        </div>
-      </div>
-
-      {/* 3. Available Accommodations Section */}
-      <section className="availability-container results-section" aria-labelledby="results-title">
-        <div className="results-header">
-          <h2 id="results-title" className="results-header__title">
-            Estate Accommodations
-          </h2>
-          <span className="results-header__meta">
-            {formatDisplayDate(checkIn)} &ndash; {formatDisplayDate(checkOut)} ({nights} {nights === 1 ? 'night' : 'nights'}) &bull; {rooms} {rooms === 1 ? 'Room' : 'Rooms'}
-          </span>
-        </div>
-
-        {/* Loading Skeletons */}
-        {isLoading && (
-          <div className="rooms-grid" aria-label="Loading available accommodations" aria-busy="true">
-            {[1, 2].map((idx) => (
-              <div key={idx} className="room-skeleton-card">
-                <Skeleton variant="rectangular" className="room-skeleton-card__img" />
-                <div className="room-skeleton-card__body">
-                  <Skeleton variant="text" width="60%" height="1.5rem" />
-                  <Skeleton variant="text" width="40%" height="1rem" />
-                  <Skeleton variant="text" width="90%" height="1rem" />
-                  <Skeleton variant="rectangular" width="100%" height="44px" style={{ marginTop: 'var(--space-3)' }} />
+          {/* Empty State */}
+          {!isLoading && !error && (!hasAvailableRooms || categories.length === 0) && (
+            <div className="stay-empty-state">
+              <div className="stay-empty-state__card">
+                <div className="stay-empty-state__icon-wrap">
+                  <CalendarIcon />
+                </div>
+                <h2 className="stay-empty-state__title">
+                  All accommodations are reserved for these dates
+                </h2>
+                <p className="stay-empty-state__desc">
+                  Our online allotment for {formatCompactDate(checkIn)} to {formatCompactDate(checkOut)} is fully booked or held for a private event. Try adjusting your dates or speak directly with our estate concierge.
+                </p>
+                <div className="stay-empty-state__actions">
+                  <button
+                    type="button"
+                    className="stay-empty-state__modify-btn"
+                    onClick={() => setIsModifying(true)}
+                  >
+                    Modify Travel Dates
+                  </button>
+                  <button
+                    type="button"
+                    className="stay-empty-state__enquire-btn"
+                    onClick={() => navigate('/enquire')}
+                  >
+                    Send Direct Enquiry
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          )}
 
-        {/* Error State */}
-        {!isLoading && error && (
-          <ErrorBanner
-            variant="error"
-            title="Unable to refresh live availability"
-            message={error}
-            actionLabel="Retry"
-            onAction={loadAvailability}
-          />
-        )}
+          {/* Real Accommodation Results (Screen 2 Layout) */}
+          {!isLoading && !error && hasAvailableRooms && (
+            <div className="stay-card-list">
+              {categories.map((cat) => {
+                const img = getRoomImage(cat);
+                const specs = getRoomSpecs(cat);
+                const detailUrl = `/rooms/${cat.code}?checkIn=${encodeURIComponent(checkIn)}&checkOut=${encodeURIComponent(checkOut)}&rooms=${rooms}&adults=${adults}&children=${children}`;
 
-        {/* Empty State */}
-        {!isLoading && !error && (!hasAvailableRooms || categories.length === 0) && (
-          <EmptyState
-            title="Our online allotment for these dates is fully reserved"
-            description="Our online allotment for these dates is fully reserved (or blacked out for a private event). Send a direct enquiry below and our team will check house availability within 30 minutes."
-            action={
-              <Button
-                variant="primary"
-                onClick={() => navigate('/enquire')}
-              >
-                Send direct enquiry
-              </Button>
-            }
-          />
-        )}
+                // Backend dynamic pricing & GST data
+                const firstPlan = cat.ratePlans?.[0];
+                const gstPercent = firstPlan?.gstPercentageApplied ?? 18;
+                const totalWithGst = firstPlan?.totalPayableInr;
 
-        {/* Room Cards Showcase */}
-        {!isLoading && !error && hasAvailableRooms && (
-          <div className="rooms-grid">
-            {categories.map((cat) => {
-              const detailUrl = `/rooms/${cat.code}?checkIn=${encodeURIComponent(checkIn)}&checkOut=${encodeURIComponent(checkOut)}&rooms=${rooms}&adults=${adults}&children=${children}`;
-              const imgMeta = getRoomImageProps(cat);
-
-              return (
-                <article key={cat.id || cat.code} className="room-card">
-                  <div className="room-card__image-wrap">
-                    <img
-                      src={imgMeta.src}
-                      srcSet={imgMeta.srcSet}
-                      sizes={imgMeta.sizes}
-                      alt={imgMeta.alt}
-                      width="800"
-                      height="500"
-                      loading="lazy"
-                      className="room-card__img"
-                    />
-                    <div className="room-card__badge-overlay">
-                      {cat.isBlackedOut ? (
-                        <Badge variant="danger">
-                          Blackout: {cat.blackoutReason || 'Reserved'}
-                        </Badge>
-                      ) : cat.remainingAllotment <= 3 && cat.remainingAllotment > 0 ? (
-                        <Badge variant="warning">
-                          Only {cat.remainingAllotment} left on website
-                        </Badge>
-                      ) : (
-                        <Badge variant="success">
-                          {cat.remainingAllotment} units available online
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="room-card__body">
-                    <h3 className="room-card__title">{cat.name}</h3>
-                    <p className="room-card__specs">
-                      Up to {cat.maxAdults} adults, {cat.maxChildren} children &bull; {cat.totalPhysicalKeys} physical keys
-                    </p>
-                    <p className="room-card__desc">{cat.baseDescription}</p>
-
-                    <div className="room-card__highlights">
-                      {getRoomHighlights(cat)}
-                    </div>
-
-                    <div className="room-card__footer">
-                      <div className="room-card__pricing">
-                        <span className="room-card__price-label">Starting tariff</span>
-                        <span className="room-card__price-value">
-                          {formatINR(cat.startingRatePerNight)}
-                          <span style={{ fontSize: 'var(--text-small)', fontWeight: 'normal', color: 'var(--color-text-muted)' }}>
-                            {' '}/ night
+                return (
+                  <article key={cat.id || cat.code} className="stay-room-card">
+                    {/* Left: Resort Photo */}
+                    <div className="stay-room-card__media">
+                      <img
+                        src={img.src}
+                        srcSet={img.srcSet}
+                        sizes={img.sizes}
+                        alt={img.alt}
+                        width="800"
+                        height="500"
+                        loading="lazy"
+                        className="stay-room-card__img"
+                      />
+                      {/* Availability status badge */}
+                      <div className="stay-room-card__badge-wrap">
+                        {cat.isBlackedOut ? (
+                          <span className="stay-badge stay-badge--danger">
+                            Blackout: {cat.blackoutReason || 'Reserved'}
                           </span>
+                        ) : cat.remainingAllotment <= 3 && cat.remainingAllotment > 0 ? (
+                          <span className="stay-badge stay-badge--warning">
+                            Only {cat.remainingAllotment} left online
+                          </span>
+                        ) : (
+                          <span className="stay-badge stay-badge--success">
+                            {cat.remainingAllotment} available
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Middle: Content & Specs */}
+                    <div className="stay-room-card__content">
+                      <h2 className="stay-room-card__title">
+                        {cat.name}
+                      </h2>
+
+                      {/* Specs Row */}
+                      <div className="stay-room-card__specs">
+                        <span className="stay-spec-item">
+                          <UserIcon />
+                          <span>{specs.capacity}</span>
                         </span>
-                        <span className="room-card__tax-note">
-                          Taxes shown are indicative in this test build
+                        <span className="stay-spec-divider">&bull;</span>
+                        <span className="stay-spec-item">
+                          <span>{specs.view}</span>
+                        </span>
+                        <span className="stay-spec-divider">&bull;</span>
+                        <span className="stay-spec-item">
+                          <span>{specs.area}</span>
                         </span>
                       </div>
 
-                      <Button
-                        variant="primary"
+                      {/* Description */}
+                      <p className="stay-room-card__desc">
+                        {cat.baseDescription}
+                      </p>
+
+                      {/* Rate Plans List */}
+                      {cat.ratePlans && cat.ratePlans.length > 0 && (
+                        <div className="stay-room-card__plans">
+                          <span className="stay-plans-title">Available Meal Plans:</span>
+                          <div className="stay-plans-tags">
+                            {cat.ratePlans.map((plan) => (
+                              <span key={plan.code} className="stay-plan-tag" title={plan.name}>
+                                <SparklesIcon />
+                                <span>{plan.code}: {plan.name.replace(/\(.*?\)/g, '').trim()}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right: Pricing & CTA Column */}
+                    <div className="stay-room-card__pricing">
+                      <div className="stay-room-card__price-box">
+                        <div className="stay-price-amount">
+                          <span className="stay-price-amount__value">
+                            {formatINR(cat.startingRatePerNight)}
+                          </span>
+                          <span className="stay-price-amount__unit">/ night</span>
+                        </div>
+                        <div className="stay-price-taxes">
+                          + {gstPercent}% GST as applicable
+                        </div>
+                        {totalWithGst && (
+                          <div className="stay-price-total">
+                            {formatINR(totalWithGst)} total for {nights} {nights === 1 ? 'night' : 'nights'} (incl. GST)
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        className="stay-room-card__cta"
                         onClick={() => navigate(detailUrl)}
                       >
-                        View details &amp; rates
-                      </Button>
+                        View Details
+                      </button>
                     </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </section>
     </div>
   );

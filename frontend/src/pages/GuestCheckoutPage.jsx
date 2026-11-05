@@ -256,7 +256,7 @@ export function GuestCheckoutPage() {
           title="Accommodation or Plan Unavailable"
           description="The selected accommodation tier or dining plan is not currently available for these dates."
           action={
-            <Button variant="primary" onClick={() => navigate('/')}>
+            <Button variant="primary" onClick={() => navigate('/stay')}>
               Browse available dates
             </Button>
           }

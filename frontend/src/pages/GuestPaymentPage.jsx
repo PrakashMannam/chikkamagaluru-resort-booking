@@ -190,7 +190,7 @@ export function GuestPaymentPage() {
           title="Could not find reservation"
           message={error}
           actionLabel="Return to discovery"
-          onAction={() => navigate('/')}
+          onAction={() => navigate('/stay')}
         />
       )}
 
@@ -206,7 +206,7 @@ export function GuestPaymentPage() {
                 Your 10-minute hold window for reservation <strong>{ref}</strong> has expired. To ensure fairness across all guests, any temporarily held room allotment has been released back to our live booking calendar.
               </p>
               <div className="payment-status__actions">
-                <Button variant="primary" onClick={() => navigate('/')}>
+                <Button variant="primary" onClick={() => navigate('/stay')}>
                   Start new reservation
                 </Button>
               </div>
@@ -222,7 +222,7 @@ export function GuestPaymentPage() {
                 Your reservation hold <strong>{ref}</strong> has been cancelled and the held estate keys have been released immediately back into online allotment.
               </p>
               <div className="payment-status__actions">
-                <Button variant="primary" onClick={() => navigate('/')}>
+                <Button variant="primary" onClick={() => navigate('/stay')}>
                   Browse estate accommodations
                 </Button>
               </div>
@@ -238,7 +238,7 @@ export function GuestPaymentPage() {
                 The simulated transaction for reservation <strong>{ref}</strong> failed. As per resort policy, the allotment hold has been released. You may start a new booking whenever you wish.
               </p>
               <div className="payment-status__actions">
-                <Button variant="primary" onClick={() => navigate('/')}>
+                <Button variant="primary" onClick={() => navigate('/stay')}>
                   Return to available rooms
                 </Button>
               </div>
