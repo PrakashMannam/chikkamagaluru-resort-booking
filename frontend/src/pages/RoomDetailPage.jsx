@@ -92,7 +92,7 @@ export function RoomDetailPage() {
 
   const photoList = getCategoryPhotos(category);
 
-  const backUrl = `/?checkIn=${encodeURIComponent(checkIn)}&checkOut=${encodeURIComponent(checkOut)}&rooms=${rooms}&adults=${adults}&children=${children}`;
+  const backUrl = `/stay?checkIn=${encodeURIComponent(checkIn)}&checkOut=${encodeURIComponent(checkOut)}&rooms=${rooms}&adults=${adults}&children=${children}`;
 
   function handleSelectRatePlan(plan) {
     const checkoutUrl = `/checkout?category=${encodeURIComponent(category.code)}&plan=${encodeURIComponent(plan.code)}&checkIn=${encodeURIComponent(checkIn)}&checkOut=${encodeURIComponent(checkOut)}&rooms=${rooms}&adults=${adults}&children=${children}`;

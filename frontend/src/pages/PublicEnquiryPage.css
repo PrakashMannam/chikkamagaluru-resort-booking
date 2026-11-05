@@ -136,8 +136,8 @@
 
 .enquiry-type-card--active {
   border-color: var(--color-accent);
-  background-color: #FAF7F5;
-  box-shadow: var(--shadow-subtle);
+  background-color: #F4F1EA;
+  box-shadow: 0 0 0 1px var(--color-accent), var(--shadow-subtle);
 }
 
 .enquiry-type-card__icon {
