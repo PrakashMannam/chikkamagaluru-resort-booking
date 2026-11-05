@@ -81,12 +81,64 @@ function LocationIcon() {
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const [checkIn, setCheckIn] = useState('2026-11-14');
-  const [checkOut, setCheckOut] = useState('2026-11-16');
+  const [checkIn, setCheckIn] = useState('');
+  const [checkOut, setCheckOut] = useState('');
   const [adults, setAdults] = useState(2);
+  const [checkInFocused, setCheckInFocused] = useState(false);
+  const [checkOutFocused, setCheckOutFocused] = useState(false);
+  const [error, setError] = useState('');
+
+  const checkInInputRef = useRef(null);
+  const checkOutInputRef = useRef(null);
+
+  const todayStr = formatLocalDate(new Date());
+  const minCheckIn = todayStr > BOOKING_WINDOW.MIN_DATE ? todayStr : BOOKING_WINDOW.MIN_DATE;
+
+  function getNextDay(dateStr) {
+    const d = parseLocalDate(dateStr);
+    if (!d) return '';
+    d.setDate(d.getDate() + 1);
+    return formatLocalDate(d);
+  }
+
+  function handleCheckInChange(val) {
+    setCheckIn(val);
+    setError('');
+    if (checkOut && val && checkOut <= val) {
+      setCheckOut('');
+    }
+  }
+
+  function handleCheckOutChange(val) {
+    setCheckOut(val);
+    setError('');
+  }
 
   function handleSearch(e) {
     e.preventDefault();
+    if (!checkIn) {
+      setError('Please select an arrival date.');
+      checkInInputRef.current?.focus();
+      return;
+    }
+    if (!checkOut) {
+      setError('Please select a departure date.');
+      checkOutInputRef.current?.focus();
+      return;
+    }
+    if (checkIn < minCheckIn) {
+      setError('Arrival date cannot be in the past.');
+      return;
+    }
+    if (checkOut <= checkIn) {
+      setError('Departure date must follow arrival date.');
+      return;
+    }
+    if (checkOut > BOOKING_WINDOW.MAX_DATE) {
+      setError(`Bookings are accepted up to ${BOOKING_WINDOW.MAX_DATE}.`);
+      return;
+    }
+    setError('');
     const params = new URLSearchParams({
       checkIn,
       checkOut,
@@ -138,31 +190,55 @@ export default function LandingPage() {
         <div className="lp-search-container">
           <form className="lp-search-bar" onSubmit={handleSearch} noValidate>
             {/* Cell 1: Check-in */}
-            <div className="lp-search-cell">
+            <div
+              className="lp-search-cell"
+              onClick={() => checkInInputRef.current?.focus()}
+            >
               <CalendarIcon />
               <div className="lp-search-field">
                 <label htmlFor="lp-checkin" className="lp-search-label">Check-in</label>
                 <input
                   id="lp-checkin"
-                  type="date"
+                  ref={checkInInputRef}
+                  type={checkInFocused || checkIn ? 'date' : 'text'}
+                  placeholder="Add arrival date"
                   className="lp-search-input"
                   value={checkIn}
-                  onChange={(e) => setCheckIn(e.target.value)}
+                  min={minCheckIn}
+                  max={BOOKING_WINDOW.MAX_DATE}
+                  onFocus={(e) => {
+                    setCheckInFocused(true);
+                    try { e.target.showPicker?.(); } catch (err) {}
+                  }}
+                  onBlur={() => setCheckInFocused(false)}
+                  onChange={(e) => handleCheckInChange(e.target.value)}
                 />
               </div>
             </div>
 
             {/* Cell 2: Check-out */}
-            <div className="lp-search-cell">
+            <div
+              className="lp-search-cell"
+              onClick={() => checkOutInputRef.current?.focus()}
+            >
               <CalendarIcon />
               <div className="lp-search-field">
                 <label htmlFor="lp-checkout" className="lp-search-label">Check-out</label>
                 <input
                   id="lp-checkout"
-                  type="date"
+                  ref={checkOutInputRef}
+                  type={checkOutFocused || checkOut ? 'date' : 'text'}
+                  placeholder="Add departure date"
                   className="lp-search-input"
                   value={checkOut}
-                  onChange={(e) => setCheckOut(e.target.value)}
+                  min={checkIn ? getNextDay(checkIn) : minCheckIn}
+                  max={BOOKING_WINDOW.MAX_DATE}
+                  onFocus={(e) => {
+                    setCheckOutFocused(true);
+                    try { e.target.showPicker?.(); } catch (err) {}
+                  }}
+                  onBlur={() => setCheckOutFocused(false)}
+                  onChange={(e) => handleCheckOutChange(e.target.value)}
                 />
               </div>
             </div>
@@ -193,6 +269,12 @@ export default function LandingPage() {
                 Search Availability
               </button>
             </div>
+
+            {error && (
+              <div className="lp-search-error" role="alert">
+                {error}
+              </div>
+            )}
           </form>
         </div>
       </section>

@@ -238,6 +238,11 @@
   width: 100%;
 }
 
+.lp-search-input::placeholder {
+  color: #78716C;
+  font-weight: 400;
+}
+
 .lp-search-input:focus-visible,
 .lp-search-select:focus-visible {
   color: #1E3A2F;
@@ -271,6 +276,15 @@
 
 .lp-search-submit:hover {
   background-color: #152921;
+}
+
+.lp-search-error {
+  grid-column: 1 / -1;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  color: #991B1B;
+  background-color: #F3E4E1;
+  border-radius: 0.5rem;
 }
 
 /* 3. 4-Item Estate Highlights Strip */
