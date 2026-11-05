@@ -454,10 +454,20 @@
   gap: 0.125rem;
 }
 
+.stay-price-kicker {
+  font-family: var(--font-body, system-ui);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #78716C;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .stay-price-amount {
   display: flex;
   align-items: baseline;
   gap: 0.25rem;
+  white-space: nowrap;
 }
 
 .stay-price-amount__value {

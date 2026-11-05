@@ -379,8 +379,8 @@ export function GuestAvailabilityPage() {
               {isLoading
                 ? 'Checking live availability...'
                 : hasAvailableRooms
-                ? `${availableCategories.length} ${availableCategories.length === 1 ? 'accommodation' : 'accommodations'} available`
-                : 'No accommodations available'}
+                ? `${availableCategories.length} ${availableCategories.length === 1 ? 'accommodation type' : 'accommodation types'} available`
+                : 'No accommodation types available'}
             </h1>
             <span className="stay-heading-row__meta">
               {formatCompactDate(checkIn)} &ndash; {formatCompactDate(checkOut)} ({nights} {nights === 1 ? 'night' : 'nights'})
@@ -546,6 +546,7 @@ export function GuestAvailabilityPage() {
                     {/* Right: Pricing & CTA Column */}
                     <div className="stay-room-card__pricing">
                       <div className="stay-room-card__price-box">
+                        <span className="stay-price-kicker">Starting from</span>
                         <div className="stay-price-amount">
                           <span className="stay-price-amount__value">
                             {formatINR(cat.startingRatePerNight)}
