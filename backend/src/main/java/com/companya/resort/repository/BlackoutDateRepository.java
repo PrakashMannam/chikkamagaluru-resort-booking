@@ -24,4 +24,23 @@ public interface BlackoutDateRepository extends JpaRepository<BlackoutDate, Long
             @Param("checkIn") LocalDate checkIn,
             @Param("checkOut") LocalDate checkOut
     );
+
+    @Query("SELECT b FROM BlackoutDate b LEFT JOIN FETCH b.roomCategory WHERE b.blackoutDate >= :from AND b.blackoutDate <= :to")
+    List<BlackoutDate> findBlackoutsBetweenInclusive(
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to
+    );
+
+    @Query("SELECT b FROM BlackoutDate b LEFT JOIN FETCH b.roomCategory ORDER BY b.blackoutDate ASC")
+    List<BlackoutDate> findAllWithCategoryOrdered();
+
+    @Query("SELECT b FROM BlackoutDate b LEFT JOIN FETCH b.roomCategory WHERE b.blackoutDate >= :from AND b.blackoutDate <= :to ORDER BY b.blackoutDate ASC")
+    List<BlackoutDate> findBlackoutsBetweenInclusiveOrdered(
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to
+    );
+
+    boolean existsByRoomCategoryIsNullAndBlackoutDate(LocalDate blackoutDate);
+
+    boolean existsByRoomCategoryIdAndBlackoutDate(Long categoryId, LocalDate blackoutDate);
 }

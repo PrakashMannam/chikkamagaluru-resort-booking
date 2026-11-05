@@ -16,6 +16,7 @@ const PublicEnquiryPage = lazy(() => import('./pages/PublicEnquiryPage'));
 const StaffLoginPage = lazy(() => import('./pages/StaffLoginPage').then(m => ({ default: m.StaffLoginPage })));
 const StaffEnquiriesPage = lazy(() => import('./pages/StaffEnquiriesPage').then(m => ({ default: m.StaffEnquiriesPage })));
 const StaffEnquiryDetailPage = lazy(() => import('./pages/StaffEnquiryDetailPage').then(m => ({ default: m.StaffEnquiryDetailPage })));
+const StaffInventoryPage = lazy(() => import('./pages/staff/StaffInventoryPage').then(m => ({ default: m.StaffInventoryPage })));
 const Styleguide = lazy(() => import('./styleguide/Styleguide'));
 
 function PageFallback() {
@@ -65,6 +66,16 @@ export function App() {
                 <ProtectedRoute>
                   <StaffLayout>
                     <StaffEnquiryDetailPage />
+                  </StaffLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/staff/inventory"
+              element={
+                <ProtectedRoute>
+                  <StaffLayout>
+                    <StaffInventoryPage />
                   </StaffLayout>
                 </ProtectedRoute>
               }

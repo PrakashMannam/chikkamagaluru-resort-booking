@@ -26,6 +26,7 @@ export function StaffLayout({ children }) {
   };
 
   const isEnquiriesActive = location.pathname.startsWith('/staff/enquiries');
+  const isInventoryActive = location.pathname.startsWith('/staff/inventory');
 
   return (
     <div className="staff-layout">
@@ -84,6 +85,12 @@ export function StaffLayout({ children }) {
               className={`staff-subnav__link ${isEnquiriesActive ? 'staff-subnav__link--active' : ''}`}
             >
               📥 Enquiries Inbox
+            </Link>
+            <Link
+              to="/staff/inventory"
+              className={`staff-subnav__link ${isInventoryActive ? 'staff-subnav__link--active' : ''}`}
+            >
+              Rates &amp; allotment
             </Link>
           </div>
           <div className="staff-subnav__meta">

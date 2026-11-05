@@ -1,16 +1,21 @@
 package com.companya.resort.controller;
 
+import com.companya.resort.dto.AdminDailyInventoryRateDto;
+import com.companya.resort.dto.BulkUpdateInventoryRatesRequest;
 import com.companya.resort.entity.User;
 import com.companya.resort.repository.UserRepository;
 import com.companya.resort.security.UserPrincipal;
+import com.companya.resort.service.AdminInventoryService;
+import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -19,9 +24,11 @@ import java.util.Optional;
 public class AdminController {
 
     private final UserRepository userRepository;
+    private final AdminInventoryService adminInventoryService;
 
-    public AdminController(UserRepository userRepository) {
+    public AdminController(UserRepository userRepository, Optional<AdminInventoryService> adminInventoryService) {
         this.userRepository = userRepository;
+        this.adminInventoryService = adminInventoryService.orElse(null);
     }
 
     @GetMapping("/me")
@@ -69,5 +76,22 @@ public class AdminController {
         }).toList();
 
         return ResponseEntity.ok(staffList);
+    }
+
+    @GetMapping("/inventory-rates")
+    public ResponseEntity<List<AdminDailyInventoryRateDto>> getInventoryRates(
+            @RequestParam(value = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(value = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to
+    ) {
+        List<AdminDailyInventoryRateDto> rates = adminInventoryService.getInventoryRates(from, to);
+        return ResponseEntity.ok(rates);
+    }
+
+    @PutMapping("/inventory-rates/bulk")
+    public ResponseEntity<List<AdminDailyInventoryRateDto>> bulkUpdateInventoryRates(
+            @Valid @RequestBody BulkUpdateInventoryRatesRequest request
+    ) {
+        List<AdminDailyInventoryRateDto> updated = adminInventoryService.bulkUpdateInventoryRates(request);
+        return ResponseEntity.ok(updated);
     }
 }

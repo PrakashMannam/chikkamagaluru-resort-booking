@@ -33,4 +33,10 @@ public interface DailyInventoryRateRepository extends JpaRepository<DailyInvento
     Optional<DailyInventoryRate> findByRoomCategoryIdAndStayDate(Long categoryId, LocalDate stayDate);
 
     boolean existsByRoomCategoryIdAndStayDate(Long categoryId, LocalDate stayDate);
+
+    @Query("SELECT r FROM DailyInventoryRate r JOIN FETCH r.roomCategory WHERE r.stayDate >= :from AND r.stayDate <= :to ORDER BY r.stayDate ASC, r.roomCategory.code ASC")
+    List<DailyInventoryRate> findByStayDateBetweenInclusive(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    @Query("SELECT r FROM DailyInventoryRate r JOIN FETCH r.roomCategory WHERE r.roomCategory.code = :categoryCode AND r.stayDate >= :from AND r.stayDate <= :to ORDER BY r.stayDate ASC")
+    List<DailyInventoryRate> findByRoomCategoryCodeAndStayDateBetweenInclusive(@Param("categoryCode") String categoryCode, @Param("from") LocalDate from, @Param("to") LocalDate to);
 }
