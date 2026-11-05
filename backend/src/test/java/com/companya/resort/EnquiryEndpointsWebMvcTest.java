@@ -245,4 +245,42 @@ public class EnquiryEndpointsWebMvcTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error").value("Forbidden"));
     }
+
+    @Test
+    @DisplayName("Repeated draft approval request is rejected with 409 Conflict")
+    void testRepeatedDraftApprovalConflict() throws Exception {
+        when(enquiryService.approveDraft(eq(15L), any(com.companya.resort.security.UserPrincipal.class), any()))
+                .thenThrow(new IllegalStateException("No pending draft available for approval on enquiry id: 15"));
+
+        ApproveDraftRequest approveReq = new ApproveDraftRequest("Approved text");
+
+        mockMvc.perform(post("/api/v1/admin/enquiries/15/approve-draft")
+                        .header("Authorization", "Bearer " + staffToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(approveReq)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("Conflict"))
+                .andExpect(jsonPath("$.message").value("No pending draft available for approval on enquiry id: 15"));
+    }
+
+    @Test
+    @DisplayName("Unauthorized staff trying to route cross-lane enquiry receives 403 Forbidden")
+    void testUnauthorizedStaffRouteEnquiryForbidden() throws Exception {
+        User roomStaff = new User("rooms@estate.test", "hash", "Rooms Staff", Role.STAFF, SpecialtyLane.ROOM, false);
+        roomStaff.setId(2L);
+        String roomStaffToken = jwtService.generateToken(roomStaff);
+
+        when(enquiryService.routeEnquiry(eq(12L), any(com.companya.resort.security.UserPrincipal.class), any(RouteEnquiryRequest.class)))
+                .thenThrow(new org.springframework.security.access.AccessDeniedException("Staff in lane ROOM cannot route enquiries to WEDDING"));
+
+        RouteEnquiryRequest routeReq = new RouteEnquiryRequest(EnquiryCategory.WEDDING, 3L);
+
+        mockMvc.perform(patch("/api/v1/admin/enquiries/12/route")
+                        .header("Authorization", "Bearer " + roomStaffToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(routeReq)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("Forbidden"))
+                .andExpect(jsonPath("$.message").value("Staff in lane ROOM cannot route enquiries to WEDDING"));
+    }
 }

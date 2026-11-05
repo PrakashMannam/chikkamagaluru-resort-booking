@@ -128,7 +128,11 @@ public class EnquiryService {
         // 2. Process via AI / fallback pipeline
         processEnquiryPipeline(enquiry);
 
-        return getEnquiryDetails(enquiry.getId());
+        final Long enquiryId = enquiry.getId();
+        EnquiryDraft activeDraft = enquiryDraftRepository.findFirstByEnquiryIdAndStatusOrderByCreatedAtDesc(enquiryId, DraftStatus.DRAFT_PENDING_REVIEW)
+                .or(() -> enquiryDraftRepository.findFirstByEnquiryIdOrderByCreatedAtDesc(enquiryId))
+                .orElse(null);
+        return toDetailDto(enquiry, activeDraft);
     }
 
     private void processEnquiryPipeline(Enquiry enquiry) {
@@ -255,14 +259,15 @@ public class EnquiryService {
     }
 
     public boolean canAccessEnquiry(com.companya.resort.security.UserPrincipal principal, Enquiry enquiry) {
-        if (principal == null) {
-            return true;
+        if (principal == null || enquiry == null) {
+            return false;
         }
         if (principal.isGm()) {
             return true;
         }
-        if (enquiry.getAssignedToUser() != null && enquiry.getAssignedToUser().getId().equals(principal.getId())) {
-            return true;
+        // Non-GM staff cannot access COMPLAINT or UNSORTED enquiries under any circumstances
+        if (enquiry.getCategory() == EnquiryCategory.COMPLAINT || enquiry.getCategory() == EnquiryCategory.UNSORTED) {
+            return false;
         }
         SpecialtyLane userLane = parseSpecialtyLane(principal.getSpecialtyLane());
         if (userLane == null) {
@@ -276,7 +281,7 @@ public class EnquiryService {
             return false;
         }
         if (category == EnquiryCategory.COMPLAINT || category == EnquiryCategory.UNSORTED) {
-            return false;
+            return lane == SpecialtyLane.GM_ESCALATION;
         }
         return switch (lane) {
             case ROOM -> category == EnquiryCategory.ROOM_BOOKING;
@@ -304,8 +309,14 @@ public class EnquiryService {
             EnquiryChannel channel,
             BigDecimal minConfidence
     ) {
-        boolean isGm = (principal == null || principal.isGm());
-        SpecialtyLane userLane = (principal != null) ? parseSpecialtyLane(principal.getSpecialtyLane()) : null;
+        if (principal == null) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Unauthorized: Authentication principal is required to list enquiries"
+            );
+        }
+
+        boolean isGm = principal.isGm();
+        SpecialtyLane userLane = parseSpecialtyLane(principal.getSpecialtyLane());
 
         if (!isGm) {
             if (category == EnquiryCategory.COMPLAINT || category == EnquiryCategory.UNSORTED) {
@@ -314,7 +325,9 @@ public class EnquiryService {
                 );
             }
             if (category != null && !isCategoryPermittedForLane(category, userLane)) {
-                return List.of();
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "Unauthorized: Access to enquiries outside your assigned specialty lane is forbidden"
+                );
             }
         }
 
@@ -330,11 +343,13 @@ public class EnquiryService {
                     case GM_ESCALATION -> null;
                 };
 
-                Predicate laneMatch = (permittedCat != null) ? cb.equal(root.get("category"), permittedCat) : cb.disjunction();
-                Predicate assignedMatch = (principal.getId() != null) ? cb.equal(root.get("assignedToUser").get("id"), principal.getId()) : cb.disjunction();
-                Predicate notComplaintOrUnsorted = cb.not(root.get("category").in(EnquiryCategory.COMPLAINT, EnquiryCategory.UNSORTED));
-
-                predicates.add(cb.and(cb.or(laneMatch, assignedMatch), notComplaintOrUnsorted));
+                if (permittedCat != null) {
+                    Predicate laneMatch = cb.equal(root.get("category"), permittedCat);
+                    Predicate notComplaintOrUnsorted = cb.not(root.get("category").in(EnquiryCategory.COMPLAINT, EnquiryCategory.UNSORTED));
+                    predicates.add(cb.and(laneMatch, notComplaintOrUnsorted));
+                } else {
+                    predicates.add(cb.disjunction());
+                }
             }
 
             if (status != null) {
@@ -398,40 +413,103 @@ public class EnquiryService {
         Enquiry enquiry = enquiryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + id));
 
+        // 1. Caller must have access to the existing enquiry
         if (!canAccessEnquiry(principal, enquiry)) {
             throw new org.springframework.security.access.AccessDeniedException(
-                    "Unauthorized: You cannot reroute an enquiry outside your assigned specialty lane"
+                    "Unauthorized: You cannot access or reroute an enquiry outside your assigned specialty lane"
             );
         }
 
-        if (principal != null && !principal.isGm()) {
-            if (request.getCategory() == EnquiryCategory.COMPLAINT || request.getCategory() == EnquiryCategory.UNSORTED) {
+        // 2. GM-only complaint and unsorted checks on existing enquiry
+        if (enquiry.getCategory() == EnquiryCategory.COMPLAINT || enquiry.getCategory() == EnquiryCategory.UNSORTED) {
+            if (principal == null || !principal.isGm()) {
                 throw new org.springframework.security.access.AccessDeniedException(
-                        "Unauthorized: Only the General Manager can route enquiries to Complaint or Unsorted"
+                        "Unauthorized: Only General Managers can modify complaints or unsorted enquiries"
                 );
             }
         }
 
-        if (request.getCategory() != null) {
+        // 3. Resolve target category
+        EnquiryCategory targetCategory = (request != null && request.getCategory() != null)
+                ? request.getCategory()
+                : enquiry.getCategory();
+
+        // 4. Validate caller permission for target category
+        if (principal != null && !principal.isGm()) {
+            if (targetCategory == EnquiryCategory.COMPLAINT || targetCategory == EnquiryCategory.UNSORTED) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "Unauthorized: Only General Managers can route enquiries to Complaint or Unsorted"
+                );
+            }
+            SpecialtyLane userLane = parseSpecialtyLane(principal.getSpecialtyLane());
+            if (!isCategoryPermittedForLane(targetCategory, userLane)) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "Unauthorized: You cannot route an enquiry to a category outside your assigned specialty lane"
+                );
+            }
+        }
+
+        // 5. Validate assignee if specified
+        if (request != null && request.getAssignedToUserId() != null) {
+            User targetStaff = userRepository.findById(request.getAssignedToUserId())
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.getAssignedToUserId()));
+
+            if (targetCategory == EnquiryCategory.COMPLAINT || targetCategory == EnquiryCategory.UNSORTED) {
+                if (!Boolean.TRUE.equals(targetStaff.getIsGm()) && targetStaff.getSpecialtyLane() != SpecialtyLane.GM_ESCALATION) {
+                    throw new org.springframework.security.access.AccessDeniedException(
+                            "Unauthorized: Complaints and unsorted enquiries can only be assigned to a General Manager"
+                    );
+                }
+            } else {
+                SpecialtyLane targetLane = targetStaff.getSpecialtyLane();
+                boolean targetMatchesCategory = switch (targetCategory) {
+                    case ROOM_BOOKING -> targetLane == SpecialtyLane.ROOM || Boolean.TRUE.equals(targetStaff.getIsGm());
+                    case WEDDING -> targetLane == SpecialtyLane.WEDDING || Boolean.TRUE.equals(targetStaff.getIsGm());
+                    case CORPORATE_OFFSITE -> targetLane == SpecialtyLane.OFFSITE || Boolean.TRUE.equals(targetStaff.getIsGm());
+                    default -> false;
+                };
+
+                if (!targetMatchesCategory) {
+                    throw new org.springframework.security.access.AccessDeniedException(
+                            "Unauthorized: Cannot assign enquiry to staff member outside the matching specialty lane"
+                    );
+                }
+            }
+
+            enquiry.setAssignedToUser(targetStaff);
+        } else if (request != null && request.getCategory() != null) {
+            // Auto reassign staff based on new category
+            enquiryRoutingService.assignStaff(enquiry);
+        }
+
+        boolean categoryChanged = request != null && request.getCategory() != null && request.getCategory() != enquiry.getCategory();
+
+        if (request != null && request.getCategory() != null) {
             enquiry.setCategory(request.getCategory());
             if (request.getCategory() == EnquiryCategory.COMPLAINT) {
                 enquiry.setGmAlerted(true);
             }
         }
 
-        if (request.getAssignedToUserId() != null) {
-            User staff = userRepository.findById(request.getAssignedToUserId())
-                    .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + request.getAssignedToUserId()));
-            enquiry.setAssignedToUser(staff);
-        } else if (request.getCategory() != null) {
-            // Auto reassign staff based on new category
-            enquiryRoutingService.assignStaff(enquiry);
-        }
-
         enquiry.setRoutingMethod(RoutingMethod.MANUAL_OVERRIDE);
         enquiryRepository.save(enquiry);
 
-        return getEnquiryDetails(id, principal);
+        // 6. Invalidate or reconcile stale quote information on active pending draft if category changed
+        if (categoryChanged) {
+            enquiryDraftRepository.findFirstByEnquiryIdAndStatusOrderByCreatedAtDesc(id, DraftStatus.DRAFT_PENDING_REVIEW)
+                    .ifPresent(pendingDraft -> {
+                        QuoteInjectorService.InjectedQuote reconciled = quoteInjectorService.injectDatabaseQuote(pendingDraft.getDraftBody(), enquiry);
+                        pendingDraft.setDraftBody(reconciled.finalDraftBody());
+                        pendingDraft.setQuotedRateBreakdownJson(reconciled.quotedRateBreakdownJson());
+                        enquiryDraftRepository.save(pendingDraft);
+                    });
+        }
+
+        EnquiryDraft activeDraft = enquiryDraftRepository.findFirstByEnquiryIdAndStatusOrderByCreatedAtDesc(id, DraftStatus.DRAFT_PENDING_REVIEW)
+                .or(() -> enquiryDraftRepository.findFirstByEnquiryIdOrderByCreatedAtDesc(id))
+                .orElse(null);
+
+        return toDetailDto(enquiry, activeDraft);
     }
 
     @Transactional
@@ -450,25 +528,42 @@ public class EnquiryService {
             );
         }
 
+        if (enquiry.getCategory() == EnquiryCategory.COMPLAINT && (principal == null || !principal.isGm())) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Unauthorized: Only General Managers can approve complaint drafts"
+            );
+        }
+
         Long staffUserId = (principal != null) ? principal.getId() : null;
         return executeDraftApproval(enquiry, staffUserId, request);
     }
 
     @Transactional
     public DraftApprovalResponse approveDraft(Long enquiryId, Long staffUserId, ApproveDraftRequest request) {
-        Enquiry enquiry = enquiryRepository.findById(enquiryId)
-                .orElseThrow(() -> new ResourceNotFoundException("Enquiry not found with id: " + enquiryId));
-        return executeDraftApproval(enquiry, staffUserId, request);
+        User staff = (staffUserId != null) ? userRepository.findById(staffUserId).orElse(null) : null;
+        com.companya.resort.security.UserPrincipal principal = (staff != null)
+                ? new com.companya.resort.security.UserPrincipal(staff.getId(), staff.getEmail(), staff.getRole().name(), staff.getIsGm(), staff.getSpecialtyLane().name())
+                : null;
+        return approveDraft(enquiryId, principal, request);
     }
 
     private DraftApprovalResponse executeDraftApproval(Enquiry enquiry, Long staffUserId, ApproveDraftRequest request) {
         Long enquiryId = enquiry.getId();
-        EnquiryDraft draft = enquiryDraftRepository.findFirstByEnquiryIdAndStatusOrderByCreatedAtDesc(enquiryId, DraftStatus.DRAFT_PENDING_REVIEW)
-                .or(() -> enquiryDraftRepository.findFirstByEnquiryIdOrderByCreatedAtDesc(enquiryId))
-                .orElseThrow(() -> new ResourceNotFoundException("No draft found for enquiry id: " + enquiryId));
 
+        // 1. Strictly look for DRAFT_PENDING_REVIEW status only. Do NOT fall back to already sent/discarded drafts!
+        EnquiryDraft draft = enquiryDraftRepository.findFirstByEnquiryIdAndStatusOrderByCreatedAtDesc(enquiryId, DraftStatus.DRAFT_PENDING_REVIEW)
+                .orElseThrow(() -> new IllegalStateException("No pending draft available for approval on enquiry id: " + enquiryId));
+
+        // 2. Reject repeated approval if enquiry is already replied and draft was dispatched
+        if (enquiry.getStatus() == EnquiryStatus.REPLIED && draft.getStatus() != DraftStatus.DRAFT_PENDING_REVIEW) {
+            throw new IllegalStateException("Enquiry has already been replied and draft was dispatched");
+        }
+
+        // 3. Reconcile edited draft body: prevent unvalidated or invented prices
         if (request != null && request.getDraftBody() != null && !request.getDraftBody().isBlank()) {
-            draft.setDraftBody(request.getDraftBody());
+            QuoteInjectorService.InjectedQuote reconciled = quoteInjectorService.injectDatabaseQuote(request.getDraftBody(), enquiry);
+            draft.setDraftBody(reconciled.finalDraftBody());
+            draft.setQuotedRateBreakdownJson(reconciled.quotedRateBreakdownJson());
         }
 
         if (staffUserId != null) {
@@ -485,7 +580,7 @@ public class EnquiryService {
         }
         enquiryRepository.save(enquiry);
 
-        // Invoke simulated delivery
+        // 4. Simulated delivery
         SimulatedDeliveryAdapter.DeliveryResult deliveryResult = simulatedDeliveryAdapter.deliver(enquiry, draft);
 
         return new DraftApprovalResponse(
@@ -512,8 +607,14 @@ public class EnquiryService {
             );
         }
 
+        if (enquiry.getCategory() == EnquiryCategory.COMPLAINT && (principal == null || !principal.isGm())) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Unauthorized: Only General Managers can discard complaint drafts"
+            );
+        }
+
         EnquiryDraft draft = enquiryDraftRepository.findFirstByEnquiryIdAndStatusOrderByCreatedAtDesc(enquiryId, DraftStatus.DRAFT_PENDING_REVIEW)
-                .orElseThrow(() -> new ResourceNotFoundException("No pending draft found for enquiry id: " + enquiryId));
+                .orElseThrow(() -> new IllegalStateException("No pending draft found for enquiry id: " + enquiryId));
 
         draft.setStatus(DraftStatus.DISCARDED);
         enquiryDraftRepository.save(draft);

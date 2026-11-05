@@ -21,6 +21,7 @@ import com.companya.resort.entity.User;
 import com.companya.resort.repository.EnquiryDraftRepository;
 import com.companya.resort.repository.EnquiryRepository;
 import com.companya.resort.repository.UserRepository;
+import com.companya.resort.security.UserPrincipal;
 import com.companya.resort.service.EnquiryRoutingService;
 import com.companya.resort.service.EnquiryService;
 import com.companya.resort.service.GeminiAiService;
@@ -36,6 +37,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -79,6 +81,11 @@ public class EnquiryServiceTest {
     private User roomStaff;
     private User offsiteStaff;
 
+    private UserPrincipal gmPrincipal;
+    private UserPrincipal roomPrincipal;
+    private UserPrincipal weddingPrincipal;
+    private UserPrincipal offsitePrincipal;
+
     @BeforeEach
     void setUp() {
         ruleFallbackService = new RuleFallbackService();
@@ -95,6 +102,11 @@ public class EnquiryServiceTest {
 
         offsiteStaff = new User("offsite@estate.com", "hash", "Meera Nair", Role.STAFF, SpecialtyLane.OFFSITE, false);
         offsiteStaff.setId(4L);
+
+        gmPrincipal = new UserPrincipal(gmUser.getId(), gmUser.getEmail(), gmUser.getRole().name(), gmUser.getIsGm(), gmUser.getSpecialtyLane().name());
+        roomPrincipal = new UserPrincipal(roomStaff.getId(), roomStaff.getEmail(), roomStaff.getRole().name(), roomStaff.getIsGm(), roomStaff.getSpecialtyLane().name());
+        weddingPrincipal = new UserPrincipal(weddingStaff.getId(), weddingStaff.getEmail(), weddingStaff.getRole().name(), weddingStaff.getIsGm(), weddingStaff.getSpecialtyLane().name());
+        offsitePrincipal = new UserPrincipal(offsiteStaff.getId(), offsiteStaff.getEmail(), offsiteStaff.getRole().name(), offsiteStaff.getIsGm(), offsiteStaff.getSpecialtyLane().name());
 
         when(userRepository.findFirstByIsGmTrueOrderByIdAsc()).thenReturn(Optional.of(gmUser));
         when(userRepository.findFirstBySpecialtyLaneOrderByIdAsc(SpecialtyLane.ROOM)).thenReturn(Optional.of(roomStaff));
@@ -122,6 +134,9 @@ public class EnquiryServiceTest {
 
         when(quoteInjectorService.injectDatabaseQuote(anyString(), any(Enquiry.class)))
                 .thenAnswer(invocation -> new QuoteInjectorService.InjectedQuote(invocation.getArgument(0), null));
+
+        when(quoteInjectorService.injectDatabaseQuote(anyString(), any(Enquiry.class)))
+                .thenAnswer(inv -> new QuoteInjectorService.InjectedQuote(inv.getArgument(0), null));
 
         enquiryService = new EnquiryService(
                 enquiryRepository,
@@ -441,7 +456,7 @@ public class EnquiryServiceTest {
     }
 
     @Test
-    @DisplayName("Staff can reroute an enquiry and change category or assigned specialist")
+    @DisplayName("Authorized GM can reroute an unsorted enquiry to wedding specialist")
     void testStaffRerouteEnquiry() {
         Enquiry existing = new Enquiry();
         existing.setId(55L);
@@ -453,7 +468,7 @@ public class EnquiryServiceTest {
         when(userRepository.findById(3L)).thenReturn(Optional.of(weddingStaff));
 
         RouteEnquiryRequest routeReq = new RouteEnquiryRequest(EnquiryCategory.WEDDING, 3L);
-        enquiryService.routeEnquiry(55L, routeReq);
+        enquiryService.routeEnquiry(55L, gmPrincipal, routeReq);
 
         assertEquals(EnquiryCategory.WEDDING, existing.getCategory());
         assertEquals(weddingStaff, existing.getAssignedToUser());
@@ -469,6 +484,8 @@ public class EnquiryServiceTest {
         existing.setSourceChannel(EnquiryChannel.EMAIL_SIM);
         existing.setSenderContact("guest@example.com");
         existing.setStatus(EnquiryStatus.OPEN);
+        existing.setCategory(EnquiryCategory.ROOM_BOOKING);
+        existing.setAssignedToUser(roomStaff);
 
         EnquiryDraft draft = new EnquiryDraft();
         draft.setId(88L);
@@ -519,5 +536,231 @@ public class EnquiryServiceTest {
 
         // Ensure delivery adapter is NEVER called during creation
         verify(simulatedDeliveryAdapter, never()).deliver(any(), any());
+    }
+
+    @Test
+    @DisplayName("Ordinary staff cannot access enquiries outside their assigned specialty lane")
+    void testOrdinaryStaffAccessingAnotherLane_ThrowsAccessDenied() {
+        Enquiry weddingEnquiry = new Enquiry();
+        weddingEnquiry.setId(101L);
+        weddingEnquiry.setCategory(EnquiryCategory.WEDDING);
+        weddingEnquiry.setAssignedToUser(weddingStaff);
+
+        when(enquiryRepository.findById(101L)).thenReturn(Optional.of(weddingEnquiry));
+
+        // Room staff attempts to get enquiry details for wedding enquiry
+        assertThrows(AccessDeniedException.class, () ->
+                enquiryService.getEnquiryDetails(101L, roomPrincipal));
+
+        // Room staff attempts to route wedding enquiry
+        RouteEnquiryRequest routeReq = new RouteEnquiryRequest(EnquiryCategory.ROOM_BOOKING, roomStaff.getId());
+        assertThrows(AccessDeniedException.class, () ->
+                enquiryService.routeEnquiry(101L, roomPrincipal, routeReq));
+    }
+
+    @Test
+    @DisplayName("Ordinary staff cannot access or modify GM-only complaint records")
+    void testOrdinaryStaffModifyingComplaint_ThrowsAccessDenied() {
+        Enquiry complaintEnquiry = new Enquiry();
+        complaintEnquiry.setId(202L);
+        complaintEnquiry.setCategory(EnquiryCategory.COMPLAINT);
+        complaintEnquiry.setAssignedToUser(gmUser);
+
+        when(enquiryRepository.findById(202L)).thenReturn(Optional.of(complaintEnquiry));
+
+        // Ordinary room staff cannot get details of GM complaint
+        assertThrows(AccessDeniedException.class, () ->
+                enquiryService.getEnquiryDetails(202L, roomPrincipal));
+
+        // Ordinary room staff cannot route GM complaint
+        RouteEnquiryRequest routeReq = new RouteEnquiryRequest(EnquiryCategory.COMPLAINT, gmUser.getId());
+        assertThrows(AccessDeniedException.class, () ->
+                enquiryService.routeEnquiry(202L, roomPrincipal, routeReq));
+
+        // Ordinary room staff cannot approve draft on GM complaint
+        ApproveDraftRequest approveReq = new ApproveDraftRequest("Apology from rooms");
+        assertThrows(AccessDeniedException.class, () ->
+                enquiryService.approveDraft(202L, roomPrincipal, approveReq));
+    }
+
+    @Test
+    @DisplayName("Routing validates assignee specialty lane against enquiry category")
+    void testUnauthorizedAssigneeSelection_ThrowsAccessDenied() {
+        Enquiry roomEnquiry = new Enquiry();
+        roomEnquiry.setId(303L);
+        roomEnquiry.setCategory(EnquiryCategory.ROOM_BOOKING);
+        roomEnquiry.setAssignedToUser(roomStaff);
+
+        when(enquiryRepository.findById(303L)).thenReturn(Optional.of(roomEnquiry));
+        when(userRepository.findById(weddingStaff.getId())).thenReturn(Optional.of(weddingStaff));
+
+        // Attempting to route a ROOM_BOOKING enquiry to wedding staff must be rejected
+        RouteEnquiryRequest invalidAssigneeReq = new RouteEnquiryRequest(EnquiryCategory.ROOM_BOOKING, weddingStaff.getId());
+        assertThrows(AccessDeniedException.class, () ->
+                enquiryService.routeEnquiry(303L, gmPrincipal, invalidAssigneeReq));
+    }
+
+    @Test
+    @DisplayName("Authorized GM accounts can access and route GM complaints")
+    void testAuthorizedGmComplaintAccess_Succeeds() {
+        Enquiry complaintEnquiry = new Enquiry();
+        complaintEnquiry.setId(404L);
+        complaintEnquiry.setCategory(EnquiryCategory.COMPLAINT);
+        complaintEnquiry.setAssignedToUser(gmUser);
+        complaintEnquiry.setStatus(EnquiryStatus.OPEN);
+        complaintEnquiry.setEnquiryCode("ENQ-COMPLAINT-1");
+
+        when(enquiryRepository.findById(404L)).thenReturn(Optional.of(complaintEnquiry));
+        when(userRepository.findById(gmUser.getId())).thenReturn(Optional.of(gmUser));
+
+        AdminEnquiryDetailDto details = enquiryService.getEnquiryDetails(404L, gmPrincipal);
+        assertNotNull(details);
+        assertEquals("ENQ-COMPLAINT-1", details.getEnquiryCode());
+        assertEquals("COMPLAINT", details.getCategory());
+
+        RouteEnquiryRequest routeReq = new RouteEnquiryRequest(EnquiryCategory.COMPLAINT, gmUser.getId());
+        AdminEnquiryDetailDto routed = enquiryService.routeEnquiry(404L, gmPrincipal, routeReq);
+        assertNotNull(routed);
+        assertEquals("COMPLAINT", routed.getCategory());
+    }
+
+    @Test
+    @DisplayName("Safe approval of a pending draft succeeds, delivers simulation and transitions status")
+    void testApproveDraft_PendingDraftSucceeds() {
+        Enquiry roomEnquiry = new Enquiry();
+        roomEnquiry.setId(505L);
+        roomEnquiry.setEnquiryCode("ENQ-505");
+        roomEnquiry.setCategory(EnquiryCategory.ROOM_BOOKING);
+        roomEnquiry.setAssignedToUser(roomStaff);
+        roomEnquiry.setStatus(EnquiryStatus.OPEN);
+        roomEnquiry.setSourceChannel(EnquiryChannel.EMAIL_SIM);
+        roomEnquiry.setSenderContact("guest505@example.com");
+
+        EnquiryDraft pendingDraft = new EnquiryDraft();
+        pendingDraft.setId(606L);
+        pendingDraft.setEnquiry(roomEnquiry);
+        pendingDraft.setDraftBody("Pending room quote draft");
+        pendingDraft.setStatus(DraftStatus.DRAFT_PENDING_REVIEW);
+
+        when(enquiryRepository.findById(505L)).thenReturn(Optional.of(roomEnquiry));
+        when(enquiryDraftRepository.findFirstByEnquiryIdAndStatusOrderByCreatedAtDesc(505L, DraftStatus.DRAFT_PENDING_REVIEW))
+                .thenReturn(Optional.of(pendingDraft));
+        when(userRepository.findById(roomStaff.getId())).thenReturn(Optional.of(roomStaff));
+        when(simulatedDeliveryAdapter.deliver(any(), any()))
+                .thenReturn(new SimulatedDeliveryAdapter.DeliveryResult("SIM-505", "EMAIL_SIM", "guest505@example.com", "DELIVERED_SIMULATED", LocalDateTime.now(), "Preview"));
+
+        ApproveDraftRequest approveReq = new ApproveDraftRequest("Approved room quote draft");
+        DraftApprovalResponse resp = enquiryService.approveDraft(505L, roomPrincipal, approveReq);
+
+        assertNotNull(resp);
+        assertEquals("REPLIED", resp.getEnquiryStatus());
+        assertEquals("SENT_MANUALLY", resp.getDraftStatus());
+        assertEquals(DraftStatus.SENT_MANUALLY, pendingDraft.getStatus());
+        assertEquals(EnquiryStatus.REPLIED, roomEnquiry.getStatus());
+        verify(simulatedDeliveryAdapter, times(1)).deliver(eq(roomEnquiry), eq(pendingDraft));
+    }
+
+    @Test
+    @DisplayName("Repeated approval requests for already-approved drafts are rejected and do not re-dispatch")
+    void testRepeatedApprovalRequest_ThrowsIllegalStateException() {
+        Enquiry roomEnquiry = new Enquiry();
+        roomEnquiry.setId(506L);
+        roomEnquiry.setCategory(EnquiryCategory.ROOM_BOOKING);
+        roomEnquiry.setAssignedToUser(roomStaff);
+        roomEnquiry.setStatus(EnquiryStatus.REPLIED);
+
+        // When draft has already been approved, finding pending draft returns empty
+        when(enquiryRepository.findById(506L)).thenReturn(Optional.of(roomEnquiry));
+        when(enquiryDraftRepository.findFirstByEnquiryIdAndStatusOrderByCreatedAtDesc(506L, DraftStatus.DRAFT_PENDING_REVIEW))
+                .thenReturn(Optional.empty());
+
+        ApproveDraftRequest approveReq = new ApproveDraftRequest("Duplicate approval attempt");
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
+                enquiryService.approveDraft(506L, roomPrincipal, approveReq));
+
+        assertTrue(ex.getMessage().contains("No pending draft"));
+        verify(simulatedDeliveryAdapter, never()).deliver(any(), any());
+    }
+
+    @Test
+    @DisplayName("Rejection of approval when draft is not in pending review state")
+    void testRejectionOfApprovalForNonPendingDraft_ThrowsIllegalStateException() {
+        Enquiry weddingEnquiry = new Enquiry();
+        weddingEnquiry.setId(507L);
+        weddingEnquiry.setCategory(EnquiryCategory.WEDDING);
+        weddingEnquiry.setAssignedToUser(weddingStaff);
+
+        when(enquiryRepository.findById(507L)).thenReturn(Optional.of(weddingEnquiry));
+        when(enquiryDraftRepository.findFirstByEnquiryIdAndStatusOrderByCreatedAtDesc(507L, DraftStatus.DRAFT_PENDING_REVIEW))
+                .thenReturn(Optional.empty());
+
+        ApproveDraftRequest approveReq = new ApproveDraftRequest("Attempting approval on missing draft");
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
+                enquiryService.approveDraft(507L, weddingPrincipal, approveReq));
+
+        assertTrue(ex.getMessage().contains("No pending draft"));
+        verify(simulatedDeliveryAdapter, never()).deliver(any(), any());
+    }
+
+    @Test
+    @DisplayName("Authorization failures leave database records unchanged without persistence")
+    void testAuthorizationFailureLeavesDatabaseRecordsUnchanged() {
+        Enquiry weddingEnquiry = new Enquiry();
+        weddingEnquiry.setId(508L);
+        weddingEnquiry.setCategory(EnquiryCategory.WEDDING);
+        weddingEnquiry.setAssignedToUser(weddingStaff);
+        weddingEnquiry.setStatus(EnquiryStatus.OPEN);
+
+        when(enquiryRepository.findById(508L)).thenReturn(Optional.of(weddingEnquiry));
+
+        // Unauthorized room staff attempts to reassign wedding enquiry
+        RouteEnquiryRequest routeReq = new RouteEnquiryRequest(EnquiryCategory.ROOM_BOOKING, roomStaff.getId());
+        assertThrows(AccessDeniedException.class, () ->
+                enquiryService.routeEnquiry(508L, roomPrincipal, routeReq));
+
+        // Verify save was NEVER called for this entity modification
+        verify(enquiryRepository, never()).save(weddingEnquiry);
+        assertEquals(EnquiryCategory.WEDDING, weddingEnquiry.getCategory());
+        assertEquals(weddingStaff, weddingEnquiry.getAssignedToUser());
+    }
+
+    @Test
+    @DisplayName("Edited draft body reconciles and sanitizes invented prices against authoritative quote data")
+    void testEditedDraftSanitizesInventedPrices() {
+        Enquiry roomEnquiry = new Enquiry();
+        roomEnquiry.setId(509L);
+        roomEnquiry.setEnquiryCode("ENQ-509");
+        roomEnquiry.setCategory(EnquiryCategory.ROOM_BOOKING);
+        roomEnquiry.setAssignedToUser(roomStaff);
+        roomEnquiry.setStatus(EnquiryStatus.OPEN);
+        roomEnquiry.setSourceChannel(EnquiryChannel.EMAIL_SIM);
+        roomEnquiry.setSenderContact("guest509@example.com");
+
+        EnquiryDraft pendingDraft = new EnquiryDraft();
+        pendingDraft.setId(609L);
+        pendingDraft.setEnquiry(roomEnquiry);
+        pendingDraft.setDraftBody("Original AI draft");
+        pendingDraft.setStatus(DraftStatus.DRAFT_PENDING_REVIEW);
+
+        when(enquiryRepository.findById(509L)).thenReturn(Optional.of(roomEnquiry));
+        when(enquiryDraftRepository.findFirstByEnquiryIdAndStatusOrderByCreatedAtDesc(509L, DraftStatus.DRAFT_PENDING_REVIEW))
+                .thenReturn(Optional.of(pendingDraft));
+        when(userRepository.findById(roomStaff.getId())).thenReturn(Optional.of(roomStaff));
+
+        String inventedPriceBody = "Special promotional deal: Villa at only ₹2,000 per night all inclusive!";
+        String sanitizedBody = "Special promotional deal: Villa at starting rate ₹10,500/night + 18% GST (Official Quote Breakdown)";
+
+        when(quoteInjectorService.injectDatabaseQuote(eq(inventedPriceBody), eq(roomEnquiry)))
+                .thenReturn(new QuoteInjectorService.InjectedQuote(sanitizedBody, null));
+        when(simulatedDeliveryAdapter.deliver(any(), any()))
+                .thenReturn(new SimulatedDeliveryAdapter.DeliveryResult("SIM-509", "EMAIL_SIM", "guest509@example.com", "DELIVERED_SIMULATED", LocalDateTime.now(), sanitizedBody));
+
+        ApproveDraftRequest approveReq = new ApproveDraftRequest(inventedPriceBody);
+        DraftApprovalResponse resp = enquiryService.approveDraft(509L, roomPrincipal, approveReq);
+
+        assertNotNull(resp);
+        assertEquals(sanitizedBody, pendingDraft.getDraftBody());
+        assertEquals(sanitizedBody, resp.getDeliveredBody());
+        verify(quoteInjectorService, times(1)).injectDatabaseQuote(eq(inventedPriceBody), eq(roomEnquiry));
     }
 }
