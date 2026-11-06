@@ -359,37 +359,107 @@ export function StaffInventoryPage() {
     }
 
     return (
-      <div className="staff-inventory__table-wrapper">
-        <table className="staff-inventory__table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Base Rate (INR)</th>
-              <th>Website Allotment</th>
-              <th>Booked Count</th>
-              <th>Remaining Keys</th>
-              <th>Physical Key Cap</th>
-              <th>Status / Blackout</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => {
-              const remaining = row.websiteAllotmentTotal - row.bookedCount;
-              return (
-                <tr
-                  key={`${row.categoryCode}-${row.stayDate}`}
-                  className={row.blackout ? 'staff-inventory__table tr--blackout' : ''}
-                >
-                  <td>
+      <>
+        {/* Desktop Table View */}
+        <div className="staff-inventory__table-wrapper">
+          <table className="staff-inventory__table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Base Rate (INR)</th>
+                <th>Website Allotment</th>
+                <th>Booked Count</th>
+                <th>Remaining Keys</th>
+                <th>Physical Key Cap</th>
+                <th>Status / Blackout</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => {
+                const remaining = row.websiteAllotmentTotal - row.bookedCount;
+                return (
+                  <tr
+                    key={`${row.categoryCode}-${row.stayDate}`}
+                    className={row.blackout ? 'staff-inventory__table tr--blackout' : ''}
+                  >
+                    <td>
+                      <strong>{formatDate(row.stayDate)}</strong>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                        {row.stayDate}
+                      </div>
+                    </td>
+                    <td className="staff-inventory__rate-val">{formatPrice(row.baseRateInr)}</td>
+                    <td className="staff-inventory__allotment-val">{row.websiteAllotmentTotal}</td>
+                    <td>{row.bookedCount}</td>
+                    <td>
+                      <span
+                        className={`staff-inventory__remaining-val ${
+                          remaining > 0
+                            ? 'staff-inventory__remaining-val--available'
+                            : 'staff-inventory__remaining-val--zero'
+                        }`}
+                      >
+                        {remaining} remaining
+                      </span>
+                    </td>
+                    <td className="staff-inventory__cap-badge">
+                      {row.totalPhysicalKeys || defaultPhysicalKeys} keys max
+                    </td>
+                    <td>
+                      {row.blackout ? (
+                        <div>
+                          <Badge variant="danger">Blackout</Badge>
+                          {row.blackoutReason && (
+                            <div className="staff-inventory__blackout-reason" title={row.blackoutReason}>
+                              {row.blackoutReason}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span style={{ color: 'var(--color-text-muted)' }}>Available</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile Cards View (<= 768px) */}
+        <div className="staff-inventory__mobile-cards staff-inventory__rates-mobile-cards">
+          {rows.map((row) => {
+            const remaining = row.websiteAllotmentTotal - row.bookedCount;
+            return (
+              <div
+                key={`mobile-${row.categoryCode}-${row.stayDate}`}
+                className={`staff-inventory__rate-card ${row.blackout ? 'staff-inventory__rate-card--blackout' : ''}`}
+              >
+                <div className="staff-inventory__rate-card-header">
+                  <div>
                     <strong>{formatDate(row.stayDate)}</strong>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                      {row.stayDate}
+                    <span className="staff-inventory__rate-card-subdate">{row.stayDate}</span>
+                  </div>
+                  <div className="staff-inventory__rate-val">{formatPrice(row.baseRateInr)}</div>
+                </div>
+                <div className="staff-inventory__rate-card-body">
+                  <div className="staff-inventory__rate-card-metrics">
+                    <div className="staff-inventory__rate-card-metric">
+                      <span className="staff-inventory__rate-card-metric-label">Allotment</span>
+                      <span className="staff-inventory__rate-card-metric-val">{row.websiteAllotmentTotal}</span>
                     </div>
-                  </td>
-                  <td className="staff-inventory__rate-val">{formatPrice(row.baseRateInr)}</td>
-                  <td className="staff-inventory__allotment-val">{row.websiteAllotmentTotal}</td>
-                  <td>{row.bookedCount}</td>
-                  <td>
+                    <div className="staff-inventory__rate-card-metric">
+                      <span className="staff-inventory__rate-card-metric-label">Booked</span>
+                      <span className="staff-inventory__rate-card-metric-val">{row.bookedCount}</span>
+                    </div>
+                    <div className="staff-inventory__rate-card-metric">
+                      <span className="staff-inventory__rate-card-metric-label">Cap</span>
+                      <span className="staff-inventory__rate-card-metric-val">
+                        {row.totalPhysicalKeys || defaultPhysicalKeys} max
+                      </span>
+                    </div>
+                  </div>
+                  <div className="staff-inventory__rate-card-status">
                     <span
                       className={`staff-inventory__remaining-val ${
                         remaining > 0
@@ -399,30 +469,25 @@ export function StaffInventoryPage() {
                     >
                       {remaining} remaining
                     </span>
-                  </td>
-                  <td className="staff-inventory__cap-badge">
-                    {row.totalPhysicalKeys || defaultPhysicalKeys} keys max
-                  </td>
-                  <td>
                     {row.blackout ? (
-                      <div>
+                      <span className="staff-inventory__blackout-inline">
                         <Badge variant="danger">Blackout</Badge>
                         {row.blackoutReason && (
-                          <div className="staff-inventory__blackout-reason" title={row.blackoutReason}>
+                          <span className="staff-inventory__blackout-reason-text" title={row.blackoutReason}>
                             {row.blackoutReason}
-                          </div>
+                          </span>
                         )}
-                      </div>
+                      </span>
                     ) : (
-                      <span style={{ color: 'var(--color-text-muted)' }}>Available</span>
+                      <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>Available</span>
                     )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </>
     );
   };
 
@@ -631,14 +696,9 @@ export function StaffInventoryPage() {
                   <span>✓ {bulkSuccess}</span>
                   <button
                     type="button"
+                    className="staff-inventory__dismiss-btn"
+                    aria-label="Dismiss success message"
                     onClick={() => setBulkSuccess(null)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: 'inherit',
-                      cursor: 'pointer',
-                      fontWeight: 'bold',
-                    }}
                   >
                     ✕
                   </button>
@@ -755,7 +815,7 @@ export function StaffInventoryPage() {
                 />
               </div>
 
-              <div className="staff-inventory__filter-group" style={{ gridColumn: 'span 2' }}>
+              <div className="staff-inventory__filter-group staff-inventory__form-col-span-2">
                 <label className="staff-inventory__label" htmlFor="blackout-reason">
                   Blackout Reason
                 </label>
@@ -810,14 +870,9 @@ export function StaffInventoryPage() {
                   <span>✓ {blackoutSuccess}</span>
                   <button
                     type="button"
+                    className="staff-inventory__dismiss-btn"
+                    aria-label="Dismiss success message"
                     onClick={() => setBlackoutSuccess(null)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: 'inherit',
-                      cursor: 'pointer',
-                      fontWeight: 'bold',
-                    }}
                   >
                     ✕
                   </button>
@@ -843,48 +898,86 @@ export function StaffInventoryPage() {
                 description="No blackout dates are currently configured. Guests can book whenever allotment and rates allow."
               />
             ) : (
-              <div className="staff-inventory__table-wrapper">
-                <table className="staff-inventory__table">
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Scope / Category</th>
-                      <th>Reason</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {blackouts.map((b) => (
-                      <tr key={b.id}>
-                        <td>
-                          <strong>{formatDate(b.blackoutDate)}</strong>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                            {b.blackoutDate}
-                          </div>
-                        </td>
-                        <td>
-                          {b.roomCategoryCode ? (
-                            <Badge variant="neutral">{b.roomCategoryName || b.roomCategoryCode}</Badge>
-                          ) : (
-                            <Badge variant="warning">👑 All Resort (Buyout)</Badge>
-                          )}
-                        </td>
-                        <td>{b.reason || 'Resort Blackout'}</td>
-                        <td>
-                          <button
-                            type="button"
-                            className="staff-inventory__delete-btn"
-                            onClick={() => handleDeleteBlackout(b.id, b.blackoutDate)}
-                            disabled={deletingBlackoutId === b.id}
-                          >
-                            {deletingBlackoutId === b.id ? 'Removing...' : 'Remove'}
-                          </button>
-                        </td>
+              <>
+                {/* Desktop Table View */}
+                <div className="staff-inventory__table-wrapper">
+                  <table className="staff-inventory__table">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Scope / Category</th>
+                        <th>Reason</th>
+                        <th>Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {blackouts.map((b) => (
+                        <tr key={b.id}>
+                          <td>
+                            <strong>{formatDate(b.blackoutDate)}</strong>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                              {b.blackoutDate}
+                            </div>
+                          </td>
+                          <td>
+                            {b.roomCategoryCode ? (
+                              <Badge variant="neutral">{b.roomCategoryName || b.roomCategoryCode}</Badge>
+                            ) : (
+                              <Badge variant="warning">👑 All Resort (Buyout)</Badge>
+                            )}
+                          </td>
+                          <td>{b.reason || 'Resort Blackout'}</td>
+                          <td>
+                            <button
+                              type="button"
+                              className="staff-inventory__delete-btn"
+                              onClick={() => handleDeleteBlackout(b.id, b.blackoutDate)}
+                              disabled={deletingBlackoutId === b.id}
+                            >
+                              {deletingBlackoutId === b.id ? 'Removing...' : 'Remove'}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile Cards for Blackouts (<= 768px) */}
+                <div className="staff-inventory__mobile-cards">
+                  {blackouts.map((b) => (
+                    <div key={`mobile-blackout-${b.id}`} className="staff-inventory__item-card">
+                      <div className="staff-inventory__item-card-header">
+                        <div>
+                          <strong>{formatDate(b.blackoutDate)}</strong>
+                          <div className="staff-inventory__item-card-sub">{b.blackoutDate}</div>
+                        </div>
+                        {b.roomCategoryCode ? (
+                          <Badge variant="neutral">{b.roomCategoryName || b.roomCategoryCode}</Badge>
+                        ) : (
+                          <Badge variant="warning">👑 All Resort</Badge>
+                        )}
+                      </div>
+                      <div className="staff-inventory__item-card-body">
+                        <div className="staff-inventory__item-card-reason">
+                          <span className="staff-inventory__label-muted">Reason: </span>
+                          <span>{b.reason || 'Resort Blackout'}</span>
+                        </div>
+                      </div>
+                      <div className="staff-inventory__item-card-actions">
+                        <button
+                          type="button"
+                          className="staff-inventory__delete-btn staff-inventory__delete-btn--full"
+                          onClick={() => handleDeleteBlackout(b.id, b.blackoutDate)}
+                          disabled={deletingBlackoutId === b.id}
+                        >
+                          {deletingBlackoutId === b.id ? 'Removing...' : 'Remove Blackout'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -1062,14 +1155,9 @@ export function StaffInventoryPage() {
                   <span>✓ {promoSuccess}</span>
                   <button
                     type="button"
+                    className="staff-inventory__dismiss-btn"
+                    aria-label="Dismiss success message"
                     onClick={() => setPromoSuccess(null)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: 'inherit',
-                      cursor: 'pointer',
-                      fontWeight: 'bold',
-                    }}
                   >
                     ✕
                   </button>
@@ -1095,63 +1183,110 @@ export function StaffInventoryPage() {
                 description="No promotional codes have been created yet."
               />
             ) : (
-              <div className="staff-inventory__table-wrapper">
-                <table className="staff-inventory__table">
-                  <thead>
-                    <tr>
-                      <th>Promo Code</th>
-                      <th>Discount</th>
-                      <th>Validity Window</th>
-                      <th>Min Stay</th>
-                      <th>Redemptions</th>
-                      <th>Status</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {promos.map((p) => (
-                      <tr key={p.id}>
-                        <td>
-                          <span className="staff-inventory__promo-code">{p.code}</span>
-                        </td>
-                        <td>
-                          <strong>
-                            {p.discountType === 'PERCENTAGE'
-                              ? `${p.discountValue}% OFF`
-                              : `₹${Number(p.discountValue).toLocaleString('en-IN')} OFF`}
-                          </strong>
-                        </td>
-                        <td>
-                          <div>{p.validFrom} &rarr; {p.validTo}</div>
-                        </td>
-                        <td>{p.minNights} {p.minNights === 1 ? 'night' : 'nights'}</td>
-                        <td>{p.currentUses} / {p.maxUses}</td>
-                        <td>
-                          {p.isActive ? (
-                            <Badge variant="success">Active</Badge>
-                          ) : (
-                            <Badge variant="neutral">Inactive</Badge>
-                          )}
-                        </td>
-                        <td>
-                          <button
-                            type="button"
-                            className="staff-inventory__toggle-btn"
-                            onClick={() => handleTogglePromoActive(p.id, p.isActive, p.code)}
-                            disabled={togglingPromoId === p.id}
-                          >
-                            {togglingPromoId === p.id
-                              ? 'Updating...'
-                              : p.isActive
-                              ? 'Deactivate'
-                              : 'Activate'}
-                          </button>
-                        </td>
+              <>
+                {/* Desktop Table View */}
+                <div className="staff-inventory__table-wrapper">
+                  <table className="staff-inventory__table">
+                    <thead>
+                      <tr>
+                        <th>Promo Code</th>
+                        <th>Discount</th>
+                        <th>Validity Window</th>
+                        <th>Min Stay</th>
+                        <th>Redemptions</th>
+                        <th>Status</th>
+                        <th>Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {promos.map((p) => (
+                        <tr key={p.id}>
+                          <td>
+                            <span className="staff-inventory__promo-code">{p.code}</span>
+                          </td>
+                          <td>
+                            <strong>
+                              {p.discountType === 'PERCENTAGE'
+                                ? `${p.discountValue}% OFF`
+                                : `₹${Number(p.discountValue).toLocaleString('en-IN')} OFF`}
+                            </strong>
+                          </td>
+                          <td>
+                            <div>{p.validFrom} &rarr; {p.validTo}</div>
+                          </td>
+                          <td>{p.minNights} {p.minNights === 1 ? 'night' : 'nights'}</td>
+                          <td>{p.currentUses} / {p.maxUses}</td>
+                          <td>
+                            {p.isActive ? (
+                              <Badge variant="success">Active</Badge>
+                            ) : (
+                              <Badge variant="neutral">Inactive</Badge>
+                            )}
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className="staff-inventory__toggle-btn"
+                              onClick={() => handleTogglePromoActive(p.id, p.isActive, p.code)}
+                              disabled={togglingPromoId === p.id}
+                            >
+                              {togglingPromoId === p.id
+                                ? 'Updating...'
+                                : p.isActive
+                                ? 'Deactivate'
+                                : 'Activate'}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile Cards for Promos (<= 768px) */}
+                <div className="staff-inventory__mobile-cards">
+                  {promos.map((p) => (
+                    <div key={`mobile-promo-${p.id}`} className="staff-inventory__item-card">
+                      <div className="staff-inventory__item-card-header">
+                        <span className="staff-inventory__promo-code">{p.code}</span>
+                        {p.isActive ? (
+                          <Badge variant="success">Active</Badge>
+                        ) : (
+                          <Badge variant="neutral">Inactive</Badge>
+                        )}
+                      </div>
+                      <div className="staff-inventory__item-card-body">
+                        <div className="staff-inventory__promo-card-value">
+                          {p.discountType === 'PERCENTAGE'
+                            ? `${p.discountValue}% OFF`
+                            : `₹${Number(p.discountValue).toLocaleString('en-IN')} OFF`}
+                        </div>
+                        <div className="staff-inventory__item-card-sub">
+                          Validity: {p.validFrom} &rarr; {p.validTo}
+                        </div>
+                        <div className="staff-inventory__promo-card-meta">
+                          <span>Min Stay: {p.minNights} {p.minNights === 1 ? 'night' : 'nights'}</span>
+                          <span>Uses: {p.currentUses} / {p.maxUses}</span>
+                        </div>
+                      </div>
+                      <div className="staff-inventory__item-card-actions">
+                        <button
+                          type="button"
+                          className="staff-inventory__toggle-btn staff-inventory__toggle-btn--full"
+                          onClick={() => handleTogglePromoActive(p.id, p.isActive, p.code)}
+                          disabled={togglingPromoId === p.id}
+                        >
+                          {togglingPromoId === p.id
+                            ? 'Updating...'
+                            : p.isActive
+                            ? 'Deactivate Promo'
+                            : 'Activate Promo'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         </div>
