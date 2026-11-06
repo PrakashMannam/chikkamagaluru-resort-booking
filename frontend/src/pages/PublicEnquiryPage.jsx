@@ -243,7 +243,7 @@ export function PublicEnquiryPage() {
               <Badge variant="success">Enquiry Received</Badge>
               <h2 className="enquiry-success__title">Thank You, {fullName || 'Guest'}</h2>
               <p className="enquiry-success__subtitle">
-                Your request has been delivered directly to our on-property concierge team in Chikkamagaluru.
+                Your enquiry has been submitted successfully. Our team will review your request and contact you using the details provided. Please note that this enquiry does not reserve rooms or event space. Your reservation is confirmed only after completing the booking process.
               </p>
             </div>
 
@@ -290,13 +290,13 @@ export function PublicEnquiryPage() {
               <h3 className="enquiry-success__timeline-title">What Happens Next</h3>
               <ol className="enquiry-success__timeline-list">
                 <li>
-                  <strong>Specialist Review:</strong> Our event coordinators will review date allotment and physical key inventory.
+                  <strong>Specialist Review:</strong> Our team will review your request against current estate availability.
                 </li>
                 <li>
-                  <strong>Direct Response:</strong> A customized quote and estate walkthrough proposal will be sent to your provided contact.
+                  <strong>Follow-up &amp; Consultation:</strong> Our team will review your enquiry and may contact you using the details provided to discuss your requirements. Any quotation and availability will be confirmed separately.
                 </li>
                 <li>
-                  <strong>Priority Booking Hold:</strong> Your selected dates are placed on temporary concierge review hold.
+                  <strong>Booking &amp; Confirmation:</strong> Submitting an enquiry does not hold dates or reserve inventory. Rooms and event spaces are confirmed only through the separate booking process.
                 </li>
               </ol>
             </div>
@@ -305,8 +305,8 @@ export function PublicEnquiryPage() {
               <Button variant="primary" onClick={handleResetForm}>
                 Submit Another Enquiry
               </Button>
-              <Link to="/" className="btn btn--secondary">
-                Explore Rooms &amp; Villas
+              <Link to="/stay" className="btn btn--secondary">
+                Explore Rooms &amp; Book
               </Link>
             </div>
           </Card>
