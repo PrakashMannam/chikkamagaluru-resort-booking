@@ -110,6 +110,11 @@ public class EnquiryService {
 
     @Transactional
     public AdminEnquiryDetailDto simulateEnquiry(SimulateEnquiryRequest request) {
+        if (request.getSourceChannel() == null ||
+                (request.getSourceChannel() != EnquiryChannel.EMAIL_SIM && request.getSourceChannel() != EnquiryChannel.WHATSAPP_SIM)) {
+            throw new IllegalArgumentException("Unsupported simulation channel: " + request.getSourceChannel() + ". Supported channels are EMAIL_SIM and WHATSAPP_SIM.");
+        }
+
         Enquiry enquiry = new Enquiry();
         enquiry.setEnquiryCode(generateUniqueEnquiryCode());
         enquiry.setSourceChannel(request.getSourceChannel() != null ? request.getSourceChannel() : EnquiryChannel.EMAIL_SIM);

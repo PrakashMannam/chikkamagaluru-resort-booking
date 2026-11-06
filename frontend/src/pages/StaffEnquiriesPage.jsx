@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useStaffAuth } from '../context/StaffAuthContext';
-import { fetchAdminEnquiries } from '../api/staffApi';
+import { fetchAdminEnquiries, simulateAdminEnquiry } from '../api/staffApi';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Skeleton } from '../components/ui/Skeleton';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ErrorBanner } from '../components/ui/ErrorBanner';
+import { Modal } from '../components/ui/Modal';
 import './StaffEnquiriesPage.css';
 
 const CATEGORY_META = {
@@ -17,6 +18,37 @@ const CATEGORY_META = {
   COMPLAINT: { label: 'Complaint (GM)', badgeVariant: 'danger', icon: '🚨', color: '#C62828' },
   UNSORTED: { label: 'Unsorted Queue', badgeVariant: 'warning', icon: '📋', color: '#D97706' },
 };
+
+const SIM_PRESETS = [
+  {
+    label: '🛏️ Room Stay',
+    name: 'Rohan Sharma',
+    channel: 'WHATSAPP_SIM',
+    contact: '+919876543210',
+    message: 'Hello, looking for a luxury estate villa for 2 nights next weekend for 2 adults. Do you have plantation walk and private dining available?',
+  },
+  {
+    label: '💍 Wedding',
+    name: 'Priyadarshini Rao',
+    channel: 'EMAIL_SIM',
+    contact: 'priya.rao@example.com',
+    message: 'Greetings! We are planning an intimate destination wedding at your coffee estate in December for 80 guests. Could you please share lawn availability, catering packages, and accommodation for our families?',
+  },
+  {
+    label: '💼 Offsite',
+    name: 'Kunal Kapoor',
+    channel: 'EMAIL_SIM',
+    contact: 'kunal.kapoor@techcorp.in',
+    message: 'Hi team, our company is planning an annual leadership retreat for 35 delegates in January. We require conference facilities, projector setup, and 20 rooms for 2 nights.',
+  },
+  {
+    label: '🚨 Complaint',
+    name: 'Sunita Reddy',
+    channel: 'WHATSAPP_SIM',
+    contact: '+919123456789',
+    message: 'Extremely disappointed with our booking experience. We reached out twice regarding our anniversary reservation and received no response. Please escalate this to the General Manager immediately.',
+  },
+];
 
 export function StaffEnquiriesPage() {
   const { token, user } = useStaffAuth();
@@ -31,6 +63,17 @@ export function StaffEnquiriesPage() {
   const [selectedChannel, setSelectedChannel] = useState('');
   const [selectedConfidence, setSelectedConfidence] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Simulator State
+  const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
+  const [simChannel, setSimChannel] = useState('EMAIL_SIM');
+  const [simSenderName, setSimSenderName] = useState('');
+  const [simSenderContact, setSimSenderContact] = useState('');
+  const [simRawMessage, setSimRawMessage] = useState('');
+  const [simErrors, setSimErrors] = useState({});
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [simApiError, setSimApiError] = useState(null);
+  const [simulationSuccess, setSimulationSuccess] = useState(null);
 
   const isGm = Boolean(user?.isGm || user?.is_gm);
   const userLane = (user?.specialtyLane || user?.specialty_lane || '').toUpperCase();
@@ -104,6 +147,79 @@ export function StaffEnquiriesPage() {
     }
   };
 
+  const applyPreset = (preset) => {
+    setSimChannel(preset.channel);
+    setSimSenderName(preset.name);
+    setSimSenderContact(preset.contact);
+    setSimRawMessage(preset.message);
+    setSimErrors({});
+    setSimApiError(null);
+  };
+
+  const validateSimulatorForm = () => {
+    const errors = {};
+    if (!simSenderName.trim()) {
+      errors.senderName = 'Sender name is required';
+    }
+    if (!simSenderContact.trim()) {
+      errors.senderContact = 'Sender contact is required';
+    } else if (simChannel === 'EMAIL_SIM') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(simSenderContact.trim())) {
+        errors.senderContact = 'Please enter a valid email address';
+      }
+    } else if (simChannel === 'WHATSAPP_SIM') {
+      const digitsOnly = simSenderContact.replace(/\D/g, '');
+      if (digitsOnly.length < 7) {
+        errors.senderContact = 'Please enter a valid phone number (at least 7 digits)';
+      }
+    }
+    if (!simRawMessage.trim()) {
+      errors.rawMessage = 'Message text is required';
+    }
+    return errors;
+  };
+
+  const handleSimulateSubmit = async (e) => {
+    if (e) e.preventDefault();
+    const validationErrors = validateSimulatorForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setSimErrors(validationErrors);
+      return;
+    }
+
+    setSimErrors({});
+    setSimApiError(null);
+    setIsSimulating(true);
+
+    try {
+      const payload = {
+        sourceChannel: simChannel,
+        senderName: simSenderName.trim(),
+        senderContact: simSenderContact.trim(),
+        rawMessage: simRawMessage.trim(),
+      };
+
+      const result = await simulateAdminEnquiry(token, payload);
+
+      // Successfully simulated
+      setIsSimulatorOpen(false);
+      setSimulationSuccess(result);
+
+      // Reset form
+      setSimSenderName('');
+      setSimSenderContact('');
+      setSimRawMessage('');
+
+      // Refresh inbox list so the newly created enquiry is visible
+      await loadEnquiries();
+    } catch (err) {
+      setSimApiError(err.message || 'Failed to simulate enquiry. Please try again.');
+    } finally {
+      setIsSimulating(false);
+    }
+  };
+
   return (
     <div className="staff-enquiries-page">
       {/* Page Header */}
@@ -119,11 +235,56 @@ export function StaffEnquiriesPage() {
           </p>
         </div>
         <div className="staff-page-actions">
+          <Button
+            variant="primary"
+            size="small"
+            onClick={() => {
+              setSimApiError(null);
+              setIsSimulatorOpen(true);
+            }}
+          >
+            ⚡ Simulate Incoming Enquiry
+          </Button>
           <Button variant="secondary" size="small" onClick={loadEnquiries} disabled={loading}>
             🔄 Refresh Inbox
           </Button>
         </div>
       </div>
+
+      {/* Simulation Success Banner */}
+      {simulationSuccess && (
+        <div className="staff-sim-success-banner" role="status">
+          <span className="staff-sim-success-banner__icon" aria-hidden="true">✨</span>
+          <div className="staff-sim-success-banner__content">
+            <strong className="staff-sim-success-banner__title">
+              Inbound Enquiry Simulated &amp; Routed Successfully!
+            </strong>
+            <p className="staff-sim-success-banner__text">
+              Reference: <strong className="staff-code-pill">{simulationSuccess.enquiry_code}</strong> |
+              Channel: <strong>{simulationSuccess.source_channel === 'WHATSAPP_SIM' ? 'WhatsApp (Sim)' : 'Email (Sim)'}</strong> |
+              Category: <strong>{simulationSuccess.category}</strong> |
+              Assigned to: <strong>{simulationSuccess.assigned_to_user_name || 'Unassigned'}</strong>
+              {simulationSuccess.has_active_draft ? ' • Draft ready for review' : ''}
+            </p>
+          </div>
+          <div className="staff-sim-success-banner__actions">
+            <Link
+              to={`/staff/enquiries/${simulationSuccess.id}`}
+              className="btn btn--small btn--primary staff-sim-success-banner__link"
+            >
+              Review &amp; Reply →
+            </Link>
+            <button
+              type="button"
+              className="staff-sim-success-banner__close"
+              onClick={() => setSimulationSuccess(null)}
+              aria-label="Dismiss banner"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Prominent GM Alert Banner for Complaints */}
       {isGm && metrics.complaints > 0 && (
@@ -512,6 +673,157 @@ export function StaffEnquiriesPage() {
           )}
         </>
       )}
+
+      {/* Simulator Modal */}
+      <Modal
+        isOpen={isSimulatorOpen}
+        onClose={() => {
+          if (!isSimulating) {
+            setIsSimulatorOpen(false);
+            setSimApiError(null);
+          }
+        }}
+        title="Simulate Inbound Staff Enquiry"
+        className="staff-simulator-modal"
+        footer={
+          <div className="staff-sim-footer">
+            <Button
+              variant="secondary"
+              size="medium"
+              onClick={() => setIsSimulatorOpen(false)}
+              disabled={isSimulating}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              size="medium"
+              onClick={handleSimulateSubmit}
+              disabled={isSimulating}
+            >
+              {isSimulating ? 'Processing Pipeline…' : 'Simulate & Route Enquiry'}
+            </Button>
+          </div>
+        }
+      >
+        <form onSubmit={handleSimulateSubmit} className="staff-sim-form">
+          <div className="staff-sim-intro">
+            Simulate an inbound guest enquiry via <strong>Email</strong> or <strong>WhatsApp</strong>. The enquiry will execute the backend AI extraction, classification, and routing pipeline, and generate a draft in <em>Draft Pending Review</em>.
+          </div>
+
+          {/* Quick Presets */}
+          <div className="staff-sim-preset-section">
+            <span className="staff-sim-preset-title">Quick Test Presets:</span>
+            <div className="staff-sim-preset-buttons">
+              {SIM_PRESETS.map((p, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className="staff-sim-preset-btn"
+                  onClick={() => applyPreset(p)}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Channel Selector */}
+          <div className="staff-sim-field">
+            <label className="staff-sim-label" id="sim-channel-label">Channel *</label>
+            <div className="staff-sim-channels" role="radiogroup" aria-labelledby="sim-channel-label">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={simChannel === 'EMAIL_SIM'}
+                className={`staff-sim-channel-pill ${simChannel === 'EMAIL_SIM' ? 'staff-sim-channel-pill--active' : ''}`}
+                onClick={() => {
+                  setSimChannel('EMAIL_SIM');
+                  setSimErrors((prev) => ({ ...prev, senderContact: undefined }));
+                }}
+              >
+                📧 Email (EMAIL_SIM)
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={simChannel === 'WHATSAPP_SIM'}
+                className={`staff-sim-channel-pill ${simChannel === 'WHATSAPP_SIM' ? 'staff-sim-channel-pill--active' : ''}`}
+                onClick={() => {
+                  setSimChannel('WHATSAPP_SIM');
+                  setSimErrors((prev) => ({ ...prev, senderContact: undefined }));
+                }}
+              >
+                💬 WhatsApp (WHATSAPP_SIM)
+              </button>
+            </div>
+          </div>
+
+          {/* Sender Name */}
+          <div className="staff-sim-field">
+            <label className="staff-sim-label" htmlFor="sim-sender-name">
+              Sender Name *
+            </label>
+            <input
+              id="sim-sender-name"
+              type="text"
+              placeholder="e.g. Priyadarshini Rao"
+              value={simSenderName}
+              onChange={(e) => {
+                setSimSenderName(e.target.value);
+                if (simErrors.senderName) setSimErrors((prev) => ({ ...prev, senderName: undefined }));
+              }}
+              className={`staff-sim-input ${simErrors.senderName ? 'staff-sim-input--error' : ''}`}
+            />
+            {simErrors.senderName && <span className="staff-sim-error-text">{simErrors.senderName}</span>}
+          </div>
+
+          {/* Sender Contact */}
+          <div className="staff-sim-field">
+            <label className="staff-sim-label" htmlFor="sim-sender-contact">
+              {simChannel === 'EMAIL_SIM' ? 'Sender Email Address *' : 'Sender WhatsApp Number *'}
+            </label>
+            <input
+              id="sim-sender-contact"
+              type={simChannel === 'EMAIL_SIM' ? 'email' : 'text'}
+              placeholder={simChannel === 'EMAIL_SIM' ? 'e.g. priya.rao@example.com' : 'e.g. +91 98765 43210'}
+              value={simSenderContact}
+              onChange={(e) => {
+                setSimSenderContact(e.target.value);
+                if (simErrors.senderContact) setSimErrors((prev) => ({ ...prev, senderContact: undefined }));
+              }}
+              className={`staff-sim-input ${simErrors.senderContact ? 'staff-sim-input--error' : ''}`}
+            />
+            {simErrors.senderContact && <span className="staff-sim-error-text">{simErrors.senderContact}</span>}
+          </div>
+
+          {/* Raw Message */}
+          <div className="staff-sim-field">
+            <label className="staff-sim-label" htmlFor="sim-raw-message">
+              Guest Message Content *
+            </label>
+            <textarea
+              id="sim-raw-message"
+              rows={4}
+              placeholder="e.g. We are planning a 3-day family holiday in December for 4 guests. Do you have 2 villas available?"
+              value={simRawMessage}
+              onChange={(e) => {
+                setSimRawMessage(e.target.value);
+                if (simErrors.rawMessage) setSimErrors((prev) => ({ ...prev, rawMessage: undefined }));
+              }}
+              className={`staff-sim-textarea ${simErrors.rawMessage ? 'staff-sim-input--error' : ''}`}
+            />
+            {simErrors.rawMessage && <span className="staff-sim-error-text">{simErrors.rawMessage}</span>}
+          </div>
+
+          {/* API Error Banner if any */}
+          {simApiError && (
+            <div className="staff-sim-api-error" role="alert">
+              ⚠️ {simApiError}
+            </div>
+          )}
+        </form>
+      </Modal>
     </div>
   );
 }

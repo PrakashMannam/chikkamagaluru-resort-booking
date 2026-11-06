@@ -159,11 +159,37 @@ public class EnquiryEndpointsWebMvcTest {
     }
 
     @Test
-    @DisplayName("Authorized staff can simulate incoming email/WhatsApp enquiry")
-    void testAuthorizedStaffSimulateEnquiry() throws Exception {
+    @DisplayName("Authorized staff can simulate incoming email enquiry")
+    void testAuthorizedStaffSimulateEmailEnquiry() throws Exception {
+        AdminEnquiryDetailDto detail = new AdminEnquiryDetailDto();
+        detail.setId(10L);
+        detail.setEnquiryCode("ENQ-1000");
+        detail.setSourceChannel("EMAIL_SIM");
+        detail.setCategory("ROOM_BOOKING");
+
+        when(enquiryService.simulateEnquiry(any(SimulateEnquiryRequest.class))).thenReturn(detail);
+
+        SimulateEnquiryRequest simReq = new SimulateEnquiryRequest(
+                EnquiryChannel.EMAIL_SIM, "Priya Sharma", "priya@example.com", "Looking for 2 rooms from Nov 20 to Nov 23"
+        );
+
+        mockMvc.perform(post("/api/v1/admin/enquiries/simulate")
+                        .header("Authorization", "Bearer " + staffToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(simReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enquiry_code").value("ENQ-1000"))
+                .andExpect(jsonPath("$.source_channel").value("EMAIL_SIM"))
+                .andExpect(jsonPath("$.category").value("ROOM_BOOKING"));
+    }
+
+    @Test
+    @DisplayName("Authorized staff can simulate incoming WhatsApp enquiry")
+    void testAuthorizedStaffSimulateWhatsAppEnquiry() throws Exception {
         AdminEnquiryDetailDto detail = new AdminEnquiryDetailDto();
         detail.setId(11L);
         detail.setEnquiryCode("ENQ-1001");
+        detail.setSourceChannel("WHATSAPP_SIM");
         detail.setCategory("CORPORATE_OFFSITE");
 
         when(enquiryService.simulateEnquiry(any(SimulateEnquiryRequest.class))).thenReturn(detail);
@@ -178,7 +204,42 @@ public class EnquiryEndpointsWebMvcTest {
                         .content(objectMapper.writeValueAsString(simReq)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.enquiry_code").value("ENQ-1001"))
+                .andExpect(jsonPath("$.source_channel").value("WHATSAPP_SIM"))
                 .andExpect(jsonPath("$.category").value("CORPORATE_OFFSITE"));
+    }
+
+    @Test
+    @DisplayName("Simulate enquiry rejects unsupported channel")
+    void testSimulateEnquiry_UnsupportedChannelRejected() throws Exception {
+        when(enquiryService.simulateEnquiry(any(SimulateEnquiryRequest.class)))
+                .thenThrow(new IllegalArgumentException("Unsupported simulation channel: WEB_FORM. Supported channels are EMAIL_SIM and WHATSAPP_SIM."));
+
+        SimulateEnquiryRequest simReq = new SimulateEnquiryRequest(
+                EnquiryChannel.WEB_FORM, "Web User", "web@example.com", "Web Form test"
+        );
+
+        mockMvc.perform(post("/api/v1/admin/enquiries/simulate")
+                        .header("Authorization", "Bearer " + staffToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(simReq)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Bad Request"));
+    }
+
+    @Test
+    @DisplayName("Simulate enquiry rejects invalid required fields")
+    void testSimulateEnquiry_InvalidRequiredFieldsRejected() throws Exception {
+        // Missing senderName and rawMessage
+        String invalidJson = "{\"source_channel\":\"EMAIL_SIM\",\"sender_contact\":\"test@example.com\"}";
+
+        mockMvc.perform(post("/api/v1/admin/enquiries/simulate")
+                        .header("Authorization", "Bearer " + staffToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invalidJson))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Validation Failed"))
+                .andExpect(jsonPath("$.details.senderName").exists())
+                .andExpect(jsonPath("$.details.rawMessage").exists());
     }
 
     @Test

@@ -267,6 +267,60 @@ public class EnquiryServiceTest {
         assertNotNull(response);
         assertEquals("CORPORATE_OFFSITE", response.getCategory());
         assertEquals("Meera Nair", response.getAssignedToUserName());
+        verify(simulatedDeliveryAdapter, never()).deliver(any(), any());
+    }
+
+    @Test
+    @DisplayName("Simulate enquiry with WHATSAPP_SIM preserves channel, creates pending review draft, and does not auto-deliver")
+    void testSimulateEnquiry_WhatsAppSim_PreservesChannelAndDoesNotAutoDeliver() {
+        String rawMessage = "Need 3 rooms for family getaway from Dec 10 to Dec 13. How much will it cost?";
+
+        GeminiEnquiryExtraction extraction = new GeminiEnquiryExtraction();
+        extraction.setCategory("ROOM_BOOKING");
+        extraction.setConfidence(new BigDecimal("0.95"));
+        extraction.setSummary("Room booking enquiry for family getaway");
+        extraction.setSuggestedReply("Hello, thank you for contacting Chikkamagaluru Estate.");
+
+        when(geminiAiService.processEnquiry(rawMessage))
+                .thenReturn(GeminiAiService.AiProcessingResult.success(extraction));
+
+        SimulateEnquiryRequest request = new SimulateEnquiryRequest(
+                EnquiryChannel.WHATSAPP_SIM, "Suresh Kumar", "+919876543210", rawMessage
+        );
+
+        when(enquiryRepository.findById(102L)).thenAnswer(inv -> {
+            Enquiry e = new Enquiry();
+            e.setId(102L);
+            e.setSourceChannel(EnquiryChannel.WHATSAPP_SIM);
+            e.setCategory(EnquiryCategory.ROOM_BOOKING);
+            e.setAssignedToUser(roomStaff);
+            return Optional.of(e);
+        });
+
+        AdminEnquiryDetailDto response = enquiryService.simulateEnquiry(request);
+        assertNotNull(response);
+        assertEquals("WHATSAPP_SIM", response.getSourceChannel());
+        assertEquals("ROOM_BOOKING", response.getCategory());
+        assertEquals("Ananya Hegde", response.getAssignedToUserName());
+
+        // Verify draft was created in pending review status
+        verify(enquiryDraftRepository, atLeastOnce()).save(any(EnquiryDraft.class));
+
+        // CRITICAL: verify message was NEVER auto-delivered upon simulation
+        verify(simulatedDeliveryAdapter, never()).deliver(any(), any());
+    }
+
+    @Test
+    @DisplayName("Simulate enquiry rejects unsupported channels with IllegalArgumentException")
+    void testSimulateEnquiry_UnsupportedChannel_ThrowsIllegalArgumentException() {
+        SimulateEnquiryRequest request = new SimulateEnquiryRequest(
+                EnquiryChannel.WEB_FORM, "Test User", "test@example.com", "Test web message"
+        );
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                enquiryService.simulateEnquiry(request)
+        );
+        assertTrue(ex.getMessage().contains("Unsupported simulation channel"));
     }
 
     @Test

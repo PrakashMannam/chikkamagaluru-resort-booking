@@ -183,6 +183,30 @@ export async function discardAdminDraft(token, id) {
 }
 
 
+export async function simulateAdminEnquiry(token, payload) {
+  const url = `${BASE_URL}/api/v1/admin/enquiries/simulate`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    let errorMsg = 'Failed to simulate enquiry';
+    let errorData = null;
+    try {
+      errorData = await res.json();
+      if (errorData && errorData.message) errorMsg = errorData.message;
+    } catch (e) {}
+    const err = new Error(errorMsg);
+    err.status = res.status;
+    err.data = errorData;
+    throw err;
+  }
+
+  return await res.json();
+}
+
 export async function fetchInventoryRates(token, from, to) {
   const params = new URLSearchParams();
   if (from) params.set('from', from);
