@@ -9,6 +9,7 @@ import {
   fetchAdminPromos,
   createAdminPromo,
   updateAdminPromoActive,
+  exportAdminBookingsCsv,
 } from '../../api/staffApi';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -77,6 +78,22 @@ export function StaffInventoryPage() {
   const [newPromoMaxUses, setNewPromoMaxUses] = useState('500');
   const [isCreatingPromo, setIsCreatingPromo] = useState(false);
   const [togglingPromoId, setTogglingPromoId] = useState(null);
+
+  // ==========================================
+  // TAB 4: DAILY EXPORT STATE
+  // ==========================================
+  const getTodayIst = () => {
+    try {
+      return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+    } catch (e) {
+      return new Date().toISOString().slice(0, 10);
+    }
+  };
+
+  const [exportDate, setExportDate] = useState(getTodayIst);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState(null);
+  const [exportSuccess, setExportSuccess] = useState(null);
 
   // ==========================================
   // LOADERS
@@ -345,6 +362,44 @@ export function StaffInventoryPage() {
       setPromoError(err.message || 'Failed to update promo status.');
     } finally {
       setTogglingPromoId(null);
+    }
+  };
+
+  // ==========================================
+  // TAB 4: EXPORT HANDLER
+  // ==========================================
+  const handleExportCsv = async (overrideDate) => {
+    const targetDate = overrideDate || exportDate;
+    if (!targetDate) {
+      setExportError('Please select a valid arrival date.');
+      return;
+    }
+    if (!token) {
+      setExportError('Staff session expired. Please log in again.');
+      return;
+    }
+
+    setIsExporting(true);
+    setExportError(null);
+    setExportSuccess(null);
+
+    try {
+      const { blob, filename } = await exportAdminBookingsCsv(token, targetDate);
+
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename || `daily-bookings-${targetDate}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+
+      setExportSuccess(`CSV report successfully downloaded: ${filename || `daily-bookings-${targetDate}.csv`}`);
+    } catch (err) {
+      setExportError(err.message || 'Failed to download daily bookings CSV.');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -1288,6 +1343,167 @@ export function StaffInventoryPage() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'export',
+      label: '📊 Daily Export',
+      content: (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1rem' }}>
+          <div className="staff-inventory__bulk-card staff-inventory__export-card">
+            <div className="staff-inventory__bulk-header">
+              <h2 className="staff-inventory__bulk-title">Daily Booking Arrivals CSV Export</h2>
+              <p className="staff-inventory__bulk-subtitle">
+                Download a clean arrivals manifest for a selected check-in date. The generated RFC 4180 CSV includes guest contact details, room category, rate plan, guest headcount, and payment status with spreadsheet formula injection protection (CWE-1236).
+              </p>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleExportCsv();
+              }}
+              className="staff-inventory__export-form"
+            >
+              <div className="staff-inventory__filter-group">
+                <label className="staff-inventory__label" htmlFor="export-date">
+                  Arrival Date (Check-In) *
+                </label>
+                <input
+                  id="export-date"
+                  type="date"
+                  className="staff-inventory__input"
+                  value={exportDate}
+                  min={SEED_MIN_DATE}
+                  max={SEED_MAX_DATE}
+                  onChange={(e) => setExportDate(e.target.value)}
+                  disabled={isExporting}
+                  required
+                />
+              </div>
+
+              <div className="staff-inventory__export-presets-container">
+                <span className="staff-inventory__label">Quick Presets:</span>
+                <div className="staff-inventory__export-presets">
+                  <button
+                    type="button"
+                    className="staff-inventory__quick-btn"
+                    onClick={() => {
+                      const today = getTodayIst();
+                      setExportDate(today);
+                      handleExportCsv(today);
+                    }}
+                    disabled={isExporting}
+                  >
+                    Today (IST)
+                  </button>
+                  <button
+                    type="button"
+                    className="staff-inventory__quick-btn"
+                    onClick={() => {
+                      const d = new Date();
+                      d.setDate(d.getDate() + 1);
+                      const tmrw = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d);
+                      setExportDate(tmrw);
+                      handleExportCsv(tmrw);
+                    }}
+                    disabled={isExporting}
+                  >
+                    Tomorrow
+                  </button>
+                  <button
+                    type="button"
+                    className="staff-inventory__quick-btn"
+                    onClick={() => {
+                      const demoDate = '2026-11-14';
+                      setExportDate(demoDate);
+                      handleExportCsv(demoDate);
+                    }}
+                    disabled={isExporting}
+                  >
+                    Demo 14 Nov 2026
+                  </button>
+                </div>
+              </div>
+
+              <div className="staff-inventory__export-submit">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="medium"
+                  disabled={isExporting || !exportDate}
+                >
+                  {isExporting ? 'Generating CSV...' : 'Download Daily CSV'}
+                </Button>
+              </div>
+            </form>
+
+            {exportError && (
+              <div className="staff-inventory__feedback" style={{ marginTop: '1rem' }}>
+                <ErrorBanner
+                  title="Export Error"
+                  message={exportError}
+                  onDismiss={() => setExportError(null)}
+                />
+              </div>
+            )}
+
+            {exportSuccess && (
+              <div className="staff-inventory__feedback" style={{ marginTop: '1rem' }}>
+                <div
+                  style={{
+                    backgroundColor: 'var(--color-success-tint, #E4ECE3)',
+                    color: 'var(--color-success, #2E5C31)',
+                    padding: '0.75rem 1rem',
+                    borderRadius: 'var(--radius-sm, 2px)',
+                    fontWeight: 500,
+                    fontSize: '0.875rem',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                  }}
+                >
+                  <span>{exportSuccess}</span>
+                  <button
+                    type="button"
+                    onClick={() => setExportSuccess(null)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '1rem',
+                      color: 'inherit',
+                      padding: '0.25rem',
+                      minHeight: 'auto',
+                    }}
+                    aria-label="Dismiss message"
+                  >
+                    &times;
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="staff-inventory__export-guidelines">
+              <h3 className="staff-inventory__export-guidelines-heading">Daily Arrivals Manifest Specifications</h3>
+              <ul className="staff-inventory__export-guidelines-list">
+                <li>
+                  <strong>Scope &amp; Filtering:</strong> Exports all bookings whose scheduled check-in matches the selected arrival date, regardless of booking status (Confirmed, Pending Payment, Cancelled, Expired).
+                </li>
+                <li>
+                  <strong>17 Standardized Columns:</strong> Booking Reference, Booking Status, Guest Name, Guest Phone, Room Category Code &amp; Name, Rate Plan Code &amp; Name, Rooms Count, Adults, Children, Check-In Date, Check-Out Date, Nights, Total Amount (INR), GST Amount (INR), and Payment Status.
+                </li>
+                <li>
+                  <strong>Privacy &amp; DPDP Compliance:</strong> Guest emails and internal one-time payment tokens are excluded from front-desk manifests to minimize sensitive data exposure.
+                </li>
+                <li>
+                  <strong>Spreadsheet Security (CWE-1236):</strong> All cells beginning with formula characters (<code>=</code>, <code>+</code>, <code>-</code>, <code>@</code>, <code>\t</code>, <code>\r</code>) are automatically prefixed with a single quote to prevent code execution when opened in Excel or Google Sheets.
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
       ),

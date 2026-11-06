@@ -385,3 +385,35 @@ export async function updateAdminPromoActive(token, id, active) {
 
   return await res.json();
 }
+
+export async function exportAdminBookingsCsv(token, date) {
+  const url = `${BASE_URL}/api/v1/admin/bookings/export?date=${encodeURIComponent(date)}`;
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    let errorMsg = 'Failed to export bookings CSV';
+    try {
+      const data = await res.json();
+      if (data && data.message) errorMsg = data.message;
+    } catch (e) {}
+    const err = new Error(errorMsg);
+    err.status = res.status;
+    throw err;
+  }
+
+  const disposition = res.headers.get('Content-Disposition');
+  let filename = `daily-bookings-${date}.csv`;
+  if (disposition && disposition.includes('filename=')) {
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    if (match && match[1]) {
+      filename = match[1];
+    }
+  }
+
+  const blob = await res.blob();
+  return { blob, filename };
+}

@@ -537,6 +537,81 @@
 }
 
 /* ==========================================
+   DAILY BOOKINGS EXPORT
+   ========================================== */
+.staff-inventory__export-card {
+  max-width: 860px;
+}
+
+.staff-inventory__export-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  align-items: flex-end;
+  margin-top: 1rem;
+}
+
+.staff-inventory__export-presets-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.staff-inventory__export-presets {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.staff-inventory__export-presets .staff-inventory__quick-btn {
+  min-height: var(--tap-min, 44px);
+  padding: 0.5rem 0.875rem;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.staff-inventory__export-submit .btn {
+  min-height: var(--tap-min, 44px);
+  padding: 0.625rem 1.25rem;
+}
+
+.staff-inventory__export-guidelines {
+  margin-top: 2rem;
+  padding: 1.25rem 1.5rem;
+  background-color: var(--color-surface, #F5F1E8);
+  border: 1px solid var(--color-border, #E7E2DA);
+  border-radius: var(--radius-sm, 2px);
+}
+
+.staff-inventory__export-guidelines-heading {
+  font-family: var(--font-heading, "Lora", Georgia, serif);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--color-text, #1C1917);
+  margin: 0 0 0.75rem 0;
+}
+
+.staff-inventory__export-guidelines-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-text-muted, #57534E);
+}
+
+.staff-inventory__export-guidelines-list code {
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 0.1rem 0.3rem;
+  border-radius: 2px;
+  font-size: 0.8125rem;
+}
+
+/* ==========================================
    RESPONSIVE BREAKPOINTS (Mobile & Tablet)
    ========================================== */
 @media (max-width: 768px) {
@@ -620,5 +695,37 @@
 
   .staff-inventory__group-title {
     font-size: 1.2rem;
+  }
+
+  /* Daily Export mobile styles */
+  .staff-inventory__export-form {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .staff-inventory__export-presets {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .staff-inventory__export-presets .staff-inventory__quick-btn {
+    width: 100%;
+    min-height: var(--tap-min, 44px);
+  }
+
+  .staff-inventory__export-submit {
+    width: 100%;
+  }
+
+  .staff-inventory__export-submit .btn {
+    width: 100%;
+    min-height: var(--tap-min, 44px);
+  }
+
+  .staff-inventory__export-guidelines {
+    padding: 1rem;
   }
 }

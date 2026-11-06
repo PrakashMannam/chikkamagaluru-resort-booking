@@ -30,4 +30,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.status = com.companya.resort.entity.BookingStatus.PENDING_PAYMENT AND b.expiresAt > :now AND (b.guestEmail = :email OR b.guestPhone = :phone)")
     long countActiveHoldsByGuest(@Param("email") String email, @Param("phone") String phone, @Param("now") LocalDateTime now);
+
+    @Query("SELECT b FROM Booking b JOIN FETCH b.roomCategory JOIN FETCH b.ratePlan LEFT JOIN FETCH b.promoCode WHERE b.checkInDate = :date ORDER BY b.id ASC")
+    List<Booking> findByCheckInDateWithDetails(@Param("date") java.time.LocalDate date);
 }
