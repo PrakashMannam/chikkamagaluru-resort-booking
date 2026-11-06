@@ -284,7 +284,7 @@ export function GuestCheckoutPage() {
   return (
     <div className="checkout-page">
       {/* 1. Progress Step Indicator */}
-      <StepIndicator currentStep={2} />
+      <StepIndicator currentStep={1} />
 
       {/* Navigation Breadcrumb */}
       <nav className="checkout__nav" aria-label="Breadcrumb">

@@ -1,14 +1,13 @@
 import React from 'react';
 import './StepIndicator.css';
 
-export function StepIndicator({ currentStep = 2 }) {
-  const steps = [
-    { number: 1, label: 'Select Sanctuary' },
-    { number: 2, label: 'Guest Details' },
-    { number: 3, label: 'Hold & Payment' },
-    { number: 4, label: 'Confirmation' },
-  ];
+const DEFAULT_STEPS = [
+  { number: 1, label: 'Guest Details' },
+  { number: 2, label: 'Payment' },
+  { number: 3, label: 'Confirmation' },
+];
 
+export function StepIndicator({ currentStep = 1, steps = DEFAULT_STEPS }) {
   return (
     <nav className="step-indicator" aria-label="Booking progress">
       <ol className="step-indicator__list">

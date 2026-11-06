@@ -171,7 +171,7 @@ export function GuestPaymentPage() {
   return (
     <div className="payment-page">
       {/* 1. Progress Step Indicator */}
-      <StepIndicator currentStep={3} />
+      <StepIndicator currentStep={2} />
 
       {/* Loading Skeletons */}
       {isLoading && (

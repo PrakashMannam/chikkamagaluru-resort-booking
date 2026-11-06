@@ -46,7 +46,7 @@ export function BookingConfirmationPage() {
   return (
     <div className="confirmation-page">
       {/* Step Indicator */}
-      <StepIndicator currentStep={4} />
+      <StepIndicator currentStep={3} />
 
       {/* Loading Skeletons */}
       {isLoading && (
