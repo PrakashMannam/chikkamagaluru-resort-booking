@@ -13,6 +13,8 @@ const GuestCheckoutPage = lazy(() => import('./pages/GuestCheckoutPage'));
 const GuestPaymentPage = lazy(() => import('./pages/GuestPaymentPage'));
 const BookingConfirmationPage = lazy(() => import('./pages/BookingConfirmationPage'));
 const PublicEnquiryPage = lazy(() => import('./pages/PublicEnquiryPage'));
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
+const TermsPage = lazy(() => import('./pages/TermsPage'));
 const StaffLoginPage = lazy(() => import('./pages/StaffLoginPage').then(m => ({ default: m.StaffLoginPage })));
 const StaffEnquiriesPage = lazy(() => import('./pages/StaffEnquiriesPage').then(m => ({ default: m.StaffEnquiriesPage })));
 const StaffEnquiryDetailPage = lazy(() => import('./pages/StaffEnquiryDetailPage').then(m => ({ default: m.StaffEnquiryDetailPage })));
@@ -45,6 +47,8 @@ export function App() {
               <Route path="/payment/:ref" element={<GuestPaymentPage />} />
               <Route path="/bookings/:ref" element={<BookingConfirmationPage />} />
               <Route path="/enquire" element={<PublicEnquiryPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/terms" element={<TermsPage />} />
             </Route>
 
             {/* Staff Authentication & Portal */}
