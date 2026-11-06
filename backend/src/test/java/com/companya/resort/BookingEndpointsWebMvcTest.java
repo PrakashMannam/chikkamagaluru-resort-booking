@@ -137,13 +137,80 @@ public class BookingEndpointsWebMvcTest {
         dto.setBookingRef("BKG123456789");
         dto.setGuestEmail("a***@gmail.com");
         dto.setGuestPhone("98XXXXXX21");
+        // Ensure token is null as returned by getBookingMasked
+        dto.setOneTimePaymentToken(null);
 
         when(bookingPaymentService.getBookingMasked(eq("BKG123456789"))).thenReturn(dto);
 
         mockMvc.perform(get("/api/v1/public/bookings/BKG123456789"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.bookingRef").value("BKG123456789"))
                 .andExpect(jsonPath("$.guestEmail").value("a***@gmail.com"))
-                .andExpect(jsonPath("$.guestPhone").value("98XXXXXX21"));
+                .andExpect(jsonPath("$.guestPhone").value("98XXXXXX21"))
+                .andExpect(jsonPath("$.oneTimePaymentToken").doesNotExist());
+    }
+
+    @Test
+    void getBooking_doesNotExposeSensitiveTokens_evenIfPending() throws Exception {
+        BookingResponseDto dto = new BookingResponseDto();
+        dto.setBookingRef("BKG987654321");
+        dto.setStatus("PENDING_PAYMENT");
+        dto.setGuestEmail("j***@example.com");
+        dto.setGuestPhone("91XXXXXX00");
+        dto.setOneTimePaymentToken(null);
+
+        when(bookingPaymentService.getBookingMasked(eq("BKG987654321"))).thenReturn(dto);
+
+        mockMvc.perform(get("/api/v1/public/bookings/BKG987654321"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PENDING_PAYMENT"))
+                .andExpect(jsonPath("$.oneTimePaymentToken").doesNotExist());
+    }
+
+    @Test
+    void unauthorizedCaller_cannotCancelHold_withoutToken() throws Exception {
+        when(bookingPaymentService.cancelHold(eq("BKG123456789"), eq(null)))
+                .thenThrow(new IllegalArgumentException("One-time payment token is required to cancel hold"));
+
+        mockMvc.perform(post("/api/v1/public/bookings/BKG123456789/cancel-hold")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("One-time payment token is required to cancel hold"));
+    }
+
+    @Test
+    void unauthorizedCaller_cannotTriggerPayment_withoutToken() throws Exception {
+        when(bookingPaymentService.processMockWebhook(eq("BKG123456789"), eq(null), any()))
+                .thenThrow(new IllegalArgumentException("One-time payment token is required"));
+
+        mockMvc.perform(post("/api/v1/public/payments/BKG123456789/mock-webhook")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"SUCCESS\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("One-time payment token is required"));
+    }
+
+    @Test
+    void legitimateGuest_withToken_canCancelHold() throws Exception {
+        BookingResponseDto dto = new BookingResponseDto();
+        dto.setBookingRef("BKG123456789");
+        dto.setStatus("CANCELLED");
+        dto.setGuestEmail("a***@gmail.com");
+        dto.setGuestPhone("98XXXXXX21");
+        dto.setOneTimePaymentToken(null);
+
+        when(bookingPaymentService.cancelHold(eq("BKG123456789"), eq("valid-secure-token-12345")))
+                .thenReturn(dto);
+
+        mockMvc.perform(post("/api/v1/public/bookings/BKG123456789/cancel-hold")
+                        .header("X-Payment-Token", "valid-secure-token-12345")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CANCELLED"))
+                .andExpect(jsonPath("$.oneTimePaymentToken").doesNotExist());
     }
 
     @Test

@@ -6,6 +6,8 @@ import com.companya.resort.entity.DailyInventoryRate;
 import com.companya.resort.repository.BookingRepository;
 import com.companya.resort.repository.DailyInventoryRateRepository;
 import com.companya.resort.repository.PaymentRepository;
+import com.companya.resort.repository.PromoCodeRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,7 +22,23 @@ public class BookingExpiryTransaction {
     private final BookingRepository bookingRepository;
     private final PaymentRepository paymentRepository;
     private final DailyInventoryRateRepository dailyInventoryRateRepository;
+    private final PromoCodeRepository promoCodeRepository;
     private final Clock clock;
+
+    @Autowired
+    public BookingExpiryTransaction(
+            BookingRepository bookingRepository,
+            PaymentRepository paymentRepository,
+            DailyInventoryRateRepository dailyInventoryRateRepository,
+            PromoCodeRepository promoCodeRepository,
+            Clock clock
+    ) {
+        this.bookingRepository = bookingRepository;
+        this.paymentRepository = paymentRepository;
+        this.dailyInventoryRateRepository = dailyInventoryRateRepository;
+        this.promoCodeRepository = promoCodeRepository;
+        this.clock = clock;
+    }
 
     public BookingExpiryTransaction(
             BookingRepository bookingRepository,
@@ -28,10 +46,7 @@ public class BookingExpiryTransaction {
             DailyInventoryRateRepository dailyInventoryRateRepository,
             Clock clock
     ) {
-        this.bookingRepository = bookingRepository;
-        this.paymentRepository = paymentRepository;
-        this.dailyInventoryRateRepository = dailyInventoryRateRepository;
-        this.clock = clock;
+        this(bookingRepository, paymentRepository, dailyInventoryRateRepository, null, clock);
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -77,6 +92,18 @@ public class BookingExpiryTransaction {
             for (DailyInventoryRate rate : lockedRates) {
                 rate.setBookedCount(Math.max(0, rate.getBookedCount() - booking.getRoomsCount()));
                 dailyInventoryRateRepository.save(rate);
+            }
+
+            // 3. Lock promo code and release usage if applicable
+            if (booking.getPromoCode() != null && promoCodeRepository != null) {
+                Long promoId = booking.getPromoCode().getId();
+                if (promoId != null) {
+                    promoCodeRepository.findAndLockById(promoId).ifPresent(promo -> {
+                        int current = (promo.getCurrentUses() != null) ? promo.getCurrentUses() : 0;
+                        promo.setCurrentUses(Math.max(0, current - 1));
+                        promoCodeRepository.save(promo);
+                    });
+                }
             }
 
             releasedCount++;

@@ -7,6 +7,7 @@ import com.companya.resort.entity.BookingStatus;
 import com.companya.resort.entity.DailyInventoryRate;
 import com.companya.resort.entity.Payment;
 import com.companya.resort.entity.PaymentStatus;
+import com.companya.resort.entity.PromoCode;
 import com.companya.resort.exception.BookingHoldExpiredException;
 import com.companya.resort.exception.InvalidPaymentTokenException;
 import com.companya.resort.exception.PaymentTokenAlreadyUsedException;
@@ -14,6 +15,8 @@ import com.companya.resort.exception.ResourceNotFoundException;
 import com.companya.resort.repository.BookingRepository;
 import com.companya.resort.repository.DailyInventoryRateRepository;
 import com.companya.resort.repository.PaymentRepository;
+import com.companya.resort.repository.PromoCodeRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,8 +31,26 @@ public class BookingPaymentService {
     private final BookingRepository bookingRepository;
     private final PaymentRepository paymentRepository;
     private final DailyInventoryRateRepository dailyInventoryRateRepository;
+    private final PromoCodeRepository promoCodeRepository;
     private final BookingTransactionService bookingTransactionService;
     private final Clock clock;
+
+    @Autowired
+    public BookingPaymentService(
+            BookingRepository bookingRepository,
+            PaymentRepository paymentRepository,
+            DailyInventoryRateRepository dailyInventoryRateRepository,
+            PromoCodeRepository promoCodeRepository,
+            BookingTransactionService bookingTransactionService,
+            Clock clock
+    ) {
+        this.bookingRepository = bookingRepository;
+        this.paymentRepository = paymentRepository;
+        this.dailyInventoryRateRepository = dailyInventoryRateRepository;
+        this.promoCodeRepository = promoCodeRepository;
+        this.bookingTransactionService = bookingTransactionService;
+        this.clock = clock;
+    }
 
     public BookingPaymentService(
             BookingRepository bookingRepository,
@@ -38,11 +59,7 @@ public class BookingPaymentService {
             BookingTransactionService bookingTransactionService,
             Clock clock
     ) {
-        this.bookingRepository = bookingRepository;
-        this.paymentRepository = paymentRepository;
-        this.dailyInventoryRateRepository = dailyInventoryRateRepository;
-        this.bookingTransactionService = bookingTransactionService;
-        this.clock = clock;
+        this(bookingRepository, paymentRepository, dailyInventoryRateRepository, null, bookingTransactionService, clock);
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -121,9 +138,15 @@ public class BookingPaymentService {
                 rate.setBookedCount(Math.max(0, rate.getBookedCount() - booking.getRoomsCount()));
                 dailyInventoryRateRepository.save(rate);
             }
+
+            // Release promo code usage if applicable
+            if (booking.getPromoCode() != null) {
+                releasePromoUsage(booking.getPromoCode());
+            }
         }
 
-        BookingResponseDto dto = bookingTransactionService.mapToBookingResponseDto(booking, payment.getOneTimePaymentToken());
+        BookingResponseDto dto = bookingTransactionService.mapToBookingResponseDto(booking, null);
+        dto.setOneTimePaymentToken(null);
         dto.setGuestEmail(maskEmail(booking.getGuestEmail()));
         dto.setGuestPhone(maskPhone(booking.getGuestPhone()));
         return dto;
@@ -172,20 +195,35 @@ public class BookingPaymentService {
             dailyInventoryRateRepository.save(rate);
         }
 
-        BookingResponseDto dto = bookingTransactionService.mapToBookingResponseDto(booking, payment.getOneTimePaymentToken());
+        // 6. Release promo code usage if applicable
+        if (booking.getPromoCode() != null) {
+            releasePromoUsage(booking.getPromoCode());
+        }
+
+        BookingResponseDto dto = bookingTransactionService.mapToBookingResponseDto(booking, null);
+        dto.setOneTimePaymentToken(null);
         dto.setGuestEmail(maskEmail(booking.getGuestEmail()));
         dto.setGuestPhone(maskPhone(booking.getGuestPhone()));
         return dto;
+    }
+
+    private void releasePromoUsage(PromoCode promoCode) {
+        if (promoCodeRepository == null || promoCode == null || promoCode.getId() == null) {
+            return;
+        }
+        promoCodeRepository.findAndLockById(promoCode.getId()).ifPresent(promo -> {
+            int current = (promo.getCurrentUses() != null) ? promo.getCurrentUses() : 0;
+            promo.setCurrentUses(Math.max(0, current - 1));
+            promoCodeRepository.save(promo);
+        });
     }
 
     public BookingResponseDto getBookingMasked(String bookingRef) {
         Booking booking = bookingRepository.findByBookingRef(bookingRef)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found with reference: " + bookingRef));
 
-        Payment payment = paymentRepository.findByBookingId(booking.getId()).orElse(null);
-        String token = (payment != null && !Boolean.TRUE.equals(payment.getTokenUsed())) ? payment.getOneTimePaymentToken() : null;
-
-        BookingResponseDto dto = bookingTransactionService.mapToBookingResponseDto(booking, token);
+        BookingResponseDto dto = bookingTransactionService.mapToBookingResponseDto(booking, null);
+        dto.setOneTimePaymentToken(null);
         dto.setGuestEmail(maskEmail(booking.getGuestEmail()));
         dto.setGuestPhone(maskPhone(booking.getGuestPhone()));
         return dto;

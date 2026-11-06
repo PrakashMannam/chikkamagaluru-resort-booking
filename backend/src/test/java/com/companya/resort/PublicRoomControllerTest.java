@@ -341,4 +341,35 @@ class PublicRoomControllerTest {
                 .andExpect(jsonPath("$.error").value("Invalid Promo Code"))
                 .andExpect(jsonPath("$.message").value("Promo code 'INVALIDPROMO' is invalid or inactive"));
     }
+
+    @Test
+    void createBooking_exhaustedPromoCode_returns422() throws Exception {
+        when(bookingService.createBookingAndLockAllotment(any(), eq("idem-maxed-promo")))
+                .thenThrow(new com.companya.resort.exception.InvalidPromoCodeException("Promo code 'MAXED' has reached its maximum uses"));
+
+        String requestJson = """
+                {
+                    "roomCategoryId": 1,
+                    "ratePlanId": 1,
+                    "checkInDate": "2026-11-19",
+                    "checkOutDate": "2026-11-22",
+                    "roomsCount": 1,
+                    "adults": 2,
+                    "children": 0,
+                    "guestName": "Promo Guest",
+                    "guestEmail": "guest@example.com",
+                    "guestPhone": "9876543210",
+                    "promoCode": "MAXED",
+                    "dpdpConsentGiven": true
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/public/bookings")
+                        .header("Idempotency-Key", "idem-maxed-promo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestJson))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error").value("Invalid Promo Code"))
+                .andExpect(jsonPath("$.message").value("Promo code 'MAXED' has reached its maximum uses"));
+    }
 }

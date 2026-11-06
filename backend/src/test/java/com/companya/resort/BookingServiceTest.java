@@ -87,6 +87,7 @@ class BookingServiceTest {
                 bookingRepository,
                 paymentRepository,
                 pricingService,
+                promoCodeRepository,
                 bookingCalendar,
                 fixedClock
         );
@@ -734,5 +735,130 @@ class BookingServiceTest {
         assertEquals(quote.getTotalPayableInr(), hold.getTotalPayableInr());
         assertEquals(quote.getGstPercentageApplied(), hold.getGstPercentageApplied());
         assertEquals(quote.getGstVerificationStatus(), hold.getGstVerificationStatus());
+    }
+
+    @Test
+    void createBooking_withValidPromoCode_incrementsCurrentUsesAndSetsPromo() {
+        LocalDate stayCheckIn = LocalDate.of(2026, 11, 14);
+        LocalDate stayCheckOut = LocalDate.of(2026, 11, 16);
+
+        when(roomCategoryRepository.findById(1L)).thenReturn(Optional.of(roomCategory));
+        when(ratePlanRepository.findByIdAndIsActiveTrue(1L)).thenReturn(Optional.of(ratePlan));
+        when(blackoutDateRepository.findConflictingBlackouts(1L, stayCheckIn, stayCheckOut)).thenReturn(Collections.emptyList());
+
+        DailyInventoryRate r1 = new DailyInventoryRate(1L, roomCategory, stayCheckIn, new BigDecimal("8500.00"), 5, 0, 0L);
+        DailyInventoryRate r2 = new DailyInventoryRate(2L, roomCategory, stayCheckIn.plusDays(1), new BigDecimal("8500.00"), 5, 0, 0L);
+        when(dailyInventoryRateRepository.findAndLockByRoomCategoryIdAndStayDateRange(1L, stayCheckIn, stayCheckOut))
+                .thenReturn(List.of(r1, r2));
+        when(bookingRepository.countActiveHoldsByGuest(anyString(), anyString(), any(LocalDateTime.class))).thenReturn(0L);
+        when(bookingRepository.findByIdempotencyKey("idem-promo-valid")).thenReturn(Optional.empty());
+
+        PromoCode promo = new PromoCode(10L, "PROMO10", DiscountType.PERCENTAGE, new BigDecimal("10.00"),
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), 1, 5, 1, true);
+        when(promoCodeRepository.findAndLockByCodeIgnoreCaseAndIsActiveTrue("PROMO10")).thenReturn(Optional.of(promo));
+
+        GstTaxSlab slab = new GstTaxSlab(1L, new BigDecimal("0.00"), new BigDecimal("7500.00"), new BigDecimal("5.00"),
+                LocalDate.of(2025, 9, 22), null, GstVerificationStatus.UNVERIFIED);
+        when(gstTaxSlabRepository.findMatchingSlabs(eq(stayCheckIn), any())).thenReturn(List.of(slab));
+
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> {
+            Booking b = inv.getArgument(0);
+            b.setId(999L);
+            return b;
+        });
+
+        CreateBookingRequest request = new CreateBookingRequest(
+                "idem-promo-valid", 1L, 1L, stayCheckIn, stayCheckOut, 1, 2, 0,
+                "Promo Guest", "promo@example.com", "9876543210", "PROMO10", true
+        );
+
+        BookingResponseDto response = bookingService.createBookingAndLockAllotment(request, "idem-promo-valid");
+
+        assertNotNull(response);
+        assertEquals(2, promo.getCurrentUses(), "Promo currentUses must increment by 1");
+        verify(promoCodeRepository).findAndLockByCodeIgnoreCaseAndIsActiveTrue("PROMO10");
+        verify(promoCodeRepository).save(promo);
+    }
+
+    @Test
+    void createBooking_withExhaustedPromoCode_throwsInvalidPromoCodeExceptionAndDoesNotIncrement() {
+        LocalDate stayCheckIn = LocalDate.of(2026, 11, 14);
+        LocalDate stayCheckOut = LocalDate.of(2026, 11, 16);
+
+        when(roomCategoryRepository.findById(1L)).thenReturn(Optional.of(roomCategory));
+        when(ratePlanRepository.findByIdAndIsActiveTrue(1L)).thenReturn(Optional.of(ratePlan));
+        when(blackoutDateRepository.findConflictingBlackouts(1L, stayCheckIn, stayCheckOut)).thenReturn(Collections.emptyList());
+
+        DailyInventoryRate r1 = new DailyInventoryRate(1L, roomCategory, stayCheckIn, new BigDecimal("8500.00"), 5, 0, 0L);
+        DailyInventoryRate r2 = new DailyInventoryRate(2L, roomCategory, stayCheckIn.plusDays(1), new BigDecimal("8500.00"), 5, 0, 0L);
+        when(dailyInventoryRateRepository.findAndLockByRoomCategoryIdAndStayDateRange(1L, stayCheckIn, stayCheckOut))
+                .thenReturn(List.of(r1, r2));
+        when(bookingRepository.countActiveHoldsByGuest(anyString(), anyString(), any(LocalDateTime.class))).thenReturn(0L);
+        when(bookingRepository.findByIdempotencyKey("idem-promo-exhausted")).thenReturn(Optional.empty());
+
+        PromoCode promo = new PromoCode(10L, "MAXED", DiscountType.PERCENTAGE, new BigDecimal("10.00"),
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), 1, 2, 2, true);
+        when(promoCodeRepository.findAndLockByCodeIgnoreCaseAndIsActiveTrue("MAXED")).thenReturn(Optional.of(promo));
+
+        CreateBookingRequest request = new CreateBookingRequest(
+                "idem-promo-exhausted", 1L, 1L, stayCheckIn, stayCheckOut, 1, 2, 0,
+                "Promo Guest", "promo@example.com", "9876543210", "MAXED", true
+        );
+
+        com.companya.resort.exception.InvalidPromoCodeException ex = assertThrows(
+                com.companya.resort.exception.InvalidPromoCodeException.class,
+                () -> bookingService.createBookingAndLockAllotment(request, "idem-promo-exhausted")
+        );
+
+        assertTrue(ex.getMessage().contains("reached its maximum uses"));
+        assertEquals(2, promo.getCurrentUses(), "Promo currentUses must remain at 2");
+        verify(promoCodeRepository, never()).save(promo);
+        verify(bookingRepository, never()).save(any());
+    }
+
+    @Test
+    void createBooking_idempotentReplay_doesNotReincrementPromoCurrentUses() {
+        LocalDate stayCheckIn = LocalDate.of(2026, 11, 14);
+        LocalDate stayCheckOut = LocalDate.of(2026, 11, 16);
+
+        PromoCode promo = new PromoCode(10L, "PROMO10", DiscountType.PERCENTAGE, new BigDecimal("10.00"),
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), 1, 5, 2, true);
+
+        Booking existing = new Booking();
+        existing.setId(777L);
+        existing.setBookingRef("BKGREPLAY123");
+        existing.setIdempotencyKey("idem-replay-promo");
+        existing.setRoomCategory(roomCategory);
+        existing.setRatePlan(ratePlan);
+        existing.setPromoCode(promo);
+        existing.setCheckInDate(stayCheckIn);
+        existing.setCheckOutDate(stayCheckOut);
+        existing.setRoomsCount(1);
+        existing.setAdults(2);
+        existing.setChildren(0);
+        existing.setGuestEmail("replay@example.com");
+        existing.setStatus(BookingStatus.PENDING_PAYMENT);
+        existing.setExpiresAt(LocalDateTime.now(fixedClock).plusMinutes(10));
+        existing.setTotalPayableInr(new BigDecimal("15000.00"));
+
+        Payment payment = new Payment();
+        payment.setBooking(existing);
+        payment.setOneTimePaymentToken("token-replay");
+
+        when(bookingRepository.findByIdempotencyKey("idem-replay-promo")).thenReturn(Optional.of(existing));
+        when(paymentRepository.findByBookingId(777L)).thenReturn(Optional.of(payment));
+
+        CreateBookingRequest request = new CreateBookingRequest(
+                "idem-replay-promo", 1L, 1L, stayCheckIn, stayCheckOut, 1, 2, 0,
+                "Replay Guest", "replay@example.com", "9876543210", "PROMO10", true
+        );
+
+        BookingResponseDto response = bookingService.createBookingAndLockAllotment(request, "idem-replay-promo");
+
+        assertNotNull(response);
+        assertEquals("BKGREPLAY123", response.getBookingRef());
+        assertEquals(2, promo.getCurrentUses(), "Promo currentUses must not change during replay");
+        verify(promoCodeRepository, never()).findAndLockByCodeIgnoreCaseAndIsActiveTrue(anyString());
+        verify(promoCodeRepository, never()).save(any());
     }
 }

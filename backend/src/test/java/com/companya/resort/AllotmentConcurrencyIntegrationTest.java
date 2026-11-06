@@ -41,6 +41,7 @@ class AllotmentConcurrencyIntegrationTest {
     private static PaymentRepository paymentRepository;
     private static RoomCategoryRepository roomCategoryRepository;
     private static RatePlanRepository ratePlanRepository;
+    private static PromoCodeRepository promoCodeRepository;
     private static Clock clock;
 
     @BeforeAll
@@ -91,6 +92,7 @@ class AllotmentConcurrencyIntegrationTest {
         paymentRepository = applicationContext.getBean(PaymentRepository.class);
         roomCategoryRepository = applicationContext.getBean(RoomCategoryRepository.class);
         ratePlanRepository = applicationContext.getBean(RatePlanRepository.class);
+        promoCodeRepository = applicationContext.getBean(PromoCodeRepository.class);
         clock = applicationContext.getBean(Clock.class);
     }
 
@@ -712,6 +714,128 @@ class AllotmentConcurrencyIntegrationTest {
                     int booked = rs.getInt("booked_count");
                     assertEquals(0, booked, "Stock must be released back to 0");
                 }
+            }
+        }
+    }
+
+    @Test
+    void when10ThreadsBookWithSingleUsePromoCode_exactly1SucceedsAnd9FailWithPromoExhausted() throws Exception {
+        Long roomCatId = 1L;
+        Long ratePlanId = 1L;
+        LocalDate date1 = LocalDate.of(2026, 12, 10);
+        LocalDate date2 = LocalDate.of(2026, 12, 11);
+        String promoCodeStr = "CONCUR1";
+
+        // 1. Reset inventory in test DB: 2 nights with website_allotment_total = 10, booked_count = 0
+        try (Connection conn = getConnection()) {
+            try (PreparedStatement deleteRates = conn.prepareStatement(
+                    "DELETE FROM daily_inventory_rates WHERE room_category_id = ? AND stay_date IN (?, ?)")) {
+                deleteRates.setLong(1, roomCatId);
+                deleteRates.setDate(2, Date.valueOf(date1));
+                deleteRates.setDate(3, Date.valueOf(date2));
+                deleteRates.executeUpdate();
+            }
+
+            try (PreparedStatement insertRates = conn.prepareStatement(
+                    "INSERT INTO daily_inventory_rates (room_category_id, stay_date, base_rate_inr, website_allotment_total, booked_count, version) VALUES (?, ?, ?, ?, ?, ?)")) {
+                insertRates.setLong(1, roomCatId);
+                insertRates.setDate(2, Date.valueOf(date1));
+                insertRates.setBigDecimal(3, new BigDecimal("8500.00"));
+                insertRates.setInt(4, 10);
+                insertRates.setInt(5, 0);
+                insertRates.setLong(6, 0L);
+                insertRates.executeUpdate();
+
+                insertRates.setDate(2, Date.valueOf(date2));
+                insertRates.executeUpdate();
+            }
+
+            // 2. Insert or reset single-use promo code
+            try (PreparedStatement deletePromo = conn.prepareStatement(
+                    "DELETE FROM promo_codes WHERE code = ?")) {
+                deletePromo.setString(1, promoCodeStr);
+                deletePromo.executeUpdate();
+            }
+
+            try (PreparedStatement insertPromo = conn.prepareStatement(
+                    "INSERT INTO promo_codes (code, discount_type, discount_value, valid_from, valid_to, min_nights, max_uses, current_uses, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                insertPromo.setString(1, promoCodeStr);
+                insertPromo.setString(2, "PERCENTAGE");
+                insertPromo.setBigDecimal(3, new BigDecimal("10.00"));
+                insertPromo.setDate(4, Date.valueOf(LocalDate.of(2026, 1, 1)));
+                insertPromo.setDate(5, Date.valueOf(LocalDate.of(2026, 12, 31)));
+                insertPromo.setInt(6, 1);
+                insertPromo.setInt(7, 1); // max_uses = 1
+                insertPromo.setInt(8, 0); // current_uses = 0
+                insertPromo.setBoolean(9, true);
+                insertPromo.executeUpdate();
+            }
+            conn.commit();
+        }
+
+        // 3. Launch 10 concurrent booking requests
+        int threadCount = 10;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch finishLatch = new CountDownLatch(threadCount);
+
+        AtomicInteger successCount = new AtomicInteger(0);
+        AtomicInteger promoExhaustedCount = new AtomicInteger(0);
+        AtomicInteger otherErrorCount = new AtomicInteger(0);
+
+        for (int i = 0; i < threadCount; i++) {
+            final int index = i;
+            executor.submit(() -> {
+                try {
+                    startLatch.await();
+                    CreateBookingRequest request = new CreateBookingRequest(
+                            "idem-concur-promo-" + index,
+                            roomCatId,
+                            ratePlanId,
+                            date1,
+                            date2.plusDays(1),
+                            1,
+                            2,
+                            0,
+                            "Promo Concurrency Guest " + index,
+                            "promo_concur_" + index + "@example.com",
+                            "98765432" + String.format("%02d", index),
+                            promoCodeStr,
+                            true
+                    );
+                    bookingService.createBookingAndLockAllotment(request, "idem-concur-promo-" + index);
+                    successCount.incrementAndGet();
+                } catch (com.companya.resort.exception.InvalidPromoCodeException ex) {
+                    if (ex.getMessage() != null && ex.getMessage().contains("maximum uses")) {
+                        promoExhaustedCount.incrementAndGet();
+                    } else {
+                        otherErrorCount.incrementAndGet();
+                    }
+                } catch (Exception ex) {
+                    otherErrorCount.incrementAndGet();
+                } finally {
+                    finishLatch.countDown();
+                }
+            });
+        }
+
+        startLatch.countDown();
+        boolean completed = finishLatch.await(15, TimeUnit.SECONDS);
+        executor.shutdown();
+
+        assertTrue(completed, "All 10 concurrent threads must complete within timeout");
+        assertEquals(1, successCount.get(), "Exactly 1 thread must successfully book with the single-use promo code");
+        assertEquals(9, promoExhaustedCount.get(), "Exactly 9 threads must fail with promo maximum uses reached");
+        assertEquals(0, otherErrorCount.get(), "No other errors must occur");
+
+        // 4. Verify promo_codes current_uses in DB is exactly 1
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement("SELECT current_uses, max_uses FROM promo_codes WHERE code = ?")) {
+            ps.setString(1, promoCodeStr);
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt("current_uses"), "Promo code current_uses in DB must be exactly 1");
+                assertEquals(1, rs.getInt("max_uses"), "Promo code max_uses in DB must be 1");
             }
         }
     }

@@ -3,6 +3,7 @@ package com.companya.resort.service;
 import com.companya.resort.repository.BookingRepository;
 import com.companya.resort.repository.DailyInventoryRateRepository;
 import com.companya.resort.repository.PaymentRepository;
+import com.companya.resort.repository.PromoCodeRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,9 +28,19 @@ public class BookingExpiryService {
             BookingRepository bookingRepository,
             PaymentRepository paymentRepository,
             DailyInventoryRateRepository dailyInventoryRateRepository,
+            PromoCodeRepository promoCodeRepository,
             Clock clock
     ) {
-        this(new BookingExpiryTransaction(bookingRepository, paymentRepository, dailyInventoryRateRepository, clock));
+        this(new BookingExpiryTransaction(bookingRepository, paymentRepository, dailyInventoryRateRepository, promoCodeRepository, clock));
+    }
+
+    public BookingExpiryService(
+            BookingRepository bookingRepository,
+            PaymentRepository paymentRepository,
+            DailyInventoryRateRepository dailyInventoryRateRepository,
+            Clock clock
+    ) {
+        this(new BookingExpiryTransaction(bookingRepository, paymentRepository, dailyInventoryRateRepository, null, clock));
     }
 
     @Scheduled(fixedDelay = 60000, initialDelay = 60000)

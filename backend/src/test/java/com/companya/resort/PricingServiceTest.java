@@ -184,4 +184,54 @@ class PricingServiceTest {
         assertEquals(new BigDecimal("33000.00"), result.getTotalPayableInr());
         assertEquals("UNVERIFIED", result.getGstVerificationStatus());
     }
+
+    @Test
+    void promoExhausted_maxUsesReached_throwsInvalidPromoCodeException() {
+        LocalDate d1 = LocalDate.of(2026, 11, 14);
+        DailyInventoryRate r1 = new DailyInventoryRate(1L, roomCategory, d1, new BigDecimal("8500.00"), 5, 0, 0L);
+
+        PromoCode promo = new PromoCode(1L, "EXHAUSTED", DiscountType.PERCENTAGE, new BigDecimal("10.00"),
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), 1, 5, 5, true);
+        when(promoCodeRepository.findByCodeIgnoreCaseAndIsActiveTrue("EXHAUSTED"))
+                .thenReturn(Optional.of(promo));
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                com.companya.resort.exception.InvalidPromoCodeException.class,
+                () -> pricingService.calculatePrice(List.of(r1), planEp, 1, "EXHAUSTED")
+        );
+    }
+
+    @Test
+    void promoUnlimited_maxUsesNull_succeeds() {
+        LocalDate d1 = LocalDate.of(2026, 11, 14);
+        DailyInventoryRate r1 = new DailyInventoryRate(1L, roomCategory, d1, new BigDecimal("8500.00"), 5, 0, 0L);
+
+        PromoCode promo = new PromoCode(1L, "UNLIMITED", DiscountType.PERCENTAGE, new BigDecimal("10.00"),
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), 1, null, 100, true);
+        when(promoCodeRepository.findByCodeIgnoreCaseAndIsActiveTrue("UNLIMITED"))
+                .thenReturn(Optional.of(promo));
+        when(gstTaxSlabRepository.findMatchingSlabs(eq(d1), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(List.of(TEST_ONLY_SLAB_5));
+
+        PriceCalculationResult result = pricingService.calculatePrice(List.of(r1), planEp, 1, "UNLIMITED");
+        org.junit.jupiter.api.Assertions.assertNotNull(result);
+        assertEquals(new BigDecimal("850.00"), result.getDiscountAmountInr());
+    }
+
+    @Test
+    void promoUnderLimit_currentLessThanMax_succeeds() {
+        LocalDate d1 = LocalDate.of(2026, 11, 14);
+        DailyInventoryRate r1 = new DailyInventoryRate(1L, roomCategory, d1, new BigDecimal("8500.00"), 5, 0, 0L);
+
+        PromoCode promo = new PromoCode(1L, "STILLVALID", DiscountType.PERCENTAGE, new BigDecimal("10.00"),
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), 1, 10, 9, true);
+        when(promoCodeRepository.findByCodeIgnoreCaseAndIsActiveTrue("STILLVALID"))
+                .thenReturn(Optional.of(promo));
+        when(gstTaxSlabRepository.findMatchingSlabs(eq(d1), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(List.of(TEST_ONLY_SLAB_5));
+
+        PriceCalculationResult result = pricingService.calculatePrice(List.of(r1), planEp, 1, "STILLVALID");
+        org.junit.jupiter.api.Assertions.assertNotNull(result);
+        assertEquals(new BigDecimal("850.00"), result.getDiscountAmountInr());
+    }
 }

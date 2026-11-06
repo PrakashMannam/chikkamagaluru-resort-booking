@@ -6,6 +6,7 @@ import com.companya.resort.dto.PriceCalculationResult;
 import com.companya.resort.entity.*;
 import com.companya.resort.exception.*;
 import com.companya.resort.repository.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,8 +33,34 @@ public class BookingTransactionService {
     private final BookingRepository bookingRepository;
     private final PaymentRepository paymentRepository;
     private final PricingService pricingService;
+    private final PromoCodeRepository promoCodeRepository;
     private final BookingCalendar bookingCalendar;
     private final Clock clock;
+
+    @Autowired
+    public BookingTransactionService(
+            RoomCategoryRepository roomCategoryRepository,
+            RatePlanRepository ratePlanRepository,
+            DailyInventoryRateRepository dailyInventoryRateRepository,
+            BlackoutDateRepository blackoutDateRepository,
+            BookingRepository bookingRepository,
+            PaymentRepository paymentRepository,
+            PricingService pricingService,
+            PromoCodeRepository promoCodeRepository,
+            BookingCalendar bookingCalendar,
+            Clock clock
+    ) {
+        this.roomCategoryRepository = roomCategoryRepository;
+        this.ratePlanRepository = ratePlanRepository;
+        this.dailyInventoryRateRepository = dailyInventoryRateRepository;
+        this.blackoutDateRepository = blackoutDateRepository;
+        this.bookingRepository = bookingRepository;
+        this.paymentRepository = paymentRepository;
+        this.pricingService = pricingService;
+        this.promoCodeRepository = promoCodeRepository;
+        this.bookingCalendar = bookingCalendar;
+        this.clock = clock;
+    }
 
     public BookingTransactionService(
             RoomCategoryRepository roomCategoryRepository,
@@ -46,15 +73,8 @@ public class BookingTransactionService {
             BookingCalendar bookingCalendar,
             Clock clock
     ) {
-        this.roomCategoryRepository = roomCategoryRepository;
-        this.ratePlanRepository = ratePlanRepository;
-        this.dailyInventoryRateRepository = dailyInventoryRateRepository;
-        this.blackoutDateRepository = blackoutDateRepository;
-        this.bookingRepository = bookingRepository;
-        this.paymentRepository = paymentRepository;
-        this.pricingService = pricingService;
-        this.bookingCalendar = bookingCalendar;
-        this.clock = clock;
+        this(roomCategoryRepository, ratePlanRepository, dailyInventoryRateRepository, blackoutDateRepository,
+                bookingRepository, paymentRepository, pricingService, null, bookingCalendar, clock);
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -129,9 +149,29 @@ public class BookingTransactionService {
             dailyInventoryRateRepository.save(rate);
         }
 
-        // 8. Calculate Deterministic Pricing
-        PriceCalculationResult priceResult = pricingService.calculatePrice(
-                lockedRates, ratePlan, roomsCount, request.getPromoCode());
+        // 8. Lock Promo Code under Pessimistic Write Lock (if provided) and Calculate Pricing
+        PromoCode lockedPromo = null;
+        if (request.getPromoCode() != null && !request.getPromoCode().trim().isEmpty()) {
+            String promoCodeStr = request.getPromoCode().trim();
+            if (promoCodeRepository != null) {
+                lockedPromo = promoCodeRepository.findAndLockByCodeIgnoreCaseAndIsActiveTrue(promoCodeStr)
+                        .orElseThrow(() -> new InvalidPromoCodeException("Promo code '" + promoCodeStr + "' is invalid or inactive"));
+                int current = (lockedPromo.getCurrentUses() != null) ? lockedPromo.getCurrentUses() : 0;
+                if (lockedPromo.getMaxUses() != null && current >= lockedPromo.getMaxUses()) {
+                    throw new InvalidPromoCodeException("Promo code '" + promoCodeStr + "' has reached its maximum uses");
+                }
+            }
+        }
+
+        PriceCalculationResult priceResult;
+        if (lockedPromo != null) {
+            priceResult = pricingService.calculatePriceWithPromo(lockedRates, ratePlan, roomsCount, lockedPromo);
+            int current = (lockedPromo.getCurrentUses() != null) ? lockedPromo.getCurrentUses() : 0;
+            lockedPromo.setCurrentUses(current + 1);
+            promoCodeRepository.save(lockedPromo);
+        } else {
+            priceResult = pricingService.calculatePrice(lockedRates, ratePlan, roomsCount, request.getPromoCode());
+        }
 
         // 9. Generate Tokens and Create Booking + Payment
         String bookingRef = generateBookingRef();
@@ -190,7 +230,13 @@ public class BookingTransactionService {
                 && existing.getChildren().equals(requestedChildren)
                 && existing.getGuestEmail().equalsIgnoreCase(request.getGuestEmail().trim());
 
-        if (!matches) {
+        String existingPromo = existing.getPromoCode() != null ? existing.getPromoCode().getCode() : null;
+        String requestedPromo = (request.getPromoCode() != null && !request.getPromoCode().trim().isEmpty())
+                ? request.getPromoCode().trim() : null;
+        boolean promoMatches = (existingPromo == null && requestedPromo == null)
+                || (existingPromo != null && existingPromo.equalsIgnoreCase(requestedPromo));
+
+        if (!matches || !promoMatches) {
             throw new IdempotencyPayloadMismatchException("Idempotency key already used with different booking payload");
         }
     }
