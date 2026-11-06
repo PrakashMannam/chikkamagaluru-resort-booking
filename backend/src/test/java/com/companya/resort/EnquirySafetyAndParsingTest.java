@@ -57,11 +57,13 @@ public class EnquirySafetyAndParsingTest {
     @Test
     @DisplayName("PII Redactor should mask email addresses and phone numbers before sending to AI")
     void testPiiRedactor() {
-        String input = "Hi, my email is ananya.sharma@example.com and mobile is +91 9876543210. Also reachable at 08262-234567.";
+        String input = "Hi, my email is ananya.sharma@example.com and mobile is +91 9876543210. Also reachable at 08262-234567 or intl +1 555-123-4567.";
         String redacted = PiiRedactor.redact(input);
 
         assertFalse(redacted.contains("ananya.sharma@example.com"));
         assertFalse(redacted.contains("9876543210"));
+        assertFalse(redacted.contains("08262-234567"));
+        assertFalse(redacted.contains("555-123-4567"));
         assertTrue(redacted.contains("[REDACTED_EMAIL]"));
         assertTrue(redacted.contains("[REDACTED_PHONE]"));
     }
