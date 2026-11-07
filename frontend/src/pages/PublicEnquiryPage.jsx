@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { submitPublicEnquiry } from '../api/enquiryApi';
 import { Button, Input, Card, Badge, ErrorBanner } from '../components/ui';
+import { buildRawEnquiryMessage, DEFAULT_OFFSITE_CONFERENCE_HALL_SELECTION } from '../utils/enquiryMessageBuilder';
 import './PublicEnquiryPage.css';
 
 const ENQUIRY_TYPES = [
@@ -56,7 +57,7 @@ export function PublicEnquiryPage() {
 
   // Type specific details
   const [organization, setOrganization] = useState('');
-  const [needsConferenceHall, setNeedsConferenceHall] = useState('unspecified');
+  const [needsConferenceHall, setNeedsConferenceHall] = useState(DEFAULT_OFFSITE_CONFERENCE_HALL_SELECTION);
   const [stayPreference, setStayPreference] = useState('VILLA');
   const [additionalMessage, setAdditionalMessage] = useState('');
 
@@ -81,7 +82,7 @@ export function PublicEnquiryPage() {
       setGuestsCount('45');
       setNights('2');
       setRoomsCount('20');
-      setNeedsConferenceHall('unspecified');
+      setNeedsConferenceHall(DEFAULT_OFFSITE_CONFERENCE_HALL_SELECTION);
     } else {
       setGuestsCount('4');
       setNights('2');
@@ -137,45 +138,18 @@ export function PublicEnquiryPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const buildRawMessage = () => {
-    if (enquiryType === 'WEDDING') {
-      const parts = [
-        `Venue for my wedding on ${eventDate}`,
-        nights ? `${nights} nights` : null,
-        guestsCount ? `about ${guestsCount} guests` : null,
-        roomsCount ? `${roomsCount} rooms` : null,
-        budget ? `Approximate budget: ${budget}` : null,
-        additionalMessage ? `Event details: ${additionalMessage}` : null,
-      ].filter(Boolean);
-      return parts.join(', ');
-    }
-
-    if (enquiryType === 'CORPORATE_OFFSITE') {
-      const parts = [
-        organization ? `Corporate offsite for ${organization}` : `Corporate offsite inquiry`,
-        guestsCount ? `Team of ${guestsCount}` : null,
-        `wants an offsite on ${eventDate}`,
-        nights ? `for ${nights} nights` : null,
-        roomsCount ? `with ${roomsCount} rooms` : null,
-        needsConferenceHall === 'yes' ? 'with a conference hall' : null,
-        budget ? `Approximate budget: ${budget}` : null,
-        additionalMessage ? `Requirements: ${additionalMessage}` : null,
-      ].filter(Boolean);
-      return parts.join(', ');
-    }
-
-    // Room Booking / Stay
-    const stayLabel = stayPreference === 'VILLA' ? 'Private Pool Villa' : stayPreference === 'ROOM' ? 'Estate Room' : 'Estate Stay';
-    const parts = [
-      `Enquiry for ${stayLabel} from ${eventDate}`,
-      nights ? `for ${nights} nights` : null,
-      guestsCount ? `for ${guestsCount} guests` : null,
-      roomsCount ? `${roomsCount} rooms` : null,
-      budget ? `Approximate budget: ${budget}` : null,
-      additionalMessage ? `Details: ${additionalMessage}` : null,
-    ].filter(Boolean);
-    return parts.join(', ');
-  };
+  const buildRawMessage = () => buildRawEnquiryMessage({
+    enquiryType,
+    eventDate,
+    nights,
+    guestsCount,
+    roomsCount,
+    budget,
+    additionalMessage,
+    organization,
+    needsConferenceHall,
+    stayPreference,
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();

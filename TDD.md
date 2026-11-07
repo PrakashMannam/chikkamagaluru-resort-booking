@@ -10,6 +10,45 @@ The platform fulfills two primary operational needs:
 
 ---
 
+
+
+---
+
+## 1.1 Requirements Provenance & Brief Disclosure
+
+> **Explicit Disclosure of Brief Availability**:
+> The standalone upstream assignment brief (referred to historically as "the original brief" or "IsoCode Labs brief") is **not present as a discrete file** within this repository or the `docs/` directory.
+>
+> All verified architectural, domain, and behavioral specifications in this TDD are strictly derived from the committed project documentation:
+> - `RULES.md`: Core developer constraints, database immutability, role validation, BigDecimal currency requirements, and testing criteria.
+> - `docs/design-pack.md`: Core Build blueprint (v2), 12 relational database tables, room category grouping (64 Rooms + 12 Villas), staff lanes, and enquiry triage rules.
+> - `docs/design-pack-patch.md` & `docs/design-pack-v2-patch.md`: Authoritative overrides for GST single-slab calculation (post-promo value of supply), concurrency deadlock retry, active hold capping, and rate limiter sizing.
+> - `docs/design-direction-patch.md`: WCAG AA color contrast ratios, 44px tap targets, tokens, responsive viewports (375px mobile, 768px tablet, 1024px+ desktop), and room page requirements.
+> - `docs/frontend-rules.md`: Component boundaries, local date handling, idempotent booking submission, and three-stage booking funnel rules.
+> - `docs/gst-source.md`: Statutory references (CGST Act s.15, Gazette notifications) for 5% and 18% hospitality tax brackets.
+>
+> **Requirements Categorization**:
+> 1. **Explicitly Required by Project Documentation**:
+>    - 76 physical keys (64 Estate Rooms + 12 Private Pool Villas).
+>    - Two primary system roles: Guest (public) and Reservations Staff (`ROLE_STAFF` with `is_gm` privilege flag).
+>    - Three-stage guest checkout journey: Guest Details (`/checkout`) → Payment (`/payment/:ref`) → Confirmation (`/bookings/:ref`).
+>    - 10-minute pessimistic inventory hold guarantee with token-based hold cancellation (`/cancel-hold`).
+>    - Token-bucket IP rate limiting (10 RPM bookings, 5 per 10 minutes for public enquiries).
+>    - Single GST slab lookup based on post-promo average nightly tariff on check-in date.
+>    - Provisional GST slab seeding flagged `UNVERIFIED` with UI disclaimers.
+>    - Functional unique index on resort-wide blackout dates (`uk_blackout_dates_scope_date`).
+>    - Multi-channel enquiry intake with privacy PII redaction and Gemini AI draft generation.
+>    - Rate-table quote injection (`QuoteInjectorService`) preventing hallucinated prices in staff drafts.
+>    - Mandatory staff review before dispatch (`DRAFT_PENDING_REVIEW`).
+>    - Daily CSV booking export with spreadsheet formula injection protection (CWE-1236).
+>    - Mobile-first responsive UI (375px+ without horizontal scroll).
+> 2. **Inferred from Implementation & Architecture**:
+>    - Mapping 76 physical keys to two bookable room categories (`ROOM` and `VILLA`).
+>    - Dynamic port binding for Railway container environments (`SERVER_PORT=${PORT}`).
+>    - Automated Vercel Edge deployments via GitHub webhook integration on `main`.
+> 3. **NOT VERIFIED (Original Brief Unavailable)**:
+>    - Any hypothetical requirements or evaluation criteria belonging strictly to an uncommitted external document that were not transcribed into the committed `docs/` files are marked **NOT VERIFIED**.
+
 ## 2. High-Level System Architecture
 
 The application adopts a modular 3-tier architecture with clear separation of concerns:
