@@ -66,7 +66,7 @@ export function PrivacyPage() {
                 <strong>Staff Coordination:</strong> Routing incoming inquiries to specialized staff queues (Rooms, Weddings, Corporate Offsites) and generating internal response drafts for staff review.
               </li>
               <li>
-                <strong>Status Lookup:</strong> Allowing guests to look up their reservation details using a unique booking reference. Sensitive transaction tokens are masked from public responses.
+                <strong>Confirmation &amp; Receipt Access:</strong> Allowing guests to access their reservation confirmation and receipt directly via the booking's confirmation link. No unauthenticated public lookup directory is exposed.
               </li>
             </ul>
           </div>

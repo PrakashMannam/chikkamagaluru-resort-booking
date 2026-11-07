@@ -56,7 +56,7 @@ export function PublicEnquiryPage() {
 
   // Type specific details
   const [organization, setOrganization] = useState('');
-  const [needsConferenceHall, setNeedsConferenceHall] = useState('yes');
+  const [needsConferenceHall, setNeedsConferenceHall] = useState('unspecified');
   const [stayPreference, setStayPreference] = useState('VILLA');
   const [additionalMessage, setAdditionalMessage] = useState('');
 
@@ -81,6 +81,7 @@ export function PublicEnquiryPage() {
       setGuestsCount('45');
       setNights('2');
       setRoomsCount('20');
+      setNeedsConferenceHall('unspecified');
     } else {
       setGuestsCount('4');
       setNights('2');
@@ -513,6 +514,7 @@ export function PublicEnquiryPage() {
                     disabled={isSubmitting}
                     onChange={(e) => setNeedsConferenceHall(e.target.value)}
                   >
+                    <option value="unspecified">Not specified / please advise</option>
                     <option value="yes">Yes — Dedicated meeting space with AV setup</option>
                     <option value="no">No — Outdoor gathering and retreat stay</option>
                   </select>
