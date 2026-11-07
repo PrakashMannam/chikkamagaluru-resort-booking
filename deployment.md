@@ -320,6 +320,12 @@ The application is deployed across high-availability managed cloud infrastructur
                                         +---------------------------------+
 ```
 
+### Vercel Root Directory & Build Mechanics
+
+1. **Root Directory**: `frontend`. In project configurations where the frontend React SPA is housed in a subdirectory, the Vercel Project setting `Root Directory` must be set to `frontend`. This ensures Vercel installs dependencies (`npm install`) and runs the build script (`vite build`) within `frontend/`.
+2. **Framework Preset**: `Vite` (with output directory `dist` and single-page routing rewrites defined in `frontend/vercel.json`).
+3. **API URL Injection**: `VITE_API_URL` is configured in Vercel project environment variables pointing to `https://resort-backend-production.up.railway.app`.
+
 ### Actual Port Binding Mechanics
 
 1. **Local Default**: `8080`. Neither `application.properties` nor `SecurityConfig.java` defines `server.port`, so Spring Boot defaults to `8080`.
