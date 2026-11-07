@@ -342,7 +342,7 @@ export function GuestCheckoutPage() {
           <main className="checkout-main">
             <div className="checkout-card">
               <header className="checkout-card__header">
-                <span className="checkout-card__kicker">Step 2 of 3</span>
+                <span className="checkout-card__kicker">Step 1 of 3</span>
                 <h1 className="checkout-card__title">Guest Details &amp; Consent</h1>
                 <p className="checkout-card__desc">
                   Please provide primary guest details to secure your accommodation hold.

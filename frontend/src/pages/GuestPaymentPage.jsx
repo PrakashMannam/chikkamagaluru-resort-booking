@@ -258,7 +258,7 @@ export function GuestPaymentPage() {
 
               <header className="payment-card__header">
                 <div className="payment-card__meta-top">
-                  <span className="payment-card__kicker">Step 3 of 3 &bull; Final Step</span>
+                  <span className="payment-card__kicker">Step 2 of 3 &bull; Payment</span>
                   <div className="payment-countdown" aria-live="polite">
                     <span className="payment-countdown__label">Hold expires in:</span>
                     <span className="payment-countdown__timer">{formatTime(timeLeft)}</span>

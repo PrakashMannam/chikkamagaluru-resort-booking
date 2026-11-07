@@ -73,6 +73,7 @@ export function BookingConfirmationPage() {
       {!isLoading && booking && (
         <main className="confirmation-card">
           <header className="confirmation-header">
+            <span className="confirmation-header__kicker">Step 3 of 3 &bull; Confirmation</span>
             <div className="confirmation-header__status-badge">
               {isConfirmed ? (
                 <Badge variant="success">Reservation Confirmed</Badge>
