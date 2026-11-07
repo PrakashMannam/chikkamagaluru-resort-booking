@@ -8,6 +8,7 @@ import com.companya.resort.entity.Role;
 import com.companya.resort.entity.SpecialtyLane;
 import com.companya.resort.entity.User;
 import com.companya.resort.repository.UserRepository;
+import com.companya.resort.service.AdminInventoryService;
 import com.companya.resort.security.JwtAccessDeniedHandler;
 import com.companya.resort.security.JwtAuthenticationEntryPoint;
 import com.companya.resort.security.JwtAuthenticationFilter;
@@ -76,6 +77,9 @@ class AuthAndSecurityTest {
 
     @MockBean
     private UserRepository userRepository;
+
+    @MockBean
+    private AdminInventoryService adminInventoryService;
 
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private User testUser;
@@ -325,5 +329,40 @@ class AuthAndSecurityTest {
         // Second run (idempotency check)
         seeder.run();
         assertEquals(4, savedUsers.size(), "Running DemoDataSeeder twice must not duplicate users");
+    }
+
+    @Test
+    void nonGmStaffCanAccessAdminEndpointsWithRoleStaff() throws Exception {
+        User nonGmStaff = new User(
+                "reservations.demo@companya-estate.test",
+                passwordEncoder.encode("DEMO-ONLY-NOT-REAL-PASS-2026!"),
+                "Priya Nair (Reservations Desk)",
+                Role.STAFF,
+                SpecialtyLane.ROOM,
+                false
+        );
+        nonGmStaff.setId(2L);
+        when(userRepository.findById(2L)).thenReturn(Optional.of(nonGmStaff));
+
+        String token = jwtService.generateToken(nonGmStaff);
+
+        mockMvc.perform(get("/api/v1/admin/me")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(2))
+                .andExpect(jsonPath("$.fullName").value("Priya Nair (Reservations Desk)"))
+                .andExpect(jsonPath("$.role").value("STAFF"))
+                .andExpect(jsonPath("$.is_gm").value(false));
+    }
+
+    @Test
+    void unauthenticatedRequestsToAdminEndpointsReturn401() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/staff"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("Unauthorized"));
+
+        mockMvc.perform(get("/api/v1/admin/inventory-rates"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("Unauthorized"));
     }
 }

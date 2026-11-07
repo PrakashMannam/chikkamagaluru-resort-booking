@@ -861,4 +861,64 @@ class BookingServiceTest {
         verify(promoCodeRepository, never()).findAndLockByCodeIgnoreCaseAndIsActiveTrue(anyString());
         verify(promoCodeRepository, never()).save(any());
     }
+
+    @Test
+    void createBooking_invalidPhone_allZeros_throwsIllegalArgumentException() {
+        CreateBookingRequest request = new CreateBookingRequest(
+                "idem-phone-zero", 1L, 1L, checkIn, checkOut, 1, 2, 0,
+                "Test Guest", "guest@example.com", "0000000000", null, true
+        );
+        IllegalArgumentException ex = org.junit.jupiter.api.Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> bookingService.createBookingAndLockAllotment(request, "idem-phone-zero")
+        );
+        org.junit.jupiter.api.Assertions.assertTrue(ex.getMessage().contains("Invalid guest phone number"));
+    }
+
+    @Test
+    void createBooking_invalidPhone_repeatedDigits_throwsIllegalArgumentException() {
+        CreateBookingRequest request = new CreateBookingRequest(
+                "idem-phone-rep", 1L, 1L, checkIn, checkOut, 1, 2, 0,
+                "Test Guest", "guest@example.com", "9999999999", null, true
+        );
+        IllegalArgumentException ex = org.junit.jupiter.api.Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> bookingService.createBookingAndLockAllotment(request, "idem-phone-rep")
+        );
+        org.junit.jupiter.api.Assertions.assertTrue(ex.getMessage().contains("Invalid guest phone number"));
+    }
+
+    @Test
+    void createBooking_invalidPhone_invalidLeadingDigit_throwsIllegalArgumentException() {
+        CreateBookingRequest request = new CreateBookingRequest(
+                "idem-phone-lead", 1L, 1L, checkIn, checkOut, 1, 2, 0,
+                "Test Guest", "guest@example.com", "1234567890", null, true
+        );
+        IllegalArgumentException ex = org.junit.jupiter.api.Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> bookingService.createBookingAndLockAllotment(request, "idem-phone-lead")
+        );
+        org.junit.jupiter.api.Assertions.assertTrue(ex.getMessage().contains("Invalid guest phone number"));
+    }
+
+    @Test
+    void phoneValidationHelper_verifiesCorrectness() {
+        org.junit.jupiter.api.Assertions.assertTrue(BookingTransactionService.isValidIndianMobile("9876543210"));
+        org.junit.jupiter.api.Assertions.assertTrue(BookingTransactionService.isValidIndianMobile("+919876543210"));
+        org.junit.jupiter.api.Assertions.assertTrue(BookingTransactionService.isValidIndianMobile("+91 98765 43210"));
+        org.junit.jupiter.api.Assertions.assertTrue(BookingTransactionService.isValidIndianMobile("09876543210"));
+        org.junit.jupiter.api.Assertions.assertTrue(BookingTransactionService.isValidIndianMobile("919876543210"));
+        org.junit.jupiter.api.Assertions.assertTrue(BookingTransactionService.isValidIndianMobile("6123456789"));
+        org.junit.jupiter.api.Assertions.assertTrue(BookingTransactionService.isValidIndianMobile("7123456789"));
+        org.junit.jupiter.api.Assertions.assertTrue(BookingTransactionService.isValidIndianMobile("8123456789"));
+
+        org.junit.jupiter.api.Assertions.assertFalse(BookingTransactionService.isValidIndianMobile("0000000000"));
+        org.junit.jupiter.api.Assertions.assertFalse(BookingTransactionService.isValidIndianMobile("1111111111"));
+        org.junit.jupiter.api.Assertions.assertFalse(BookingTransactionService.isValidIndianMobile("9999999999"));
+        org.junit.jupiter.api.Assertions.assertFalse(BookingTransactionService.isValidIndianMobile("1234567890"));
+        org.junit.jupiter.api.Assertions.assertFalse(BookingTransactionService.isValidIndianMobile("5234567890"));
+        org.junit.jupiter.api.Assertions.assertFalse(BookingTransactionService.isValidIndianMobile("98765"));
+        org.junit.jupiter.api.Assertions.assertFalse(BookingTransactionService.isValidIndianMobile(null));
+        org.junit.jupiter.api.Assertions.assertFalse(BookingTransactionService.isValidIndianMobile(""));
+    }
 }

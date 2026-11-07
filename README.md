@@ -134,8 +134,8 @@ Staff portal login: **http://localhost:5173/staff/login**.
 
 The backend test suite is divided into fast unit/mock tests and MySQL-backed integration tests. The figures below reflect supplied execution results from the test runner:
 
-### Standard Test Suite (219 Tests — No Database Required)
-Runs all 219 Unit, WebMvc, Mock, Rate-Limiter (15 tests), and Service tests (0 failures, 0 errors). Database integration tests skip automatically via JUnit `Assumptions.assumeTrue`:
+### Standard Test Suite (226 Tests — No Database Required)
+Runs all 226 Unit, WebMvc, Mock, Rate-Limiter (15 tests), and Service tests (0 failures, 0 errors). Database integration tests skip automatically via JUnit `Assumptions.assumeTrue`:
 
 ```powershell
 # From repository root
@@ -149,8 +149,8 @@ cd backend
 ./mvnw test
 ```
 
-### Full Integration Test Suite (234 Tests — With Local Test Database)
-Setting `TEST_DB_URL` activates all 15 database integration tests across `DatabaseMigrationIntegrationTest` (5 tests), `AllotmentConcurrencyIntegrationTest` (6 tests), and `BlackoutConcurrencyIntegrationTest` (4 tests), running all **234 tests** across 26 test classes with 0 failures, 0 errors, and 0 skipped:
+### Full Integration Test Suite (241 Tests — With Local Test Database)
+Setting `TEST_DB_URL` activates all 15 database integration tests across `DatabaseMigrationIntegrationTest` (5 tests), `AllotmentConcurrencyIntegrationTest` (6 tests), and `BlackoutConcurrencyIntegrationTest` (4 tests), running all **241 tests** across 26 test classes with 0 failures, 0 errors, and 0 skipped:
 
 ```powershell
 # PowerShell

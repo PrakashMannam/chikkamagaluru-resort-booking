@@ -221,7 +221,7 @@ public class DemoDataSeeder implements CommandLineRunner {
             d.setEnquiry(e);
             d.setGeneratedBy(DraftGeneratedBy.AI_ROUTER);
             d.setStatus(DraftStatus.DRAFT_PENDING_REVIEW);
-            d.setDraftBody("Dear Dr. Swaminathan,\n\nThank you for reaching out to us. We have held a Private Pool Villa for your selected dates (Nov 20-22, 2026). The starting tariff includes gourmet breakfast and an estate plantation walk.\n\nOur reservations team will confirm your booking details shortly.\n\nWarm regards,\nAnanya Hegde\nReservations Team");
+            d.setDraftBody("Dear Dr. Swaminathan,\n\nThank you for reaching out to us regarding Private Pool Villa availability for your requested dates (Nov 20–22, 2026). Please note that general enquiries do not hold room allotment until a reservation is formally created.\n\nOur reservations team will confirm current rate plans and availability with you shortly.\n\nWarm regards,\nAnanya Hegde\nReservations Team");
             d.setCreatedAt(LocalDateTime.now().minusHours(3));
             enquiryDraftRepository.save(d);
         }

@@ -63,10 +63,10 @@ export function TermsPage() {
                 <strong>Submitting an Enquiry:</strong> Transmits an inquiry record to the staff coordination inbox for event planning (weddings, corporate offsites, or retreat consultations). <em>Submitting an enquiry does not lock inventory rows, hold dates, or reserve event lawns.</em>
               </li>
               <li>
-                <strong>Creating a Reservation:</strong> A room reservation is initiated only through the formal booking checkout flow, which locks nightly inventory records for the requested dates under a temporary 15-minute countdown hold.
+                <strong>Creating a Reservation:</strong> A room reservation is initiated only through the formal booking checkout flow, which locks nightly inventory records for the requested dates under a temporary 10-minute countdown hold.
               </li>
               <li>
-                <strong>Confirmation Requirement:</strong> A booking is confirmed only after simulated payment authorization completes successfully before the 15-minute hold timer expires.
+                <strong>Confirmation Requirement:</strong> A booking is confirmed only after simulated payment authorization completes successfully before the 10-minute hold timer expires.
               </li>
             </ul>
           </div>
@@ -111,7 +111,7 @@ export function TermsPage() {
                 <strong>Confirmed Bookings:</strong> Successfully confirmed bookings retain the reserved promo usage.
               </li>
               <li>
-                <strong>Release on Cancellation or Expiry:</strong> If a pending hold is cancelled by the guest, payment fails, or the 15-minute countdown timer expires, the reserved usage is restored and decremented exactly once.
+                <strong>Release on Cancellation or Expiry:</strong> If a pending hold is cancelled by the guest, payment fails, or the 10-minute countdown timer expires, the reserved usage is restored and decremented exactly once.
               </li>
               <li>
                 <strong>Read-Only Quotes:</strong> Generating pricing quotes via the quote endpoint is strictly read-only and never mutates or reserves promo usage counters.

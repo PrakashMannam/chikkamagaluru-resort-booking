@@ -196,10 +196,18 @@ export function GuestCheckoutPage() {
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       errors.email = 'Please enter a valid email address.';
     }
+    const cleanedPhone = phone.trim().replace(/[\s\-()]/g, '');
+    let corePhone = cleanedPhone;
+    if (corePhone.startsWith('+91')) corePhone = corePhone.slice(3);
+    else if (corePhone.startsWith('91') && corePhone.length === 12) corePhone = corePhone.slice(2);
+    else if (corePhone.startsWith('0') && corePhone.length === 11) corePhone = corePhone.slice(1);
+
+    const isAllSameDigits = corePhone.length > 0 && /^(\d)\1+$/.test(corePhone);
+
     if (!phone.trim()) {
       errors.phone = 'Please enter your contact phone number.';
-    } else if (phone.trim().replace(/\D/g, '').length < 10) {
-      errors.phone = 'Please enter a valid phone number (at least 10 digits).';
+    } else if (!/^[6-9]\d{9}$/.test(corePhone) || isAllSameDigits) {
+      errors.phone = 'Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.';
     }
     if (!dpdpConsent) {
       errors.dpdpConsent = 'Consent is mandatory under the Digital Personal Data Protection Act 2023.';
@@ -233,7 +241,14 @@ export function GuestCheckoutPage() {
       children,
       guestName: fullName.trim(),
       guestEmail: email.trim(),
-      guestPhone: phone.trim(),
+      guestPhone: (() => {
+        const cleaned = phone.trim().replace(/[\s\-()]/g, '');
+        let core = cleaned;
+        if (core.startsWith('+91')) core = core.slice(3);
+        else if (core.startsWith('91') && core.length === 12) core = core.slice(2);
+        else if (core.startsWith('0') && core.length === 11) core = core.slice(1);
+        return /^[6-9]\d{9}$/.test(core) ? core : phone.trim();
+      })(),
       promoCode: appliedPromo || promoInput.trim() || undefined,
       dpdpConsentGiven: true,
     };

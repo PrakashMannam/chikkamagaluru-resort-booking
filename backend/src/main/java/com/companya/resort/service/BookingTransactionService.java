@@ -91,6 +91,10 @@ public class BookingTransactionService {
         // 2. Validation
         validateStayDates(request.getCheckInDate(), request.getCheckOutDate());
 
+        if (!isValidIndianMobile(request.getGuestPhone())) {
+            throw new IllegalArgumentException("Invalid guest phone number: must be a valid 10-digit Indian mobile number");
+        }
+
         if (Boolean.FALSE.equals(request.getDpdpConsentGiven())) {
             throw new IllegalArgumentException("DPDP Act 2023 consent is mandatory");
         }
@@ -239,6 +243,24 @@ public class BookingTransactionService {
         if (!matches || !promoMatches) {
             throw new IdempotencyPayloadMismatchException("Idempotency key already used with different booking payload");
         }
+    }
+
+    public static boolean isValidIndianMobile(String phone) {
+        if (phone == null || phone.trim().isEmpty()) {
+            return false;
+        }
+        String cleaned = phone.trim().replaceAll("[\\s\\-\\(\\)]", "");
+        if (cleaned.startsWith("+91")) {
+            cleaned = cleaned.substring(3);
+        } else if (cleaned.startsWith("91") && cleaned.length() == 12) {
+            cleaned = cleaned.substring(2);
+        } else if (cleaned.startsWith("0") && cleaned.length() == 11) {
+            cleaned = cleaned.substring(1);
+        }
+        if (!cleaned.matches("^[6-9]\\d{9}$")) {
+            return false;
+        }
+        return cleaned.chars().distinct().count() > 1;
     }
 
     public void validateStayDates(LocalDate checkIn, LocalDate checkOut) {
