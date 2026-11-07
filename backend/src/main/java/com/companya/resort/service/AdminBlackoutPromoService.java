@@ -11,6 +11,7 @@ import com.companya.resort.exception.ResourceNotFoundException;
 import com.companya.resort.repository.BlackoutDateRepository;
 import com.companya.resort.repository.PromoCodeRepository;
 import com.companya.resort.repository.RoomCategoryRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -100,9 +101,19 @@ public class AdminBlackoutPromoService {
         }
 
         BlackoutDate blackout = new BlackoutDate(null, category, date, reason);
-        BlackoutDate saved = blackoutDateRepository.save(blackout);
-
-        return toBlackoutDto(saved);
+        try {
+            BlackoutDate saved = blackoutDateRepository.saveAndFlush(blackout);
+            return toBlackoutDto(saved);
+        } catch (DataIntegrityViolationException ex) {
+            if (isDuplicateBlackoutConstraint(ex)) {
+                if (category == null) {
+                    throw new BlackoutDateConflictException("A resort-wide blackout date already exists on " + date);
+                } else {
+                    throw new BlackoutDateConflictException("A blackout date for category " + category.getCode() + " already exists on " + date);
+                }
+            }
+            throw ex;
+        }
     }
 
     @Transactional
@@ -245,5 +256,23 @@ public class AdminBlackoutPromoService {
                 p.getCurrentUses(),
                 p.getIsActive()
         );
+    }
+
+    private boolean isDuplicateBlackoutConstraint(DataIntegrityViolationException ex) {
+        Throwable current = ex;
+        while (current != null) {
+            String msg = current.getMessage();
+            if (msg != null && (msg.contains("uk_blackout_dates_scope_date") || msg.contains("uk_blackout_dates_cat_date"))) {
+                return true;
+            }
+            if (current instanceof org.hibernate.exception.ConstraintViolationException cve) {
+                String constraint = cve.getConstraintName();
+                if (constraint != null && (constraint.contains("uk_blackout_dates_scope_date") || constraint.contains("uk_blackout_dates_cat_date"))) {
+                    return true;
+                }
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 }

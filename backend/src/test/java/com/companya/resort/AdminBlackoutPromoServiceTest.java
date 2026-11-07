@@ -19,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
 
 import java.math.BigDecimal;
@@ -65,7 +66,7 @@ class AdminBlackoutPromoServiceTest {
         CreateBlackoutRequest req = new CreateBlackoutRequest(null, null, date, "New Year Buyout");
 
         when(blackoutDateRepository.existsByRoomCategoryIsNullAndBlackoutDate(date)).thenReturn(false);
-        when(blackoutDateRepository.save(any(BlackoutDate.class))).thenAnswer(invocation -> {
+        when(blackoutDateRepository.saveAndFlush(any(BlackoutDate.class))).thenAnswer(invocation -> {
             BlackoutDate b = invocation.getArgument(0);
             return new BlackoutDate(100L, b.getRoomCategory(), b.getBlackoutDate(), b.getReason());
         });
@@ -79,7 +80,7 @@ class AdminBlackoutPromoServiceTest {
         assertEquals("All Resort", dto.roomCategoryName());
         assertEquals(date, dto.blackoutDate());
         assertEquals("New Year Buyout", dto.reason());
-        verify(blackoutDateRepository, times(1)).save(any(BlackoutDate.class));
+        verify(blackoutDateRepository, times(1)).saveAndFlush(any(BlackoutDate.class));
     }
 
     @Test
@@ -91,7 +92,7 @@ class AdminBlackoutPromoServiceTest {
         when(roomCategoryRepository.findByCode("VILLA")).thenReturn(Optional.of(villaCategory));
         when(blackoutDateRepository.existsByRoomCategoryIsNullAndBlackoutDate(date)).thenReturn(false);
         when(blackoutDateRepository.existsByRoomCategoryIdAndBlackoutDate(villaCategory.getId(), date)).thenReturn(false);
-        when(blackoutDateRepository.save(any(BlackoutDate.class))).thenAnswer(invocation -> {
+        when(blackoutDateRepository.saveAndFlush(any(BlackoutDate.class))).thenAnswer(invocation -> {
             BlackoutDate b = invocation.getArgument(0);
             return new BlackoutDate(101L, b.getRoomCategory(), b.getBlackoutDate(), b.getReason());
         });
@@ -104,6 +105,50 @@ class AdminBlackoutPromoServiceTest {
         assertEquals("VILLA", dto.roomCategoryCode());
         assertEquals("Private Villa", dto.roomCategoryName());
         assertEquals(date, dto.blackoutDate());
+        verify(blackoutDateRepository, times(1)).saveAndFlush(any(BlackoutDate.class));
+    }
+
+    @Test
+    @DisplayName("Create blackout handles DB duplicate key race on resort-wide blackout and throws BlackoutDateConflictException")
+    void testCreateResortWideBlackoutDbRaceThrowsConflictException() {
+        LocalDate date = LocalDate.of(2026, 12, 31);
+        CreateBlackoutRequest req = new CreateBlackoutRequest(null, null, date, "New Year Buyout");
+
+        when(blackoutDateRepository.existsByRoomCategoryIsNullAndBlackoutDate(date)).thenReturn(false);
+        when(blackoutDateRepository.saveAndFlush(any(BlackoutDate.class)))
+                .thenThrow(new DataIntegrityViolationException("Duplicate entry '0-2026-12-31' for key 'uk_blackout_dates_scope_date'"));
+
+        BlackoutDateConflictException ex = assertThrows(BlackoutDateConflictException.class, () -> service.createBlackout(req));
+        assertTrue(ex.getMessage().contains("A resort-wide blackout date already exists on 2026-12-31"));
+    }
+
+    @Test
+    @DisplayName("Create blackout handles DB duplicate key race on category blackout and throws BlackoutDateConflictException")
+    void testCreateCategoryBlackoutDbRaceThrowsConflictException() {
+        LocalDate date = LocalDate.of(2026, 11, 20);
+        CreateBlackoutRequest req = new CreateBlackoutRequest("VILLA", null, date, "Villa Maintenance");
+
+        when(roomCategoryRepository.findByCode("VILLA")).thenReturn(Optional.of(villaCategory));
+        when(blackoutDateRepository.existsByRoomCategoryIsNullAndBlackoutDate(date)).thenReturn(false);
+        when(blackoutDateRepository.existsByRoomCategoryIdAndBlackoutDate(villaCategory.getId(), date)).thenReturn(false);
+        when(blackoutDateRepository.saveAndFlush(any(BlackoutDate.class)))
+                .thenThrow(new DataIntegrityViolationException("Duplicate entry '2-2026-11-20' for key 'uk_blackout_dates_scope_date'"));
+
+        BlackoutDateConflictException ex = assertThrows(BlackoutDateConflictException.class, () -> service.createBlackout(req));
+        assertTrue(ex.getMessage().contains("A blackout date for category VILLA already exists on 2026-11-20"));
+    }
+
+    @Test
+    @DisplayName("Create blackout re-throws DataIntegrityViolationException when error is not a blackout unique constraint violation")
+    void testCreateBlackoutDbUnrelatedIntegrityViolationRethrows() {
+        LocalDate date = LocalDate.of(2026, 12, 31);
+        CreateBlackoutRequest req = new CreateBlackoutRequest(null, null, date, "New Year Buyout");
+
+        when(blackoutDateRepository.existsByRoomCategoryIsNullAndBlackoutDate(date)).thenReturn(false);
+        when(blackoutDateRepository.saveAndFlush(any(BlackoutDate.class)))
+                .thenThrow(new DataIntegrityViolationException("Cannot add or update a child row: a foreign key constraint fails"));
+
+        assertThrows(DataIntegrityViolationException.class, () -> service.createBlackout(req));
     }
 
     @Test
