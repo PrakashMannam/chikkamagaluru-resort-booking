@@ -36,14 +36,16 @@ class BlackoutConcurrencyIntegrationTest {
         testDbUser = System.getenv("TEST_DB_USER");
         testDbPassword = System.getenv("TEST_DB_PASSWORD");
 
-        if (testDbUrl == null || testDbUrl.isBlank()) {
-            testDbUrl = "jdbc:mysql://localhost:3306/resort_test?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
-        }
+        Assumptions.assumeTrue(
+                testDbUrl != null && !testDbUrl.trim().isEmpty(),
+                "Skipping BlackoutConcurrencyIntegrationTest: TEST_DB_URL environment variable is not set."
+        );
+
         if (testDbUser == null) {
             testDbUser = "root";
         }
         if (testDbPassword == null) {
-            testDbPassword = "root";
+            testDbPassword = "";
         }
 
         try {

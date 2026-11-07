@@ -1,16 +1,20 @@
-# Deployment Guide: Chikkamagaluru Resort Booking
+# Deployment & Operations Guide: Chikkamagaluru Resort Booking
 
-This document details the configuration, deployment, and operational procedures for the Chikkamagaluru Resort Booking platform across local development and cloud hosting targets (Vercel, Railway, and MySQL 8).
+This document details the configuration, deployment, and operational procedures for the Chikkamagaluru Resort Booking platform across local development environments and cloud hosting targets (Vercel, Railway, and MySQL 8).
 
 ---
 
-## 1. Local Setup Instructions
+## 1. Prerequisites & Toolchain Versions
 
-### Prerequisites
-- **Java**: OpenJDK 21 LTS (`java -version` returns 21.x)
-- **Maven**: 3.9+ (`mvn -version`) or use the included `./mvnw` wrapper
-- **Node.js**: Node 20+ LTS (`node -v`) and npm 10+ (`npm -v`)
-- **MySQL**: MySQL Server 8.0.16 or newer (required for ANSI SQL `CHECK` constraint enforcement)
+Ensure the following runtimes and tools are installed and available on your system path:
+
+| Tool | Minimum Version | Verified Version | Verification Command | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| **Java Development Kit** | OpenJDK 21 LTS | 21.0.11 | `java -version` | Backend runtime (Spring Boot 3.3.5) |
+| **Apache Maven** | 3.9+ | 3.9.6 | `mvn -version` | Or use the wrapper located in `backend/` (`.\backend\mvnw.cmd` / `./backend/mvnw`) |
+| **Node.js** | 20+ LTS | 24.14.0 | `node -v` | Frontend build and dev server |
+| **npm** | 10+ | 10.9.2 | `npm -v` | Frontend package manager |
+| **MySQL Server** | 8.0.16 or newer | 8.0.36 | `mysql --version` | **Strict requirement**: ANSI SQL `CHECK` constraints and functional indexes (`COALESCE(...)`) require MySQL >= 8.0.16 |
 
 ### Repository Setup
 ```bash
@@ -18,271 +22,416 @@ git clone https://github.com/PrakashMannam/chikkamagaluru-resort-booking.git
 cd chikkamagaluru-resort-booking
 ```
 
+> **Note on Maven Wrapper Location**:
+> The Maven wrapper scripts (`mvnw` and `mvnw.cmd`) reside exclusively in `backend/` (with their `.mvn/` configuration). They do not exist at the repository root. Commands invoking the wrapper must either change directory to `backend/` first (`cd backend; .\mvnw.cmd ...`) or specify the relative path from root (`.\backend\mvnw.cmd ...` / `./backend/mvnw ...`).
+
 ---
 
-## 2. MySQL 8 Database Setup
+## 2. Local MySQL Database Setup
 
-Create the local application database (`resort`) and the dedicated test database (`resort_test`):
+Create the local application database (`resort`) and the dedicated test database (`resort_test`) using `utf8mb4` encoding:
 
 ```sql
 CREATE DATABASE IF NOT EXISTS resort CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE DATABASE IF NOT EXISTS resort_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-Or via terminal:
+### Command-Line Creation
+
+**PowerShell (Windows):**
+```powershell
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS resort CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE DATABASE IF NOT EXISTS resort_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+```
+
+**Bash (Linux / macOS):**
 ```bash
-mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS resort; CREATE DATABASE IF NOT EXISTS resort_test;"
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS resort CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE DATABASE IF NOT EXISTS resort_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 ```
 
 ---
 
-## 3. Flyway Migration Behavior
+## 3. Flyway Database Migrations
 
-Database schema versioning is managed strictly via Flyway. The migration files in `backend/src/main/resources/db/migration/` are:
+Schema creation and baseline data initialization are managed strictly through Flyway. When `spring.flyway.enabled=true`, migrations execute automatically on application startup prior to Hibernate schema validation (`spring.jpa.hibernate.ddl-auto=validate`).
 
-| Migration File | Description |
-| :--- | :--- |
-| `V1__init.sql` | Baseline placeholder migration (`SELECT 1;`) ensuring Flyway starts cleanly. |
-| `V2__schema.sql` | Core schema defining 12 tables (`users`, `room_categories`, `physical_units`, `rate_plans`, `daily_inventory_rates`, `blackout_dates`, `promo_codes`, `gst_tax_slabs`, `bookings`, `payments`, `enquiries`, `enquiry_drafts`) with foreign keys, uniqueness constraints, and ANSI `CHECK` constraints. |
-| `V3__reference_data.sql` | Static reference data: 2 room categories (`ROOM`, `VILLA`), 76 physical units (`R-101`..`R-164`, `V-01`..`V-12`), 3 rate plans per category (`EP`, `CP`, `MAP`), initial blackout dates (`2026-12-24`, `2026-12-25`), and active promo codes (`DIRECT10`, `COFFEE1500`). |
-| `V4__gst_slabs.sql` | Realistic provisional GST tax slabs (0.00–7,500.00 INR: 5.00%, >7,500.00 INR: 18.00%, status `UNVERIFIED`). |
-| `V5__enquiry_ai_fields.sql` | Schema enhancement adding `ai_summary` (TEXT), `extracted_rooms` (INT), and `ai_error_status` (VARCHAR(100)) to the `enquiries` table. |
+Migration scripts reside in `backend/src/main/resources/db/migration/`:
 
-- **Startup Execution**: When `spring.flyway.enabled=true`, migrations execute automatically on application startup prior to Hibernate schema validation (`spring.jpa.hibernate.ddl-auto=validate`).
-- **Immutability**: Applied migration scripts (`V1`–`V5`) are immutable and never modified in place.
+| Version | Migration Script | Purpose & Contents |
+| :--- | :--- | :--- |
+| `V1` | `V1__init.sql` | Baseline placeholder migration (`SELECT 1;`) ensuring Flyway starts cleanly. |
+| `V2` | `V2__schema.sql` | Core schema creating 12 tables (`users`, `room_categories`, `physical_units`, `rate_plans`, `daily_inventory_rates`, `blackout_dates`, `promo_codes`, `gst_tax_slabs`, `bookings`, `payments`, `enquiries`, `enquiry_drafts`) with foreign keys, uniqueness constraints, and ANSI `CHECK` constraints. |
+| `V3` | `V3__reference_data.sql` | Static reference data: 2 room categories (`ROOM`, `VILLA`), 76 physical units (`R-101`..`R-164`, `V-01`..`V-12`), 3 rate plans per category (`EP`, `CP`, `MAP`), initial blackout dates (`2026-12-24`, `2026-12-25`), and active promo codes (`DIRECT10`, `COFFEE1500`). |
+| `V4` | `V4__gst_slabs.sql` | Provisional GST tax slabs (0.00–7,500.00 INR: 5.00%, >7,500.00 INR: 18.00%, status `UNVERIFIED`). |
+| `V5` | `V5__enquiry_ai_fields.sql` | Schema enhancement adding `ai_summary` (TEXT), `extracted_rooms` (INT), and `ai_error_status` (VARCHAR(100)) to the `enquiries` table for automated triage. |
+| `V6` | `V6__blackout_dates_resort_wide_unique.sql` | Enforces uniqueness for resort-wide blackout dates via functional unique index `uk_blackout_dates_scope_date` on `((COALESCE(room_category_id, 0)), blackout_date)`, preventing duplicate resort-wide blackouts on the same calendar day. |
+
+> **Immutability Principle**: Applied Flyway migration scripts are strictly immutable and must never be edited retroactively. Any new schema or data changes must be introduced as sequential forward migrations (`V7`, `V8`, etc.).
 
 ---
 
-## 4. Backend Execution
+## 4. Environment Variables Reference & Classification
 
-### Local Configuration
-Create a local `.env` file in the root directory (never commit `.env`):
-```properties
-DB_URL=jdbc:mysql://localhost:3306/resort?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-DB_USER=root
-DB_PASSWORD=your_password
-JWT_SECRET=your_minimum_32_char_strong_random_secret_here
-CORS_ALLOWED_ORIGIN=http://localhost:5173
+Never commit real secrets, database passwords, or private API keys to source control. Use the following variable names:
+
+### Backend Variables
+
+| Variable Name | Required / Optional | Default Value | Description & Code Enforcement |
+| :--- | :--- | :--- | :--- |
+| `DB_URL` | **Mandatory** | None | JDBC connection string (e.g. `jdbc:mysql://localhost:3306/resort?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC`). Required by `spring.datasource.url`. |
+| `DB_USER` | **Mandatory** | None | MySQL database username. Required by `spring.datasource.username`. |
+| `DB_PASSWORD` | **Mandatory** | None | MySQL database password. Required by `spring.datasource.password`. |
+| `JWT_SECRET` | **Mandatory** | None | Cryptographic secret for signing staff authentication tokens (HMAC-SHA256). **Enforced by `JwtService.init()`: must be at least 32 characters long** after trimming, or backend fails with `IllegalStateException`. |
+| `SERVER_PORT` / `PORT` | Optional | `8080` | HTTP server port. Spring Boot binds to `8080` by default. Can be overridden via `-Dserver.port=${PORT:8080}` or `SERVER_PORT=${PORT}`. |
+| `CORS_ALLOWED_ORIGIN` | Optional | `http://localhost:5173` | Allowed origin for Cross-Origin Resource Sharing. Must match the exact frontend URL (e.g. `https://chikkamagaluru-resort-booking.vercel.app` in production). |
+| `SPRING_PROFILES_ACTIVE` | Optional | `default` | Set to `demo` to activate `DemoDataSeeder` (pre-seeds the 4 demo staff reviewer accounts and initial inventory rates). |
+| `FIXED_TODAY` | Optional | None (system clock) | Fixed ISO-8601 calendar date (e.g. `2026-11-02`) used by `PricingService` and inventory queries for reproducible demonstration testing. |
+| `RATE_LIMIT_BOOKING_RPM` | Optional | `10` | Maximum booking creation requests permitted per client IP per minute. |
+| `TRUSTED_PROXY_HOPS` | Optional | `1` | Number of upstream reverse proxy hops to traverse when parsing `X-Forwarded-For` for client IP resolution. |
+| `GEMINI_API_KEY` | Optional | None | Google Gemini API key for automated AI triage of guest enquiries. If omitted or empty, `RuleFallbackService` automatically provides deterministic rule-based draft responses. |
+| `GEMINI_MODEL` | Optional | `gemini-3.8-flash` | Gemini model identifier used for enquiry assistance. |
+| `ENQUIRY_CONFIDENCE_THRESHOLD` | Optional | `0.80` | Minimum confidence score required to apply automated AI categorization without human review. |
+
+### Frontend Variables
+
+| Variable Name | Required / Optional | Default Value | Description |
+| :--- | :--- | :--- | :--- |
+| `VITE_API_URL` | Optional locally / **Mandatory on Vercel** | `""` (empty string) | Public base URL of backend API. In local development, leaving this empty activates Vite's built-in dev server proxy (`/api` → `http://localhost:8080`). In production (Vercel), must be set to `https://resort-backend-production.up.railway.app`. |
+
+### Local Test Runner Variables
+
+| Variable Name | Required / Optional | Default Value | Description |
+| :--- | :--- | :--- | :--- |
+| `TEST_DB_URL` | Optional (Required for DB tests) | None | JDBC URL for the dedicated test database (e.g. `jdbc:mysql://localhost:3306/resort_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC`). If set, activates 15 integration tests across 3 classes (`DatabaseMigrationIntegrationTest` [5 tests], `AllotmentConcurrencyIntegrationTest` [6 tests], and `BlackoutConcurrencyIntegrationTest` [4 tests]). If unset, these tests are skipped cleanly via JUnit `Assumptions`. |
+| `TEST_DB_USER` | Optional | `root` | Test database username. |
+| `TEST_DB_PASSWORD` | Optional | `""` (empty) | Test database password. |
+
+---
+
+## 5. JWT Secret Configuration & Cryptographic Generation
+
+The backend uses HMAC-SHA256 signing for staff authentication JSON Web Tokens.
+
+### Source Code Validation Requirement
+In `backend/src/main/java/com/companya/resort/security/JwtService.java`:
+```java
+@PostConstruct
+public void init() {
+    if (jwtSecret == null || jwtSecret.trim().length() < 32) {
+        throw new IllegalStateException("JWT_SECRET must be configured and at least 32 characters long");
+    }
+    this.key = Keys.hmacShaKeyFor(jwtSecret.trim().getBytes(StandardCharsets.UTF_8));
+}
+```
+If `JWT_SECRET` is missing, blank, or fewer than 32 characters after trimming, Spring Boot throws an `IllegalStateException` on startup and terminates.
+
+### Cryptographically Secure Generation
+
+**PowerShell (Windows):**
+```powershell
+$bytes = New-Object byte[] 48
+$rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+try {
+    $rng.GetBytes($bytes)
+    $env:JWT_SECRET = [Convert]::ToBase64String($bytes)
+}
+finally {
+    $rng.Dispose()
+}
 ```
 
-### Run Command (Demo Mode)
+**Bash (Linux / macOS):**
+```bash
+export JWT_SECRET=$(openssl rand -base64 36)
+```
+
+---
+
+## 6. Local Startup Instructions
+
+### Step 1: Start the Spring Boot Backend
+
+Open a terminal in `backend/`:
+
+**PowerShell (Windows):**
+```powershell
+cd backend
+
+# Configure mandatory database connection and JWT secret
+$env:DB_URL="jdbc:mysql://localhost:3306/resort?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+$env:DB_USER="root"
+$env:DB_PASSWORD="your_mysql_password_here"
+
+# (Generate $env:JWT_SECRET using the cryptographically secure snippet from Section 5)
+
+# Optional configuration
+$env:CORS_ALLOWED_ORIGIN="http://localhost:5173"
+$env:SPRING_PROFILES_ACTIVE="demo"
+
+# Start via backend Maven wrapper
+.\mvnw.cmd spring-boot:run
+```
+
+**Bash (Linux / macOS):**
 ```bash
 cd backend
-mvn spring-boot:run -Dspring-boot.run.profiles=demo
+
+export DB_URL="jdbc:mysql://localhost:3306/resort?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+export DB_USER="root"
+export DB_PASSWORD="your_mysql_password_here"
+export JWT_SECRET=$(openssl rand -base64 36)
+export CORS_ALLOWED_ORIGIN="http://localhost:5173"
+export SPRING_PROFILES_ACTIVE="demo"
+
+./mvnw spring-boot:run
 ```
-The API starts on `http://localhost:8080`.
-Health check endpoint: `GET http://localhost:8080/health` → `{"status":"ok"}`.
 
----
+**Verified Backend Startup State:**
+- Port: `http://localhost:8080` (default)
+- Health check: `curl http://localhost:8080/health` → `{"status":"ok"}` (HTTP 200)
 
-## 5. Frontend Execution
+### Step 2: Start the React / Vite Frontend
 
-```bash
+Open a separate terminal in `frontend/`:
+
+**PowerShell / Bash:**
+```powershell
 cd frontend
 npm install
 npm run dev
 ```
-The frontend dev server starts on `http://localhost:5173`.
+
+**Verified Frontend Startup State:**
+- Port: `http://localhost:5173`
+- Dev server proxy: Requests to `/api/*` are automatically forwarded to `http://localhost:8080` via `frontend/vite.config.js`.
 
 ---
 
-## 6. Required Environment Variable Names
+## 7. Running the Test Suite
 
-Configure the following environment variable **NAMES** in the respective environment (Railway / Vercel / Local). Never commit secret values to source repositories.
+The backend test suite is divided into fast unit/mock tests and MySQL-backed integration tests.
 
-### Backend (Railway / Container Environment)
-| Variable Name | Required | Description |
-| :--- | :--- | :--- |
-| `DB_URL` | Yes | JDBC connection string to persistent MySQL (e.g. `jdbc:mysql://${MYSQLHOST}:${MYSQLPORT}/${MYSQLDATABASE}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true`) |
-| `DB_USER` | Yes | MySQL database username |
-| `DB_PASSWORD` | Yes | MySQL database password |
-| `JWT_SECRET` | Yes | Cryptographic secret for signing staff authentication tokens (min 256-bit / 32 characters) |
-| `SPRING_PROFILES_ACTIVE` | Recommended | Set to `demo` to activate `DemoDataSeeder` for staff reviewer logins and seed rates |
-| `CORS_ALLOWED_ORIGIN` | Yes | URL of deployed frontend (e.g. `https://<your-app>.vercel.app`) |
-| `SERVER_PORT` / `PORT` | Optional | Dynamic server port. Spring Boot binds to `server.port=${PORT:8080}` via JVM arg `-Dserver.port=${PORT:8080}` or `SERVER_PORT=${PORT}` |
-| `FIXED_TODAY` | Optional | Fixed reference date for demo testing (e.g. `2026-11-02`) |
-| `RATE_LIMIT_BOOKING_RPM` | Optional | Maximum booking attempts per IP per minute (default `10`) |
-| `TRUSTED_PROXY_HOPS` | Optional | Number of upstream reverse-proxy hops for client IP extraction (default `1`) |
-| `GEMINI_API_KEY` | Optional | Google Gemini API key for automated enquiry triage. If omitted, `RuleFallbackService` operates automatically |
-| `GEMINI_MODEL` | Optional | Gemini model identifier (default `gemini-3.8-flash`) |
-| `ENQUIRY_CONFIDENCE_THRESHOLD` | Optional | Confidence threshold for automated draft triage (default `0.80`) |
+### Standard Test Suite (204 Tests — No Database Required)
+When `TEST_DB_URL` is omitted, JUnit `Assumptions.assumeTrue` skips the three database integration classes (`DatabaseMigrationIntegrationTest`, `AllotmentConcurrencyIntegrationTest`, and `BlackoutConcurrencyIntegrationTest`). All 204 unit, mock, and WebMvc tests run cleanly:
 
-### Local Testing Environment Only
-| Variable Name | Required | Description |
-| :--- | :--- | :--- |
-| `TEST_DB_URL` | Optional (Required for DB tests) | JDBC URL to local `resort_test` database (e.g. `jdbc:mysql://localhost:3306/resort_test?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true`) |
-| `TEST_DB_USER` | Optional (Required for DB tests) | MySQL test database user (default `root`) |
-| `TEST_DB_PASSWORD` | Optional (Required for DB tests) | MySQL test database password |
+```powershell
+# From repository root
+cd backend
+.\mvnw.cmd test
+```
 
-> **Note on Test Suite Coverage**:
-> - **Standard Suite (155 tests)**: Executing `mvn test` without `TEST_DB_URL` set runs all 155 Unit, Service, WebMvc, and Security test cases. The two database-backed integration test classes (`DatabaseMigrationIntegrationTest` and `AllotmentConcurrencyIntegrationTest`) automatically abort during `@BeforeAll` via JUnit `Assumptions.assumeTrue`, counting 0 tests executed for those classes.
-> - **Full Integration Suite (165 tests)**: When `TEST_DB_URL` is set pointing to the local `resort_test` database, Surefire executes all 165 tests (155 standard tests + 5 Flyway migration tests in `DatabaseMigrationIntegrationTest` + 5 thread concurrency tests in `AllotmentConcurrencyIntegrationTest`) with 0 failures, 0 errors, and 0 skipped.
+```bash
+# Bash
+cd backend
+./mvnw test
+```
 
-### Frontend (Vercel)
-| Variable Name | Required | Description |
-| :--- | :--- | :--- |
-| `VITE_API_URL` | Yes | Public HTTPS base URL of the deployed Railway backend (e.g. `https://<backend-app>.up.railway.app`) |
+### Full Integration Test Suite (219 Tests — With Local Test Database)
+When `TEST_DB_URL` points to `resort_test`, all **219 tests** execute across all 25 test classes with 0 failures, 0 errors, and 0 skipped:
 
----
+```powershell
+# PowerShell
+cd backend
+$env:TEST_DB_URL="jdbc:mysql://localhost:3306/resort_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+$env:TEST_DB_USER="root"
+$env:TEST_DB_PASSWORD="your_mysql_password_here"
+.\mvnw.cmd test
+```
 
-## 7. Railway MySQL Database Provisioning (Target Cloud Architecture)
+```bash
+# Bash
+cd backend
+export TEST_DB_URL="jdbc:mysql://localhost:3306/resort_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+export TEST_DB_USER="root"
+export TEST_DB_PASSWORD="your_mysql_password_here"
+./mvnw test
+```
 
-1. Log in to [Railway](https://railway.app).
-2. Create a new project or select an existing workspace.
-3. Click **+ New** → **Database** → **Add MySQL**.
-4. Railway provisions a persistent MySQL 8 instance with an attached volume.
-5. In MySQL service settings, copy the connection variables:
-   - `MYSQLHOST`, `MYSQLPORT`, `MYSQLUSER`, `MYSQLPASSWORD`, `MYSQLDATABASE`.
-6. Construct the JDBC URL:
-   `jdbc:mysql://${MYSQLHOST}:${MYSQLPORT}/${MYSQLDATABASE}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true`
-7. Ensure volume persistence is enabled for durable data storage across service restarts.
+### Per-Class Test Count Reconciliation (Surefire XML Reports)
 
----
-
-## 8. Railway Backend Deployment (Target Cloud Architecture)
-
-1. Set the project root to `backend/` or configure root build commands.
-2. Build & Startup Configuration:
-   - **Build Command**: `mvn clean package -DskipTests`
-   - **Start Command**: `java -Dserver.port=${PORT:8080} -jar target/resort-backend-0.0.1-SNAPSHOT.jar`
-   - Dynamic port handling: Railway injects `PORT`. Passing `-Dserver.port=${PORT:8080}` ensures Spring Boot binds dynamically.
-3. Environment Variables (set via Railway dashboard):
-   - `DB_URL`, `DB_USER`, `DB_PASSWORD` (reference the Railway MySQL service).
-   - `JWT_SECRET` (generate a strong random 256-bit secret).
-   - `SPRING_PROFILES_ACTIVE=demo` (enables demo review accounts and inventory).
-   - `CORS_ALLOWED_ORIGIN=https://<your-vercel-domain>.vercel.app`.
-4. Deploy the service and verify health:
-   `curl https://<backend-domain>.up.railway.app/health` → `{"status":"ok"}`.
-
----
-
-## 9. Vercel Frontend Deployment (Target Cloud Architecture)
-
-1. Deploy via Vercel CLI or link GitHub repository in [Vercel Dashboard](https://vercel.com):
-   - **Root Directory**: `frontend`
-   - **Framework Preset**: Vite
-   - **Build Command**: `npm run build`
-   - **Output Directory**: `dist`
-2. Environment Variables:
-   - Set `VITE_API_URL` to `https://<backend-domain>.up.railway.app`
-3. Single Page Application (SPA) Routing:
-   `frontend/vercel.json` contains the essential SPA rewrite configuration:
-   ```json
-   {
-     "rewrites": [
-       { "source": "/(.*)", "destination": "/index.html" }
-     ]
-   }
-   ```
-   This ensures direct browser navigation and page reloads for routes (`/stay`, `/book/checkout`, `/staff/login`, `/staff/enquiries`) resolve correctly to `index.html`.
+| Test Class | Category | Tests Run | Requires MySQL? | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| `AdminBlackoutEndpointsWebMvcTest` | WebMvc Mock | 5 | No | Staff blackout HTTP endpoint validation |
+| `AdminBlackoutPromoServiceTest` | Service Unit | 14 | No | Blackout and promo business rules |
+| `AdminBookingExportServiceTest` | Service Unit | 9 | No | Daily CSV booking export formatting & status mapping |
+| `AdminBookingExportWebMvcTest` | WebMvc Mock | 5 | No | Staff CSV export endpoint authorization & headers |
+| `AdminInventoryEndpointsWebMvcTest` | WebMvc Mock | 7 | No | Inventory management endpoints |
+| `AdminInventoryServiceTest` | Service Unit | 6 | No | Inventory update and allotment service logic |
+| `AdminPromoEndpointsWebMvcTest` | WebMvc Mock | 5 | No | Promo code management endpoints |
+| `AllotmentConcurrencyIntegrationTest` | Concurrency Integration | 6 | **Yes (`TEST_DB_URL`)** | Multi-threaded allotment booking isolation |
+| `AuthAndSecurityTest` | Security Integration | 12 | No | Authentication and role authorization checks |
+| `BlackoutConcurrencyIntegrationTest` | Concurrency Integration | 4 | **Yes (`TEST_DB_URL`)** | Multi-threaded blackout race prevention exercising V6 functional unique index in MySQL 8 |
+| `BookingEndpointsWebMvcTest` | WebMvc Mock | 10 | No | Public booking endpoints |
+| `BookingPaymentServiceTest` | Service Unit | 22 | No | Payment lifecycle and hold management |
+| `BookingServiceTest` | Service Unit | 21 | No | Booking creation, validation, hold timeouts |
+| `CsvExporterTest` | Utility Unit | 12 | No | RFC 4180 CSV escaping, CRLF, injection prevention |
+| `DatabaseMigrationIntegrationTest` | Migration Integration | 5 | **Yes (`TEST_DB_URL`)** | Flyway V1–V6 schema, tables, constraints, functional indexes |
+| `DemoDataSeederIntegrationTest` | Seeder Integration | 1 | No | Seeder execution verification |
+| `DemoDataSeederTest` | Unit Test | 2 | No | Demo user credential verification |
+| `DraftApprovalConcurrencyIntegrationTest` | Concurrency Integration | 2 | No | Concurrent enquiry draft approval deduplication |
+| `EnquiryEndpointsWebMvcTest` | WebMvc Mock | 12 | No | Staff and public enquiry endpoints |
+| `EnquirySafetyAndParsingTest` | Unit Test | 7 | No | Guest input sanitization and PII safety |
+| `EnquiryServiceTest` | Service Unit | 26 | No | Enquiry business logic and state machine |
+| `HealthEndpointTest` | WebMvc Mock | 1 | No | `/health` endpoint verification |
+| `PricingServiceTest` | Service Unit | 8 | No | Tariff calculation, meal supplements, tax slabs |
+| `PublicRoomControllerTest` | WebMvc Mock | 13 | No | Public room category and rate quote endpoints |
+| `SimulatedDeliveryAdapterTest` | Service Unit | 4 | No | Email/WhatsApp simulated delivery adapter |
+| **TOTAL** | | **219** (204 without DB) | | **100% Pass Rate (0 failures, 0 errors, 0 skipped)** |
 
 ---
 
-## 10. Deployment Status & Live Infrastructure URLs
+## 8. Target Cloud Architecture & Railway Port Mechanics
 
-### Current Deployment Status
-- **Backend Service (Railway)**: **CONFIRMED LIVE & HEALTHY**
-  - **Public HTTPS API URL**: `https://resort-backend-production.up.railway.app`
-  - **Public Health Check URL**: `https://resort-backend-production.up.railway.app/health` → `{"status":"ok"}` (HTTP 200)
-  - **Railway Account**: `prakashmannam9@gmail.com`
-  - **Railway Project ID**: `737ac4cb-6069-43c7-a658-95c6fed8d092` (`chikkamagaluru-resort-booking`)
-  - **Railway Service ID**: `1be9fd4f-6cf1-4b1a-8b14-7b31d00129db` (`resort-backend`)
-  - **Active Deployment ID**: `077e3a9d-f98c-42d0-b0cf-7daeddcc6ae4`
-  - **Hosting Plan & Cost Observation**: Deployed using trial/usage-based credits observed during deployment verification (~$5.00 credit balance). This is recorded strictly as an observation from the deployment inspection, not a promise or guarantee that future hosting will remain free or uninterrupted once trial credits or quotas are consumed.
-- **Database Service (Railway MySQL 8)**: **CONFIRMED LIVE & PERSISTENT**
-  - **Service Name / ID**: `MySQL` (`3752b22a-eb66-46b2-9503-9c52bb4479dd`)
-  - **Storage**: Attached persistent volume `mysql-volume` mounted at `/var/lib/mysql`
-  - **Internal Network**: Private networking via `mysql.railway.internal:3306/railway`
-  - **Flyway Migration Status**: **V1 through V5 successfully applied**; schema validated at version `v5`.
-  - **Seeded Demo State**: 2 room categories (`ROOM`, `VILLA`), 76 physical units, 6 rate plans, demo inventory rates, 4 staff accounts, provisional GST slabs (`UNVERIFIED`).
-- **Frontend Service (Vercel)**: **CONFIRMED LIVE & PUBLICLY VERIFIED**
-  - **Live Production URL**: `https://chikkamagaluru-resort-booking.vercel.app`
-  - **Direct Deployment URL**: `https://chikkamagaluru-resort-booking-1jwgbxmte-prakash-s-projects22.vercel.app`
-  - **Vercel Project ID**: `prj_UnfZoFQJonqeqeDrsqZK2PUkBu29` (`chikkamagaluru-resort-booking`)
-  - **Account / Owner**: `prakash-s-projects22` (`prakashmannam8-8753`)
-  - **Vercel Plan**: `Hobby` (Personal account tier)
-  - **Production Environment Variables**: `VITE_API_URL=https://resort-backend-production.up.railway.app`
-  - **CORS Allowed Origin**: `https://chikkamagaluru-resort-booking.vercel.app` (configured on Railway backend and verified via OPTIONS preflight)
-  - **SPA Routing**: Verified via `frontend/vercel.json` rewrites; direct browser navigation and reloads across `/stay`, `/checkout`, `/staff/login`, `/staff/enquiries`, and `/staff/inventory` resolve without 404s.
-  - **Asset Delivery**: All images (including auxiliary images `coffee-cherries.jpg`, `coffee-villa.jpg`, `corporate-dining.jpg`, `hills-panoramic.jpg`, `wedding-lawn.jpg`) verified loading with HTTP 200 from Vercel edge CDN.
+The application is deployed across high-availability managed cloud infrastructure:
+
+```
++-------------------------------------------------------------------------+
+|                                                                         |
+|                          CLIENT BROWSER                                 |
+|                                                                         |
++--------------------+--------------------------------+-------------------+
+                     |                                |
+   HTTPS Page Loads  |               Direct API Calls | (Cross-Origin)
+   & Static Assets   |                                |
+                     v                                v
++------------------------------------+  +---------------------------------+
+|          VERCEL EDGE CDN           |  |         RAILWAY BACKEND         |
+|  chikkamagaluru-resort-booking     |  |    resort-backend-production     |
+|            .vercel.app             |  |          .up.railway.app        |
+|                                    |  |                                 |
+| - React 18 SPA                     |  | - Spring Boot 3.3.5 (Java 21)   |
+| - Vercel Rewrites (`vercel.json`)  |  | - Port: ${PORT:8080} dynamic    |
+| - Static Assets: WebP / JPG        |  | - CORS: Allowed Vercel Origin   |
+| - Tier: Hobby (Non-Commercial Demo)|  | - Auth: Stateless JWT (HS256)   |
++------------------------------------+  +----------------+----------------+
+                                                         |
+                                        Private Network  | JDBC via TCP
+                                        (MySQL Protocol) |
+                                                         v
+                                        +---------------------------------+
+                                        |         RAILWAY MYSQL 8         |
+                                        |                                 |
+                                        | - Database: `railway`           |
+                                        | - Host: mysql.railway.internal  |
+                                        | - Port: 3306                    |
+                                        | - Storage: Persistent Volume    |
+                                        | - Migrations: Flyway V1-V6      |
+                                        +---------------------------------+
+```
+
+### Actual Port Binding Mechanics
+
+1. **Local Default**: `8080`. Neither `application.properties` nor `SecurityConfig.java` defines `server.port`, so Spring Boot defaults to `8080`.
+2. **Environment Variable Binding**:
+   - Spring Boot's relaxed binding natively maps `SERVER_PORT` to `server.port`.
+   - Bare `PORT` (which Railway injects) is **not** automatically recognized by Spring Boot without explicit configuration or JVM argument passing.
+3. **Railway Port Injection**:
+   - In containerized deployments like Railway, the platform dynamically assigns an external port and sets `$PORT`.
+   - To bind Spring Boot to this dynamic port, the JVM execution command must pass `-Dserver.port=${PORT:8080}` (or export `SERVER_PORT=${PORT}`).
+4. **Explicit Disclosure of Uncertainty**:
+   - This repository contains no committed Dockerfiles, `railway.json`, `nixpacks.toml`, or `Procfile`.
+   - Railway builds the application using its automated Java/Nixpacks buildpack runner, which typically generates `java -Dserver.port=$PORT ...` automatically.
+   - However, because the private Railway web dashboard settings and custom start command override fields cannot be inspected from this local workspace, the exact runtime command string configured in the live Railway service cannot be verified independently.
 
 ---
 
-## 11. Demo Login Accounts
+## 9. Live Deployment Status & URLs
 
-When running with `SPRING_PROFILES_ACTIVE=demo`, the following accounts are initialized by `DemoDataSeeder.java`:
+| Component | Provider | Live URL | Observed Status |
+| :--- | :--- | :--- | :--- |
+| **Frontend** | Vercel (Hobby) | `https://chikkamagaluru-resort-booking.vercel.app` | **LIVE & VERIFIED** (HTTP 200, edge-cached) |
+| **Backend** | Railway | `https://resort-backend-production.up.railway.app` | **LIVE & HEALTHY** (HTTP 200 on `/health`) |
+| **Database** | Railway MySQL 8 | `mysql.railway.internal:3306/railway` | **LIVE & PERSISTENT** (Attached persistent volume) |
 
-**Common Demo Password**:
+> **Important — Git Baseline vs Live Cloud Deployments**:
+> The live Railway and Vercel instances were deployed from earlier commits on `origin/feature/frontend-completion` (commit `b4a8308`).
+> The current local Git HEAD (`270f77e`) contains local verification checkpoints and stability fixes (F-07 through F-14: secure CSV export, resort-wide blackout race condition resolution, cross-route anchor navigation, mobile inventory management, etc.) that have **not yet been pushed or deployed**. Do not assume local improvements are live in cloud environments until a subsequent release is published.
+
+---
+
+## 10. Demo Login Accounts
+
+When running with `SPRING_PROFILES_ACTIVE=demo`, the backend automatically seeds four staff accounts with password:
 ```text
 DEMO-ONLY-NOT-REAL-PASS-2026!
 ```
 
-| Email | Full Name | Role | Specialty Lane | Scope / Permissions |
+| Email | Full Name | Role | Specialty Lane | Permissions & Scope |
 | :--- | :--- | :--- | :--- | :--- |
 | `rooms.demo@companya-estate.test` | Ananya Hegde (Reservations) | `STAFF` | `ROOM` | Front Office reservations, rate quotes, draft approval, and enquiry simulator |
 | `gm.demo@companya-estate.test` | Vikram Rao (GM) | `STAFF` | `GM_ESCALATION` (`is_gm=true`) | Full management access, GM alert banner, guest complaints queue (`COMPLAINT`), and escalation approval |
 | `weddings.demo@companya-estate.test` | Karthik Urs (Weddings) | `STAFF` | `WEDDING` | Wedding and banquet lawn enquiries |
 | `offsites.demo@companya-estate.test` | Meera Nair (Corporate Offsites) | `STAFF` | `OFFSITE` | Corporate offsite and retreat enquiries |
 
+Staff portal login: `/staff/login`.
+
 ---
 
-## 12. Mock Payment & Simulated Enquiry Delivery Limitations
+## 11. Mock Payment & Simulated Enquiry Delivery Limitations
 
 1. **Mock Payment Simulator**:
-   - Payment simulation operates via `POST /api/v1/public/payments/{bookingRef}/mock-webhook`.
-   - No real financial payment gateways, card networks, or UPI transfers are connected.
-   - Payment tokens are single-use (`one_time_payment_token`) and invalidated immediately upon transaction completion or hold cancellation.
+   - Guest booking checkout transitions bookings from `PENDING_PAYMENT` to `CONFIRMED` via an internal simulated webhook (`POST /api/v1/public/payments/{ref}/mock-webhook`).
+   - No external banking networks, credit card gateways (Stripe, Razorpay), or UPI switches are connected.
+   - Payment tokens are single-use (`one_time_payment_token`) and invalidated immediately upon transaction completion or hold expiration.
 2. **Simulated Enquiry Dispatch**:
-   - The staff enquiry simulator (`POST /api/v1/admin/enquiries/simulate`) supports demonstration channels `EMAIL_SIM` and `WHATSAPP_SIM`.
-   - Approving drafts marks them as `SENT_MANUALLY` with simulated dispatch timestamps.
-   - No real outbound SMS, WhatsApp messages, or emails are transmitted over external carrier networks.
+   - The staff enquiry simulator (`POST /api/v1/admin/enquiries/simulate`) records mock deliveries under channels `EMAIL_SIM` and `WHATSAPP_SIM`.
+   - Outbound dispatch events generate local log entries with unique IDs (e.g. `SIM-DEL-XXXXXXXX`).
+   - No actual SMS messages, WhatsApp messages, or emails are transmitted over commercial carrier networks.
 
 ---
 
-## 13. Known Limitations & Tax Compliance
+## 12. Regulatory Compliance & Hosting Disclaimers
 
 1. **Provisional GST Slabs (`UNVERIFIED`)**:
-   - GST tax calculations applied by the platform (e.g. 18% for tariff brackets above 7,500 INR) are provisional and labeled `UNVERIFIED`.
-   - The guest checkout and payment interfaces display the explicit disclaimer:
-     > *"GST rates are provisional and pending verification. Final tax treatment must be confirmed by the property."*
-   - Property management must verify tax rates and HSN codes with a certified chartered accountant prior to commercial billing.
-2. **Booking Cancellation Boundary**:
-   - The direct guest booking interface provides `cancelHold` for bookings in `PENDING_PAYMENT` status prior to payment.
-   - Confirmed bookings (`CONFIRMED`) cannot be cancelled through the guest self-service checkout workflow and require staff coordination.
-3. **Vercel Hobby Plan & Non-Commercial Demonstration Limitation**:
-   - This Vercel deployment is hosted under the personal **Hobby** plan and is intended strictly for non-commercial take-home evaluation, developer portfolio demonstration, and technical assessment.
-   - It must **not** be used to advertise or operate actual resort sales, commercial bookings, or real payment collection under the Hobby plan.
-   - Commercial operation requires upgrading to a Vercel plan that permits commercial use, such as **Pro** or **Enterprise**.
-   - The payment flow in this application is entirely simulated via mock payment webhooks; no real financial transactions take place.
-   - Official Vercel policy references:
-     - [Vercel Hobby Plan](https://vercel.com/docs/plans/hobby)
-     - [Vercel Fair Use Guidelines](https://vercel.com/docs/limits/fair-use-guidelines)
-     - [Vercel Terms of Service](https://vercel.com/legal/terms)
+   - GST tax calculations applied by the platform (e.g. 5% on tariff <= 7,500 INR, 18% on tariff > 7,500 INR) are provisional and explicitly flagged `UNVERIFIED` in the database.
+   - The checkout interface presents a mandatory disclaimer that tax figures are provisional and must be verified by property management with a certified chartered accountant prior to commercial operation.
+2. **Vercel Hobby Plan Terms**:
+   - The live frontend deployment is hosted under Vercel's personal **Hobby** tier and is intended strictly for non-commercial portfolio evaluation, technical review, and demonstration.
+   - Commercial operation requires an upgraded Vercel plan (Pro or Enterprise) in compliance with the [Vercel Fair Use Guidelines](https://vercel.com/docs/limits/fair-use-guidelines).
 
 ---
 
-## 14. Static Image Asset Packaging
+## 13. Static Image Asset Audit
 
-The application utilizes image assets located in `frontend/public/images/`:
-- **Tracked Assets (Required by Application Code)**:
-  `hero-estate.webp`, `hero-estate-800w.webp`, `room-canopy.webp`, `room-canopy-1600w.webp`, `villa-pool.webp`, `villa-pool-1600w.webp`, `coffee-plantation-cherries.jpg`, `wedding-lawn-estate.jpg`, and `corporate-offsite-estate.jpg` (along with vector/raster fallbacks). These files are directly referenced in `LandingPage.jsx` and other UI components and are tracked in Git.
-- **Untracked Local Assets (Unreferenced Auxiliary Images)**:
-  Five auxiliary images reside in `frontend/public/images/`: `coffee-cherries.jpg`, `coffee-villa.jpg`, `corporate-dining.jpg`, `hills-panoramic.jpg`, and `wedding-lawn.jpg`. An audit confirms that none of these five files are referenced by application source code, stylesheets, or markup.
-- **Packaging Guarantee & Reproducibility**:
-  During `npm run build`, Vite automatically copies the entire `frontend/public/` directory into `dist/`. All image assets in `frontend/public/images/` were bundled into `dist/images/` and served correctly in the live Vercel deployment. However, reproducible builds of the application code do not depend on the five untracked images.
+- **Tracked Assets (Required by Code)**: `frontend/public/images/` contains tracked assets (`hero-estate.webp`, `room-canopy.webp`, `villa-pool.webp`, `coffee-plantation-cherries.jpg`, `wedding-lawn-estate.jpg`, `corporate-offsite-estate.jpg`, etc.) referenced directly in UI components.
+- **Untracked Local Assets (Auxiliary Images)**: Five auxiliary JPEG images (`coffee-cherries.jpg`, `coffee-villa.jpg`, `corporate-dining.jpg`, `hills-panoramic.jpg`, `wedding-lawn.jpg`) reside locally in `frontend/public/images/`. They are not referenced by application markup, styles, or code and are not required for clean production builds.
 
 ---
 
-## 15. Verification & Health Audit Commands
+## 14. Post-Deployment Verification Commands
 
-To verify an active deployment:
+Run the following checks against any deployed environment:
+
 ```bash
-# Verify backend health
-curl -s -i https://<backend-domain>/health
+# 1. Verify backend health
+curl -s -i https://resort-backend-production.up.railway.app/health
 
-# Verify public pricing calculation
-curl -s "https://<backend-domain>/api/v1/public/pricing/quote?roomCategoryId=1&ratePlanId=1&checkIn=2026-11-13&checkOut=2026-11-16"
+# 2. Verify CORS preflight headers
+curl -s -i -X OPTIONS "https://resort-backend-production.up.railway.app/health" \
+  -H "Origin: https://chikkamagaluru-resort-booking.vercel.app" \
+  -H "Access-Control-Request-Method: GET"
 
-# Verify frontend SPA load
-curl -s -i https://<frontend-domain>/
+# 3. Verify public room inventory query
+curl -s "https://resort-backend-production.up.railway.app/api/v1/public/rooms"
+
+# 4. Verify public pricing calculation
+curl -s "https://resort-backend-production.up.railway.app/api/v1/public/pricing/quote?roomCategoryId=1&ratePlanId=1&checkIn=2026-11-13&checkOut=2026-11-16"
+
+# 5. Verify frontend root and SPA route resolution
+curl -s -I https://chikkamagaluru-resort-booking.vercel.app/
+curl -s -I https://chikkamagaluru-resort-booking.vercel.app/stay
+curl -s -I https://chikkamagaluru-resort-booking.vercel.app/staff/login
 ```
+
+---
+
+## 15. Troubleshooting Common Issues
+
+| Symptom | Probable Cause | Resolution |
+| :--- | :--- | :--- |
+| `IllegalStateException: JWT_SECRET must be configured and at least 32 characters long` | `JWT_SECRET` is unset, blank, or fewer than 32 characters after trimming. | Generate a secure 32+ character key using the cryptographically secure PowerShell snippet from Section 5 and export as `JWT_SECRET`. |
+| `Table 'resort.blackout_dates' doesn't exist` | Flyway migrations were disabled or failed to run. | Ensure `spring.flyway.enabled=true` in `application.properties` and verify database user permissions allow `CREATE TABLE`. |
+| `Access denied for user 'root'@'localhost'` | Incorrect MySQL credentials. | Verify `DB_USER` and `DB_PASSWORD` match your local MySQL configuration. |
+| Browser shows CORS error when making API requests | `CORS_ALLOWED_ORIGIN` does not match the frontend origin. | Ensure `CORS_ALLOWED_ORIGIN` exactly matches the requesting URL without a trailing slash (e.g. `http://localhost:5173` locally or `https://chikkamagaluru-resort-booking.vercel.app` on Railway). |
+| Port binding collision: `Web server failed to start. Port 8080 was already in use.` | Another process is holding port 8080. | Stop conflicting process or run Spring Boot with a custom port: `cd backend; .\mvnw.cmd spring-boot:run -Dspring-boot.run.arguments="--server.port=8081"`. |
+| Integration tests skipped (`Tests run: 208`) | `TEST_DB_URL` environment variable is not exported. | Export `$env:TEST_DB_URL="jdbc:mysql://localhost:3306/resort_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"` before running `mvn test`. |
+| Functional index syntax error on migration `V6` | MySQL version is older than 8.0.16. | Upgrade MySQL Server to version 8.0.16 or newer. Functional indexes and ANSI `CHECK` constraints require MySQL 8.0.16+. |
