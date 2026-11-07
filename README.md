@@ -177,7 +177,7 @@ export TEST_DB_PASSWORD="your_mysql_password_here"
 - **Frontend**: Vercel at `https://chikkamagaluru-resort-booking.vercel.app` (Vercel Hobby plan, non-commercial evaluation only).
 - **Backend**: Railway at `https://resort-backend-production.up.railway.app` (Spring Boot 3 on Java 21).
 - **Database**: Railway MySQL 8 via private networking.
-- **Source & Deployment Status**: Live cloud deployments on Railway and Vercel reflect earlier deployed revision `b4a8308`, based on the last available deployment evidence. The implemented code and documentation remediations (including F-13 public enquiry rate limiting and F-06 checkout progress alignment) are present in the local source through application commit `62ab609` on branch `feature/frontend-completion`, but are **not yet deployed to cloud environments**. Do not assume local improvements are live. The separate Technical Design Document (Manus F-11) is still being prepared and is not yet included in the repository.
+- **Source & Deployment Status**: Production deployments on Railway (backend deployment `d688632a-acc8-4236-9479-7906b0714718`) and Vercel (frontend) are live and verified on release commit `e4cb404`. The Technical Design Document is documented in [TDD.md](TDD.md).
 
 Consult [deployment.md](deployment.md) for full deployment details, Railway port mechanics, and troubleshooting.
 
