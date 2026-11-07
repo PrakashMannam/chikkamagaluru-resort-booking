@@ -189,7 +189,7 @@ public class DemoDataSeeder implements CommandLineRunner {
             d.setEnquiry(e);
             d.setGeneratedBy(DraftGeneratedBy.AI_ROUTER);
             d.setStatus(DraftStatus.DRAFT_PENDING_REVIEW);
-            d.setDraftBody("Dear Sunil & Radhika,\n\nCongratulations on your upcoming wedding celebration! Our coffee estate offers scenic lawn spaces, tailored catering, and 30 boutique rooms for 120 guests.\n\nOur wedding coordinator Karthik Urs will connect with you shortly with available dates and our packages.\n\nWarm regards,\nEstate Weddings Team");
+            d.setDraftBody("Dear Sunil & Radhika,\n\nCongratulations on your upcoming wedding celebration! Our coffee estate offers scenic banquet lawn spaces and bespoke catering for events. Regarding accommodation for your requested dates in December 2026, room availability and packages require personalized coordinator review.\n\nOur wedding coordinator Karthik Urs will connect with you shortly with available dates and customized packages.\n\nWarm regards,\nEstate Weddings Team");
             d.setCreatedAt(LocalDateTime.now().minusHours(4));
             enquiryDraftRepository.save(d);
         }

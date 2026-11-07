@@ -863,4 +863,69 @@ public class EnquiryServiceTest {
         assertTrue(ex.getMessage().contains("Draft approval conflict"));
         verify(simulatedDeliveryAdapter, never()).deliver(any(), any());
     }
+
+    @Test
+    @DisplayName("AI draft containing unsupported room hold claim is sanitized before saving draft")
+    void testAiDraftWithUnsupportedHold_SanitizedInDraftBody() {
+        String rawMessage = "Looking for a quiet villa from Dec 1 to 3.";
+
+        GeminiEnquiryExtraction extraction = new GeminiEnquiryExtraction();
+        extraction.setCategory("ROOM_BOOKING");
+        extraction.setConfidence(new BigDecimal("0.90"));
+        extraction.setSummary("Villa enquiry");
+        extraction.setSuggestedReply("Dear Guest,\n\nWe have held a Private Pool Villa for your selected dates.\n\nWarm regards,\nEstate Team");
+
+        when(geminiAiService.processEnquiry(rawMessage))
+                .thenReturn(GeminiAiService.AiProcessingResult.success(extraction));
+
+        when(quoteInjectorService.injectDatabaseQuote(anyString(), any(Enquiry.class)))
+                .thenAnswer(inv -> {
+                    String draftArg = inv.getArgument(0);
+                    String sanitized = com.companya.resort.util.DraftPriceSanitizer.sanitize(draftArg);
+                    return new QuoteInjectorService.InjectedQuote(sanitized, null);
+                });
+
+        CreateEnquiryRequest request = new CreateEnquiryRequest("Guest Hold Test", "test@hold.com", rawMessage);
+        enquiryService.createPublicEnquiry(request);
+
+        ArgumentCaptor<EnquiryDraft> draftCaptor = ArgumentCaptor.forClass(EnquiryDraft.class);
+        verify(enquiryDraftRepository).save(draftCaptor.capture());
+        EnquiryDraft savedDraft = draftCaptor.getValue();
+
+        assertFalse(savedDraft.getDraftBody().toLowerCase().contains("we have held"));
+        assertTrue(savedDraft.getDraftBody().contains("enquiries are informational and do not hold room allotment"));
+    }
+
+    @Test
+    @DisplayName("AI draft containing unverified meal/activity inclusions is sanitized before saving draft")
+    void testAiDraftWithUnsupportedInclusions_SanitizedInDraftBody() {
+        String rawMessage = "Looking for room rates";
+
+        GeminiEnquiryExtraction extraction = new GeminiEnquiryExtraction();
+        extraction.setCategory("ROOM_BOOKING");
+        extraction.setConfidence(new BigDecimal("0.90"));
+        extraction.setSummary("Room rates query");
+        extraction.setSuggestedReply("Dear Guest,\n\nThe tariff includes gourmet breakfast and a complimentary plantation walk.\n\nWarm regards,\nEstate Team");
+
+        when(geminiAiService.processEnquiry(rawMessage))
+                .thenReturn(GeminiAiService.AiProcessingResult.success(extraction));
+
+        when(quoteInjectorService.injectDatabaseQuote(anyString(), any(Enquiry.class)))
+                .thenAnswer(inv -> {
+                    String draftArg = inv.getArgument(0);
+                    String sanitized = com.companya.resort.util.DraftPriceSanitizer.sanitize(draftArg);
+                    return new QuoteInjectorService.InjectedQuote(sanitized, null);
+                });
+
+        CreateEnquiryRequest request = new CreateEnquiryRequest("Inclusions Test", "test@inc.com", rawMessage);
+        enquiryService.createPublicEnquiry(request);
+
+        ArgumentCaptor<EnquiryDraft> draftCaptor = ArgumentCaptor.forClass(EnquiryDraft.class);
+        verify(enquiryDraftRepository).save(draftCaptor.capture());
+        EnquiryDraft savedDraft = draftCaptor.getValue();
+
+        assertFalse(savedDraft.getDraftBody().toLowerCase().contains("includes gourmet breakfast"));
+        assertFalse(savedDraft.getDraftBody().toLowerCase().contains("complimentary plantation walk"));
+        assertTrue(savedDraft.getDraftBody().contains("Inclusions and meal plans will be confirmed by reservations"));
+    }
 }

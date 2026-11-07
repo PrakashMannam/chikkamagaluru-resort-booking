@@ -350,9 +350,8 @@ The application is deployed across high-availability managed cloud infrastructur
 | **Backend** | Railway | `https://resort-backend-production.up.railway.app` | **LIVE & HEALTHY** (HTTP 200 on `/health`) |
 | **Database** | Railway MySQL 8 | `mysql.railway.internal:3306/railway` | **LIVE & PERSISTENT** (Attached persistent volume) |
 
-> **Important — Git Baseline vs Live Cloud Deployments**:
-> Live cloud deployments on Railway and Vercel reflect earlier deployed revision `b4a8308`, based on the last available deployment evidence.
-> The implemented code and documentation remediations (including public enquiry rate limiting [F-13], 5,000-character enquiry message boundary, and three-step checkout progress alignment [F-06]) are present in the local source through application commit `62ab609` on branch `feature/frontend-completion`, but are **not yet deployed to cloud environments**. Do not assume local improvements are live. Additionally, the separate Technical Design Document (Manus F-11) is still being prepared and is not yet included in the repository.
+> **Deployment Verification**:
+> Production deployments on Railway (backend deployment `d688632a-acc8-4236-9479-7906b0714718`) and Vercel (frontend) are live and verified on release commit `e4cb404`. The Technical Design Document is documented in [TDD.md](TDD.md).
 
 ---
 
