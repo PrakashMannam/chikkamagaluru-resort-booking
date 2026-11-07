@@ -4,6 +4,14 @@
   gap: 1.25rem;
 }
 
+
+.staff-page-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex-wrap: wrap;
+}
+
 .staff-page-header {
   display: flex;
   align-items: center;
@@ -424,4 +432,222 @@
   .staff-mobile-cards {
     display: flex;
   }
+}
+
+
+/* Simulator Success Banner */
+.staff-sim-success-banner {
+  background-color: #E8F5E9;
+  border: 1px solid #A5D6A7;
+  border-left: 4px solid #2E7D32;
+  border-radius: 8px;
+  padding: 0.875rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.staff-sim-success-banner__icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.staff-sim-success-banner__content {
+  flex: 1;
+}
+
+.staff-sim-success-banner__title {
+  display: block;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #1B5E20;
+}
+
+.staff-sim-success-banner__text {
+  font-size: 0.8125rem;
+  color: #2E7D32;
+  margin: 0.2rem 0 0 0;
+}
+
+.staff-sim-success-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.staff-sim-success-banner__link {
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.staff-sim-success-banner__close {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  color: #2E7D32;
+  cursor: pointer;
+  padding: 0.25rem 0.4rem;
+  line-height: 1;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+}
+
+.staff-sim-success-banner__close:hover {
+  background-color: rgba(46, 125, 50, 0.12);
+}
+
+/* Simulator Modal & Form */
+.staff-simulator-modal {
+  max-width: 600px;
+  width: 100%;
+}
+
+.staff-sim-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.staff-sim-intro {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #5D4037;
+  background-color: #FDFBF9;
+  border: 1px solid #EFE7E1;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+}
+
+.staff-sim-intro strong {
+  color: #2E5A44;
+}
+
+.staff-sim-preset-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.staff-sim-preset-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #8D6E63;
+}
+
+.staff-sim-preset-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.staff-sim-preset-btn {
+  background-color: #F7F3EE;
+  border: 1px solid #D7CCC8;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #4E342E;
+  padding: 0.35rem 0.65rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.staff-sim-preset-btn:hover {
+  background-color: #EFEBE9;
+  border-color: #BCAAA4;
+  color: #2E5A44;
+}
+
+.staff-sim-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.staff-sim-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #3E2723;
+}
+
+.staff-sim-channels {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.staff-sim-channel-pill {
+  flex: 1;
+  padding: 0.65rem 1rem;
+  border: 1.5px solid #D7CCC8;
+  background-color: #FAFAFA;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #5D4037;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.staff-sim-channel-pill:hover {
+  border-color: #8D6E63;
+  background-color: #F5F5F5;
+}
+
+.staff-sim-channel-pill--active {
+  border-color: #2E5A44;
+  background-color: #E8F0EC;
+  color: #1B4D3E;
+  box-shadow: 0 0 0 1px #2E5A44 inset;
+}
+
+.staff-sim-input,
+.staff-sim-textarea {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #D7CCC8;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.875rem;
+  color: #3E2723;
+  background-color: #FFFFFF;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.staff-sim-input:focus,
+.staff-sim-textarea:focus {
+  outline: none;
+  border-color: #2E5A44;
+  box-shadow: 0 0 0 3px rgba(46, 90, 68, 0.15);
+}
+
+.staff-sim-input--error {
+  border-color: #C62828 !important;
+}
+
+.staff-sim-error-text {
+  font-size: 0.75rem;
+  color: #C62828;
+  font-weight: 500;
+}
+
+.staff-sim-api-error {
+  background-color: #FDEDEC;
+  border: 1px solid #F5B7B1;
+  border-radius: 6px;
+  color: #922B21;
+  font-size: 0.8125rem;
+  padding: 0.625rem 0.875rem;
+}
+
+.staff-sim-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  width: 100%;
 }

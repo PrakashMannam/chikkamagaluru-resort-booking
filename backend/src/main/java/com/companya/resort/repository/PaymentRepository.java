@@ -19,4 +19,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     Optional<Payment> findAndLockByBookingId(@Param("bookingId") Long bookingId);
 
     Optional<Payment> findByOneTimePaymentToken(String oneTimePaymentToken);
+
+    java.util.List<Payment> findByBookingIdIn(java.util.Collection<Long> bookingIds);
 }

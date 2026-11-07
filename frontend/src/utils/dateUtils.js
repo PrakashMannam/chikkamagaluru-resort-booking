@@ -46,3 +46,20 @@ export function formatDisplayDate(dateStr) {
     year: 'numeric',
   });
 }
+
+export function formatCompactDate(dateStr) {
+  const d = parseLocalDate(dateStr);
+  if (!d) return dateStr || '';
+  return d.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+export function getNextDay(dateStr) {
+  const d = parseLocalDate(dateStr);
+  if (!d) return '';
+  d.setDate(d.getDate() + 1);
+  return formatLocalDate(d);
+}

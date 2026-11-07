@@ -33,6 +33,20 @@ public class PricingService {
             int roomsCount,
             String promoCodeStr
     ) {
+        PromoCode promo = null;
+        if (promoCodeStr != null && !promoCodeStr.trim().isEmpty()) {
+            promo = promoCodeRepository.findByCodeIgnoreCaseAndIsActiveTrue(promoCodeStr.trim())
+                    .orElseThrow(() -> new InvalidPromoCodeException("Promo code '" + promoCodeStr + "' is invalid or inactive"));
+        }
+        return calculatePriceWithPromo(stayRates, ratePlan, roomsCount, promo);
+    }
+
+    public PriceCalculationResult calculatePriceWithPromo(
+            List<DailyInventoryRate> stayRates,
+            RatePlan ratePlan,
+            int roomsCount,
+            PromoCode promo
+    ) {
         if (stayRates == null || stayRates.isEmpty()) {
             throw new IllegalArgumentException("Stay rates cannot be empty");
         }
@@ -70,22 +84,18 @@ public class PricingService {
         BigDecimal discountAmount = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
         PromoCode appliedPromo = null;
 
-        if (promoCodeStr != null && !promoCodeStr.trim().isEmpty()) {
-            Optional<PromoCode> promoOpt = promoCodeRepository.findByCodeIgnoreCaseAndIsActiveTrue(promoCodeStr.trim());
-            if (promoOpt.isEmpty()) {
-                throw new InvalidPromoCodeException("Promo code '" + promoCodeStr + "' is invalid or inactive");
-            }
-            PromoCode promo = promoOpt.get();
+        if (promo != null) {
             LocalDate today = LocalDate.now(clock);
 
             if (today.isBefore(promo.getValidFrom()) || today.isAfter(promo.getValidTo())) {
-                throw new InvalidPromoCodeException("Promo code '" + promoCodeStr + "' is not valid for the current date");
+                throw new InvalidPromoCodeException("Promo code '" + promo.getCode() + "' is not valid for the current date");
             }
             if (nights < promo.getMinNights()) {
-                throw new InvalidPromoCodeException("Promo code '" + promoCodeStr + "' requires a minimum stay of " + promo.getMinNights() + " nights");
+                throw new InvalidPromoCodeException("Promo code '" + promo.getCode() + "' requires a minimum stay of " + promo.getMinNights() + " nights");
             }
-            if (promo.getCurrentUses() >= promo.getMaxUses()) {
-                throw new InvalidPromoCodeException("Promo code '" + promoCodeStr + "' has reached its maximum uses");
+            int current = (promo.getCurrentUses() != null) ? promo.getCurrentUses() : 0;
+            if (promo.getMaxUses() != null && current >= promo.getMaxUses()) {
+                throw new InvalidPromoCodeException("Promo code '" + promo.getCode() + "' has reached its maximum uses");
             }
 
             if (promo.getDiscountType() == DiscountType.PERCENTAGE) {

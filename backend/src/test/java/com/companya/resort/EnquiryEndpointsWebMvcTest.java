@@ -159,11 +159,37 @@ public class EnquiryEndpointsWebMvcTest {
     }
 
     @Test
-    @DisplayName("Authorized staff can simulate incoming email/WhatsApp enquiry")
-    void testAuthorizedStaffSimulateEnquiry() throws Exception {
+    @DisplayName("Authorized staff can simulate incoming email enquiry")
+    void testAuthorizedStaffSimulateEmailEnquiry() throws Exception {
+        AdminEnquiryDetailDto detail = new AdminEnquiryDetailDto();
+        detail.setId(10L);
+        detail.setEnquiryCode("ENQ-1000");
+        detail.setSourceChannel("EMAIL_SIM");
+        detail.setCategory("ROOM_BOOKING");
+
+        when(enquiryService.simulateEnquiry(any(SimulateEnquiryRequest.class))).thenReturn(detail);
+
+        SimulateEnquiryRequest simReq = new SimulateEnquiryRequest(
+                EnquiryChannel.EMAIL_SIM, "Priya Sharma", "priya@example.com", "Looking for 2 rooms from Nov 20 to Nov 23"
+        );
+
+        mockMvc.perform(post("/api/v1/admin/enquiries/simulate")
+                        .header("Authorization", "Bearer " + staffToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(simReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enquiry_code").value("ENQ-1000"))
+                .andExpect(jsonPath("$.source_channel").value("EMAIL_SIM"))
+                .andExpect(jsonPath("$.category").value("ROOM_BOOKING"));
+    }
+
+    @Test
+    @DisplayName("Authorized staff can simulate incoming WhatsApp enquiry")
+    void testAuthorizedStaffSimulateWhatsAppEnquiry() throws Exception {
         AdminEnquiryDetailDto detail = new AdminEnquiryDetailDto();
         detail.setId(11L);
         detail.setEnquiryCode("ENQ-1001");
+        detail.setSourceChannel("WHATSAPP_SIM");
         detail.setCategory("CORPORATE_OFFSITE");
 
         when(enquiryService.simulateEnquiry(any(SimulateEnquiryRequest.class))).thenReturn(detail);
@@ -178,7 +204,42 @@ public class EnquiryEndpointsWebMvcTest {
                         .content(objectMapper.writeValueAsString(simReq)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.enquiry_code").value("ENQ-1001"))
+                .andExpect(jsonPath("$.source_channel").value("WHATSAPP_SIM"))
                 .andExpect(jsonPath("$.category").value("CORPORATE_OFFSITE"));
+    }
+
+    @Test
+    @DisplayName("Simulate enquiry rejects unsupported channel")
+    void testSimulateEnquiry_UnsupportedChannelRejected() throws Exception {
+        when(enquiryService.simulateEnquiry(any(SimulateEnquiryRequest.class)))
+                .thenThrow(new IllegalArgumentException("Unsupported simulation channel: WEB_FORM. Supported channels are EMAIL_SIM and WHATSAPP_SIM."));
+
+        SimulateEnquiryRequest simReq = new SimulateEnquiryRequest(
+                EnquiryChannel.WEB_FORM, "Web User", "web@example.com", "Web Form test"
+        );
+
+        mockMvc.perform(post("/api/v1/admin/enquiries/simulate")
+                        .header("Authorization", "Bearer " + staffToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(simReq)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Bad Request"));
+    }
+
+    @Test
+    @DisplayName("Simulate enquiry rejects invalid required fields")
+    void testSimulateEnquiry_InvalidRequiredFieldsRejected() throws Exception {
+        // Missing senderName and rawMessage
+        String invalidJson = "{\"source_channel\":\"EMAIL_SIM\",\"sender_contact\":\"test@example.com\"}";
+
+        mockMvc.perform(post("/api/v1/admin/enquiries/simulate")
+                        .header("Authorization", "Bearer " + staffToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invalidJson))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Validation Failed"))
+                .andExpect(jsonPath("$.details.senderName").exists())
+                .andExpect(jsonPath("$.details.rawMessage").exists());
     }
 
     @Test
@@ -244,5 +305,43 @@ public class EnquiryEndpointsWebMvcTest {
                         .header("Authorization", "Bearer " + roomStaffToken))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error").value("Forbidden"));
+    }
+
+    @Test
+    @DisplayName("Repeated draft approval request is rejected with 409 Conflict")
+    void testRepeatedDraftApprovalConflict() throws Exception {
+        when(enquiryService.approveDraft(eq(15L), any(com.companya.resort.security.UserPrincipal.class), any()))
+                .thenThrow(new IllegalStateException("No pending draft available for approval on enquiry id: 15"));
+
+        ApproveDraftRequest approveReq = new ApproveDraftRequest("Approved text");
+
+        mockMvc.perform(post("/api/v1/admin/enquiries/15/approve-draft")
+                        .header("Authorization", "Bearer " + staffToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(approveReq)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("Conflict"))
+                .andExpect(jsonPath("$.message").value("No pending draft available for approval on enquiry id: 15"));
+    }
+
+    @Test
+    @DisplayName("Unauthorized staff trying to route cross-lane enquiry receives 403 Forbidden")
+    void testUnauthorizedStaffRouteEnquiryForbidden() throws Exception {
+        User roomStaff = new User("rooms@estate.test", "hash", "Rooms Staff", Role.STAFF, SpecialtyLane.ROOM, false);
+        roomStaff.setId(2L);
+        String roomStaffToken = jwtService.generateToken(roomStaff);
+
+        when(enquiryService.routeEnquiry(eq(12L), any(com.companya.resort.security.UserPrincipal.class), any(RouteEnquiryRequest.class)))
+                .thenThrow(new org.springframework.security.access.AccessDeniedException("Staff in lane ROOM cannot route enquiries to WEDDING"));
+
+        RouteEnquiryRequest routeReq = new RouteEnquiryRequest(EnquiryCategory.WEDDING, 3L);
+
+        mockMvc.perform(patch("/api/v1/admin/enquiries/12/route")
+                        .header("Authorization", "Bearer " + roomStaffToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(routeReq)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("Forbidden"))
+                .andExpect(jsonPath("$.message").value("Staff in lane ROOM cannot route enquiries to WEDDING"));
     }
 }

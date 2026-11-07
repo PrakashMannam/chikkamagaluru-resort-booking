@@ -42,6 +42,14 @@
   padding-bottom: var(--space-4);
 }
 
+.confirmation-header__kicker {
+  font-size: var(--text-small);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
 .confirmation-header__status-badge {
   display: inline-flex;
 }

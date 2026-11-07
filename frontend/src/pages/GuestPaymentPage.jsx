@@ -171,7 +171,7 @@ export function GuestPaymentPage() {
   return (
     <div className="payment-page">
       {/* 1. Progress Step Indicator */}
-      <StepIndicator currentStep={3} />
+      <StepIndicator currentStep={2} />
 
       {/* Loading Skeletons */}
       {isLoading && (
@@ -190,7 +190,7 @@ export function GuestPaymentPage() {
           title="Could not find reservation"
           message={error}
           actionLabel="Return to discovery"
-          onAction={() => navigate('/')}
+          onAction={() => navigate('/stay')}
         />
       )}
 
@@ -206,7 +206,7 @@ export function GuestPaymentPage() {
                 Your 10-minute hold window for reservation <strong>{ref}</strong> has expired. To ensure fairness across all guests, any temporarily held room allotment has been released back to our live booking calendar.
               </p>
               <div className="payment-status__actions">
-                <Button variant="primary" onClick={() => navigate('/')}>
+                <Button variant="primary" onClick={() => navigate('/stay')}>
                   Start new reservation
                 </Button>
               </div>
@@ -222,7 +222,7 @@ export function GuestPaymentPage() {
                 Your reservation hold <strong>{ref}</strong> has been cancelled and the held estate keys have been released immediately back into online allotment.
               </p>
               <div className="payment-status__actions">
-                <Button variant="primary" onClick={() => navigate('/')}>
+                <Button variant="primary" onClick={() => navigate('/stay')}>
                   Browse estate accommodations
                 </Button>
               </div>
@@ -238,7 +238,7 @@ export function GuestPaymentPage() {
                 The simulated transaction for reservation <strong>{ref}</strong> failed. As per resort policy, the allotment hold has been released. You may start a new booking whenever you wish.
               </p>
               <div className="payment-status__actions">
-                <Button variant="primary" onClick={() => navigate('/')}>
+                <Button variant="primary" onClick={() => navigate('/stay')}>
                   Return to available rooms
                 </Button>
               </div>
@@ -258,7 +258,7 @@ export function GuestPaymentPage() {
 
               <header className="payment-card__header">
                 <div className="payment-card__meta-top">
-                  <span className="payment-card__kicker">Step 3 of 3 &bull; Final Step</span>
+                  <span className="payment-card__kicker">Step 2 of 3 &bull; Payment</span>
                   <div className="payment-countdown" aria-live="polite">
                     <span className="payment-countdown__label">Hold expires in:</span>
                     <span className="payment-countdown__timer">{formatTime(timeLeft)}</span>
@@ -331,7 +331,7 @@ export function GuestPaymentPage() {
                     <span>{formatINR(bookingData.gstAmountInr)}</span>
                   </div>
                   <div className="payment-summary__tax-note">
-                    Taxes shown are indicative in this test build
+                    GST rates are provisional and pending verification. Final tax treatment must be confirmed by the property.
                   </div>
                   <div className="payment-summary__total-line">
                     <span className="payment-summary__total-label">Total Payable</span>

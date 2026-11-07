@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { submitPublicEnquiry } from '../api/enquiryApi';
 import { Button, Input, Card, Badge, ErrorBanner } from '../components/ui';
 import './PublicEnquiryPage.css';
@@ -8,25 +8,36 @@ const ENQUIRY_TYPES = [
   {
     id: 'WEDDING',
     label: 'Weddings & Celebrations',
-    description: 'Bespoke destination ceremonies with amphitheatre lawns and banquet dining.',
+    description: 'Destination celebrations, ceremonies, and private gatherings across scenic estate lawns.',
     icon: '💍',
   },
   {
     id: 'CORPORATE_OFFSITE',
     label: 'Corporate Offsites',
-    description: 'Team retreats, leadership summits, and conference sessions amid coffee trails.',
+    description: 'Executive retreats, team gatherings, and offsite programs on the estate grounds.',
     icon: '💼',
   },
   {
-    id: 'GENERAL',
-    label: 'Private Stays & Stays',
-    description: 'Family holidays, jacuzzi villa stays, long escapes, or full estate buyouts.',
+    id: 'ROOM_BOOKING',
+    label: 'Room Booking',
+    description: 'Individual stays, family getaways, and private cottage or pool villa reservations.',
     icon: '☕',
   },
 ];
 
+function mapQueryType(param) {
+  if (!param) return 'WEDDING';
+  const val = param.toLowerCase().trim();
+  if (val === 'wedding' || val === 'weddings') return 'WEDDING';
+  if (val === 'offsite' || val === 'offsites' || val === 'corporate' || val === 'corporate_offsite') return 'CORPORATE_OFFSITE';
+  if (val === 'room' || val === 'rooms' || val === 'room_booking' || val === 'stay' || val === 'general') return 'ROOM_BOOKING';
+  return 'WEDDING';
+}
+
 export function PublicEnquiryPage() {
-  const [enquiryType, setEnquiryType] = useState('WEDDING');
+  const [searchParams] = useSearchParams();
+  const initialType = mapQueryType(searchParams.get('type'));
+  const [enquiryType, setEnquiryType] = useState(initialType);
 
   // Contact fields
   const [fullName, setFullName] = useState('');
@@ -35,8 +46,12 @@ export function PublicEnquiryPage() {
   // Event / Stay details
   const [eventDate, setEventDate] = useState('');
   const [nights, setNights] = useState('2');
-  const [guestsCount, setGuestsCount] = useState('150');
-  const [roomsCount, setRoomsCount] = useState('25');
+  const [guestsCount, setGuestsCount] = useState(
+    initialType === 'WEDDING' ? '200' : initialType === 'CORPORATE_OFFSITE' ? '45' : '4'
+  );
+  const [roomsCount, setRoomsCount] = useState(
+    initialType === 'WEDDING' ? '30' : initialType === 'CORPORATE_OFFSITE' ? '20' : '2'
+  );
   const [budget, setBudget] = useState('');
 
   // Type specific details
@@ -72,6 +87,15 @@ export function PublicEnquiryPage() {
       setRoomsCount('2');
     }
   };
+
+  // Sync state if URL query params change dynamically
+  useEffect(() => {
+    const typeParam = searchParams.get('type');
+    if (typeParam) {
+      const mapped = mapQueryType(typeParam);
+      handleTypeChange(mapped);
+    }
+  }, [searchParams]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -139,8 +163,8 @@ export function PublicEnquiryPage() {
       return parts.join(', ');
     }
 
-    // General / Stay
-    const stayLabel = stayPreference === 'VILLA' ? 'Jacuzzi Villa' : stayPreference === 'ROOM' ? 'Estate Room' : 'Estate Stay';
+    // Room Booking / Stay
+    const stayLabel = stayPreference === 'VILLA' ? 'Private Pool Villa' : stayPreference === 'ROOM' ? 'Estate Room' : 'Estate Stay';
     const parts = [
       `Enquiry for ${stayLabel} from ${eventDate}`,
       nights ? `for ${nights} nights` : null,
@@ -219,7 +243,7 @@ export function PublicEnquiryPage() {
               <Badge variant="success">Enquiry Received</Badge>
               <h2 className="enquiry-success__title">Thank You, {fullName || 'Guest'}</h2>
               <p className="enquiry-success__subtitle">
-                Your request has been delivered directly to our on-property concierge team in Chikkamagaluru.
+                Your enquiry has been submitted successfully. Our team will review your request and contact you using the details provided. Please note that this enquiry does not reserve rooms or event space. Your reservation is confirmed only after completing the booking process.
               </p>
             </div>
 
@@ -266,13 +290,13 @@ export function PublicEnquiryPage() {
               <h3 className="enquiry-success__timeline-title">What Happens Next</h3>
               <ol className="enquiry-success__timeline-list">
                 <li>
-                  <strong>Specialist Review:</strong> Our event coordinators will review date allotment and physical key inventory.
+                  <strong>Specialist Review:</strong> Our team will review your request against current estate availability.
                 </li>
                 <li>
-                  <strong>Direct Response:</strong> A customized quote and estate walkthrough proposal will be sent to your provided contact.
+                  <strong>Follow-up &amp; Consultation:</strong> Our team will review your enquiry and may contact you using the details provided to discuss your requirements. Any quotation and availability will be confirmed separately.
                 </li>
                 <li>
-                  <strong>Priority Booking Hold:</strong> Your selected dates are placed on temporary concierge review hold.
+                  <strong>Booking &amp; Confirmation:</strong> Submitting an enquiry does not hold dates or reserve inventory. Rooms and event spaces are confirmed only through the separate booking process.
                 </li>
               </ol>
             </div>
@@ -281,8 +305,8 @@ export function PublicEnquiryPage() {
               <Button variant="primary" onClick={handleResetForm}>
                 Submit Another Enquiry
               </Button>
-              <Link to="/" className="btn btn--secondary">
-                Explore Rooms &amp; Villas
+              <Link to="/stay" className="btn btn--secondary">
+                Explore Rooms &amp; Book
               </Link>
             </div>
           </Card>
@@ -392,16 +416,16 @@ export function PublicEnquiryPage() {
                 <span className="enquiry-card__step">Step 3 of 3</span>
                 <h2 className="enquiry-card__title">
                   {enquiryType === 'WEDDING' && 'Wedding & Celebration Details'}
-                  {enquiryType === 'CORPORATE_OFFSITE' && 'Retreat & Conference Specifications'}
-                  {enquiryType === 'GENERAL' && 'Stay Preferences & Requirements'}
+                  {enquiryType === 'CORPORATE_OFFSITE' && 'Retreat & Offsite Specifications'}
+                  {enquiryType === 'ROOM_BOOKING' && 'Room Booking & Stay Preferences'}
                 </h2>
                 <p className="enquiry-card__description">
                   Approximate figures help us calculate inventory allotment and quote authoritative rates.
                 </p>
               </div>
 
-              {/* Conditional Field: Stay Preference for General Stays */}
-              {enquiryType === 'GENERAL' && (
+              {/* Conditional Field: Stay Preference for Room Booking */}
+              {enquiryType === 'ROOM_BOOKING' && (
                 <div className="enquiry-field-group">
                   <label className="input__label" htmlFor="stay-pref">Accommodation Preference</label>
                   <select
@@ -411,8 +435,8 @@ export function PublicEnquiryPage() {
                     disabled={isSubmitting}
                     onChange={(e) => setStayPreference(e.target.value)}
                   >
-                    <option value="VILLA">Jacuzzi Villa (Private Sanctuary)</option>
-                    <option value="ROOM">Estate Plantation Room</option>
+                    <option value="VILLA">Private Pool Villa</option>
+                    <option value="ROOM">Estate Room</option>
                     <option value="BUYOUT">Full Estate Buyout (64 Rooms + 12 Villas)</option>
                   </select>
                 </div>
@@ -420,7 +444,7 @@ export function PublicEnquiryPage() {
 
               <div className="enquiry-form__grid-2">
                 <Input
-                  label={enquiryType === 'GENERAL' ? 'Preferred Check-in Date *' : 'Target Event Date *'}
+                  label={enquiryType === 'ROOM_BOOKING' ? 'Preferred Check-in Date *' : 'Target Event Date *'}
                   type="date"
                   value={eventDate}
                   disabled={isSubmitting}
@@ -454,7 +478,7 @@ export function PublicEnquiryPage() {
                   type="number"
                   min="1"
                   max="1000"
-                  placeholder={enquiryType === 'WEDDING' ? '250' : enquiryType === 'CORPORATE_OFFSITE' ? '45' : '4'}
+                  placeholder={enquiryType === 'WEDDING' ? '200' : enquiryType === 'CORPORATE_OFFSITE' ? '45' : '4'}
                   value={guestsCount}
                   disabled={isSubmitting}
                   error={errors.guestsCount}
@@ -478,10 +502,10 @@ export function PublicEnquiryPage() {
                 />
               </div>
 
-              {/* Conditional: Conference hall for offsite */}
+              {/* Conditional: Meeting setup for offsite */}
               {enquiryType === 'CORPORATE_OFFSITE' && (
                 <div className="enquiry-field-group" style={{ marginTop: 'var(--space-3)' }}>
-                  <label className="input__label" htmlFor="conf-hall">Conference Hall &amp; AV Setup</label>
+                  <label className="input__label" htmlFor="conf-hall">Meeting Space &amp; AV Setup</label>
                   <select
                     id="conf-hall"
                     className="input__field enquiry-select"
@@ -489,8 +513,8 @@ export function PublicEnquiryPage() {
                     disabled={isSubmitting}
                     onChange={(e) => setNeedsConferenceHall(e.target.value)}
                   >
-                    <option value="yes">Yes — Dedicated Conference Hall with AV &amp; Projector</option>
-                    <option value="no">No — Outdoor Team Activities &amp; Coffee Trails Only</option>
+                    <option value="yes">Yes — Dedicated meeting space with AV setup</option>
+                    <option value="no">No — Outdoor gathering and retreat stay</option>
                   </select>
                 </div>
               )}
@@ -512,7 +536,7 @@ export function PublicEnquiryPage() {
                 <label className="input__label" htmlFor="additional-msg">
                   {enquiryType === 'WEDDING' && 'Ceremonies, Catering & Event Details (Optional)'}
                   {enquiryType === 'CORPORATE_OFFSITE' && 'Workshops, Dining & Team Activities (Optional)'}
-                  {enquiryType === 'GENERAL' && 'Special Requests or Inquiries (Optional)'}
+                  {enquiryType === 'ROOM_BOOKING' && 'Special Requests or Inquiries (Optional)'}
                 </label>
                 <textarea
                   id="additional-msg"
@@ -521,9 +545,9 @@ export function PublicEnquiryPage() {
                   disabled={isSubmitting}
                   placeholder={
                     enquiryType === 'WEDDING'
-                      ? 'e.g. Looking for outdoor sangeet lawn on evening 1, followed by morning traditional ceremony in amphitheatre.'
+                      ? 'e.g. Looking for outdoor reception on estate lawns on evening 1, followed by morning traditional ceremony.'
                       : enquiryType === 'CORPORATE_OFFSITE'
-                      ? 'e.g. Need high-speed Wi-Fi, workshop layout for 40 participants, and guided coffee tasting.'
+                      ? 'e.g. Need high-speed Wi-Fi, workshop layout for 40 participants, and estate dining.'
                       : 'e.g. Celebrating a milestone anniversary; please arrange airport transit from Mangalore if possible.'
                   }
                   value={additionalMessage}

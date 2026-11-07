@@ -46,7 +46,7 @@ export function BookingConfirmationPage() {
   return (
     <div className="confirmation-page">
       {/* Step Indicator */}
-      <StepIndicator currentStep={4} />
+      <StepIndicator currentStep={3} />
 
       {/* Loading Skeletons */}
       {isLoading && (
@@ -73,6 +73,7 @@ export function BookingConfirmationPage() {
       {!isLoading && booking && (
         <main className="confirmation-card">
           <header className="confirmation-header">
+            <span className="confirmation-header__kicker">Step 3 of 3 &bull; Confirmation</span>
             <div className="confirmation-header__status-badge">
               {isConfirmed ? (
                 <Badge variant="success">Reservation Confirmed</Badge>
@@ -204,6 +205,10 @@ export function BookingConfirmationPage() {
               <div className="confirmation-financials__row">
                 <span>Goods &amp; Services Tax ({booking.gstPercentageApplied}%)</span>
                 <span>{formatINR(booking.gstAmountInr)}</span>
+              </div>
+
+              <div className="confirmation-financials__tax-note" style={{ fontSize: 'var(--font-size-xs, 0.75rem)', color: 'var(--color-stone-text-subtle, var(--color-text-muted))', fontStyle: 'italic', margin: 'var(--space-1) 0 var(--space-2)' }}>
+                GST rates are provisional and pending verification. Final tax treatment must be confirmed by the property.
               </div>
 
               <div className="confirmation-financials__total">

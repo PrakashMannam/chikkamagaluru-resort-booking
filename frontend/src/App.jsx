@@ -6,15 +6,19 @@ import { ProtectedRoute } from './components/staff/ProtectedRoute';
 import { StaffAuthProvider } from './context/StaffAuthContext';
 import { Skeleton } from './components/ui';
 
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 const GuestAvailabilityPage = lazy(() => import('./pages/GuestAvailabilityPage'));
 const RoomDetailPage = lazy(() => import('./pages/RoomDetailPage'));
 const GuestCheckoutPage = lazy(() => import('./pages/GuestCheckoutPage'));
 const GuestPaymentPage = lazy(() => import('./pages/GuestPaymentPage'));
 const BookingConfirmationPage = lazy(() => import('./pages/BookingConfirmationPage'));
 const PublicEnquiryPage = lazy(() => import('./pages/PublicEnquiryPage'));
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
+const TermsPage = lazy(() => import('./pages/TermsPage'));
 const StaffLoginPage = lazy(() => import('./pages/StaffLoginPage').then(m => ({ default: m.StaffLoginPage })));
 const StaffEnquiriesPage = lazy(() => import('./pages/StaffEnquiriesPage').then(m => ({ default: m.StaffEnquiriesPage })));
 const StaffEnquiryDetailPage = lazy(() => import('./pages/StaffEnquiryDetailPage').then(m => ({ default: m.StaffEnquiryDetailPage })));
+const StaffInventoryPage = lazy(() => import('./pages/staff/StaffInventoryPage').then(m => ({ default: m.StaffInventoryPage })));
 const Styleguide = lazy(() => import('./styleguide/Styleguide'));
 
 function PageFallback() {
@@ -35,13 +39,16 @@ export function App() {
           <Routes>
             {/* Guest Public Flow */}
             <Route element={<GuestLayout />}>
-              <Route path="/" element={<GuestAvailabilityPage />} />
-              <Route path="/rooms" element={<Navigate to="/" replace />} />
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/stay" element={<GuestAvailabilityPage />} />
+              <Route path="/rooms" element={<Navigate to="/stay" replace />} />
               <Route path="/rooms/:code" element={<RoomDetailPage />} />
               <Route path="/checkout" element={<GuestCheckoutPage />} />
               <Route path="/payment/:ref" element={<GuestPaymentPage />} />
               <Route path="/bookings/:ref" element={<BookingConfirmationPage />} />
               <Route path="/enquire" element={<PublicEnquiryPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/terms" element={<TermsPage />} />
             </Route>
 
             {/* Staff Authentication & Portal */}
@@ -63,6 +70,16 @@ export function App() {
                 <ProtectedRoute>
                   <StaffLayout>
                     <StaffEnquiryDetailPage />
+                  </StaffLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/staff/inventory"
+              element={
+                <ProtectedRoute>
+                  <StaffLayout>
+                    <StaffInventoryPage />
                   </StaffLayout>
                 </ProtectedRoute>
               }

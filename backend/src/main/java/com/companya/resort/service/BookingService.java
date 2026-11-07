@@ -12,6 +12,7 @@ import org.springframework.dao.TransientDataAccessException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -159,6 +160,142 @@ public class BookingService {
         }
 
         return new AvailabilityResponse(checkIn, checkOut, nights, rooms, adults, children, categoryDtos);
+    }
+
+    public PricingQuoteDto calculatePricingQuote(
+            Long roomCategoryId,
+            String categoryCode,
+            Long ratePlanId,
+            String planCode,
+            LocalDate checkIn,
+            LocalDate checkOut,
+            int rooms,
+            int adults,
+            int children,
+            String promoCode
+    ) {
+        transactionService.validateStayDates(checkIn, checkOut);
+
+        if (rooms < 1) {
+            throw new IllegalArgumentException("Rooms must be at least 1");
+        }
+        if (adults < 1) {
+            throw new IllegalArgumentException("Adults must be at least 1");
+        }
+        if (children < 0) {
+            throw new IllegalArgumentException("Children cannot be negative");
+        }
+
+        int nights = (int) ChronoUnit.DAYS.between(checkIn, checkOut);
+
+        RoomCategory category;
+        if (roomCategoryId != null) {
+            category = roomCategoryRepository.findById(roomCategoryId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Room category not found with id: " + roomCategoryId));
+        } else if (categoryCode != null && !categoryCode.trim().isEmpty()) {
+            category = roomCategoryRepository.findByCode(categoryCode.trim().toUpperCase())
+                    .orElseThrow(() -> new ResourceNotFoundException("Room category not found with code: " + categoryCode));
+        } else {
+            throw new IllegalArgumentException("Room category id or code is required");
+        }
+
+        RatePlan ratePlan;
+        if (ratePlanId != null) {
+            ratePlan = ratePlanRepository.findByIdAndIsActiveTrue(ratePlanId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Active rate plan not found with id: " + ratePlanId));
+        } else if (planCode != null && !planCode.trim().isEmpty()) {
+            ratePlan = ratePlanRepository.findByRoomCategoryIdAndCodeIgnoreCaseAndIsActiveTrue(category.getId(), planCode.trim())
+                    .orElseThrow(() -> new ResourceNotFoundException("Active rate plan not found with code: " + planCode));
+        } else {
+            throw new IllegalArgumentException("Rate plan id or code is required");
+        }
+
+        if (!ratePlan.getRoomCategory().getId().equals(category.getId())) {
+            throw new IllegalArgumentException("Rate plan does not belong to the selected room category");
+        }
+
+        // Blackout check
+        List<BlackoutDate> blackouts = blackoutDateRepository.findConflictingBlackouts(
+                category.getId(), checkIn, checkOut);
+        if (!blackouts.isEmpty()) {
+            throw new BlackoutDateConflictException("Requested stay dates conflict with a resort blackout: " + blackouts.get(0).getReason());
+        }
+
+        // Daily inventory rates (read-only)
+        List<DailyInventoryRate> rates = dailyInventoryRateRepository
+                .findByRoomCategoryIdAndStayDateRange(category.getId(), checkIn, checkOut);
+
+        if (rates.size() != nights) {
+            throw new InsufficientAllotmentException("Inventory is not configured for all nights in the requested stay");
+        }
+
+        // Allotment headroom check
+        for (DailyInventoryRate rate : rates) {
+            if (rate.getBookedCount() + rooms > rate.getWebsiteAllotmentTotal()) {
+                throw new InsufficientAllotmentException("Insufficient website allotment for date: " + rate.getStayDate());
+            }
+        }
+
+        // Calculate authoritative pricing via existing PricingService
+        PriceCalculationResult priceResult = pricingService.calculatePrice(rates, ratePlan, rooms, promoCode);
+
+        // Summed nightly base rates * rooms
+        BigDecimal baseSum = rates.stream()
+                .map(DailyInventoryRate::getBaseRateInr)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .multiply(BigDecimal.valueOf(rooms))
+                .setScale(2, RoundingMode.HALF_UP);
+
+        BigDecimal addonSum = priceResult.getSubtotalBeforeDiscountInr().subtract(baseSum)
+                .max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+
+        // Itemized nightly breakdown
+        List<NightlyTariffDto> nightlyBreakdown = new ArrayList<>();
+        for (DailyInventoryRate rate : rates) {
+            BigDecimal base = rate.getBaseRateInr();
+            BigDecimal addon = BigDecimal.ZERO;
+            if (ratePlan.getPriceModifierType() == PriceModifierType.FIXED_ADDON) {
+                addon = ratePlan.getPriceModifierValue();
+            } else if (ratePlan.getPriceModifierType() == PriceModifierType.PERCENTAGE) {
+                addon = base.multiply(ratePlan.getPriceModifierValue())
+                        .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            }
+            nightlyBreakdown.add(new NightlyTariffDto(
+                    rate.getStayDate(),
+                    base,
+                    addon,
+                    base.add(addon).setScale(2, RoundingMode.HALF_UP)
+            ));
+        }
+
+        PricingQuoteDto dto = new PricingQuoteDto();
+        dto.setRoomCategoryId(category.getId());
+        dto.setRoomCategoryCode(category.getCode());
+        dto.setRoomCategoryName(category.getName());
+        dto.setRatePlanId(ratePlan.getId());
+        dto.setRatePlanCode(ratePlan.getCode());
+        dto.setRatePlanName(ratePlan.getName());
+        dto.setCheckInDate(checkIn);
+        dto.setCheckOutDate(checkOut);
+        dto.setNights(nights);
+        dto.setRoomsCount(rooms);
+        dto.setAdults(adults);
+        dto.setChildren(children);
+
+        dto.setBaseAccommodationTotalInr(baseSum);
+        dto.setRatePlanAddonTotalInr(addonSum);
+        dto.setSubtotalBeforeDiscountInr(priceResult.getSubtotalBeforeDiscountInr());
+        dto.setPromoCode(priceResult.getPromoCode() != null ? priceResult.getPromoCode().getCode() : null);
+        dto.setDiscountAmountInr(priceResult.getDiscountAmountInr());
+        dto.setDiscountedPreTaxInr(priceResult.getTaxableAmountInr());
+        dto.setTaxableAmountInr(priceResult.getTaxableAmountInr());
+        dto.setGstPercentageApplied(priceResult.getGstPercentageApplied());
+        dto.setGstAmountInr(priceResult.getGstAmountInr());
+        dto.setTotalPayableInr(priceResult.getTotalPayableInr());
+        dto.setGstVerificationStatus(priceResult.getGstVerificationStatus());
+        dto.setNightlyRates(nightlyBreakdown);
+
+        return dto;
     }
 
     public BookingResponseDto createBookingAndLockAllotment(CreateBookingRequest request, String idempotencyKeyHeader) {

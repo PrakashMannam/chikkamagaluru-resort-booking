@@ -1,13 +1,15 @@
 :root {
-  /* Colour */
-  --color-bg: #F7F5F2;
-  --color-surface: #FFFFFF;
-  --color-text: #292524;
+  /* Colour - Restrained Luxury Estate Palette */
+  --color-bg: #FAF8F5;
+  --color-surface: #F3EFEA;
+  --color-card: #FFFFFF;
+  --color-text: #1C1917;
   --color-text-muted: #57534E;
-  --color-accent: #3E2723;
-  --color-accent-soft: #EFE7E1;
-  --color-border: #E7E5E4;
-  --color-border-input: #78716C;
+  --color-accent: #1E3A2F;
+  --color-accent-hover: #162B22;
+  --color-accent-soft: #EAE5DD;
+  --color-border: #E7E2DA;
+  --color-border-input: #D4CDC3;
   --color-success: #2E5C31;
   --color-success-tint: #E4ECE3;
   --color-warning: #A15C0B;
@@ -15,22 +17,26 @@
   --color-warning-tint: #F5EBDD;
   --color-danger: #991B1B;
   --color-danger-tint: #F3E4E1;
-  --color-overlay: rgba(41, 37, 36, 0.3);
-  --color-skeleton: #E7E5E4;
+  --color-overlay: rgba(28, 25, 23, 0.4);
+  --color-skeleton: #E7E2DA;
+  --color-dark: #16241D;
+  --color-dark-text: #F3EFEA;
+  --color-dark-muted: #A8A29E;
+  --color-hero-overlay: linear-gradient(to top, rgba(16, 24, 20, 0.75) 0%, rgba(16, 24, 20, 0.35) 50%, rgba(16, 24, 20, 0.15) 100%);
 
   /* Type */
-  --font-heading: "Lora", Georgia, "Times New Roman", serif;
-  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --text-h1: clamp(1.75rem, 4vw, 2.25rem);
-  --text-h2: clamp(1.375rem, 3vw, 1.75rem);
+  --font-heading: "Cormorant Garamond", "Playfair Display", "Lora", Georgia, serif;
+  --font-body: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --text-h1: clamp(2.25rem, 5vw, 3.75rem);
+  --text-h2: clamp(1.625rem, 3.5vw, 2.375rem);
   --text-h3: 1.25rem;
-  --text-body: 1rem;
-  --text-small: 0.875rem;
+  --text-body: 0.9375rem;
+  --text-small: 0.8125rem;
   --weight-regular: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
-  --leading-body: 1.6;
-  --leading-heading: 1.25;
+  --leading-body: 1.65;
+  --leading-heading: 1.12;
 
   /* Spacing (8px base) */
   --space-1: 0.25rem;
@@ -40,12 +46,13 @@
   --space-5: 2rem;
   --space-6: 3rem;
   --space-7: 4rem;
+  --space-8: 6rem;
 
   /* Shape and depth */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --shadow-subtle: 0 4px 12px rgba(41, 37, 36, 0.06);
-  --shadow-hover: 0 8px 24px rgba(41, 37, 36, 0.10);
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --shadow-subtle: 0 4px 20px rgba(28, 25, 23, 0.04);
+  --shadow-hover: 0 16px 36px rgba(28, 25, 23, 0.08);
 
   /* Interaction */
   --tap-min: 44px;

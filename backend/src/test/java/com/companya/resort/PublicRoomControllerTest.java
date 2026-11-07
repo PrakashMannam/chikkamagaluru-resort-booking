@@ -276,4 +276,100 @@ class PublicRoomControllerTest {
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.error").value("Service Unavailable"));
     }
+
+    @Test
+    void getPricingQuote_validParams_returns200AndItemizedQuote() throws Exception {
+        PricingQuoteDto quote = new PricingQuoteDto();
+        quote.setRoomCategoryId(1L);
+        quote.setRoomCategoryCode("ROOM");
+        quote.setRoomCategoryName("Coffee Estate Canopy Room");
+        quote.setRatePlanId(1L);
+        quote.setRatePlanCode("EP");
+        quote.setRatePlanName("European Plan");
+        quote.setCheckInDate(LocalDate.of(2026, 11, 19));
+        quote.setCheckOutDate(LocalDate.of(2026, 11, 22));
+        quote.setNights(3);
+        quote.setRoomsCount(1);
+        quote.setBaseAccommodationTotalInr(new BigDecimal("29500.00"));
+        quote.setRatePlanAddonTotalInr(BigDecimal.ZERO);
+        quote.setSubtotalBeforeDiscountInr(new BigDecimal("29500.00"));
+        quote.setTaxableAmountInr(new BigDecimal("29500.00"));
+        quote.setGstPercentageApplied(new BigDecimal("18.00"));
+        quote.setGstAmountInr(new BigDecimal("5310.00"));
+        quote.setTotalPayableInr(new BigDecimal("34810.00"));
+        quote.setGstVerificationStatus("UNVERIFIED");
+
+        when(bookingService.calculatePricingQuote(
+                eq(1L), any(), eq(1L), any(),
+                eq(LocalDate.of(2026, 11, 19)), eq(LocalDate.of(2026, 11, 22)),
+                eq(1), eq(2), eq(0), any()
+        )).thenReturn(quote);
+
+        mockMvc.perform(get("/api/v1/public/pricing/quote")
+                        .param("roomCategoryId", "1")
+                        .param("ratePlanId", "1")
+                        .param("checkIn", "2026-11-19")
+                        .param("checkOut", "2026-11-22")
+                        .param("rooms", "1")
+                        .param("adults", "2")
+                        .param("children", "0"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.baseAccommodationTotalInr").value(29500.00))
+                .andExpect(jsonPath("$.subtotalBeforeDiscountInr").value(29500.00))
+                .andExpect(jsonPath("$.totalPayableInr").value(34810.00))
+                .andExpect(jsonPath("$.gstVerificationStatus").value("UNVERIFIED"));
+    }
+
+    @Test
+    void getPricingQuote_invalidPromoCode_returns422() throws Exception {
+        when(bookingService.calculatePricingQuote(
+                any(), any(), any(), any(),
+                any(LocalDate.class), any(LocalDate.class),
+                anyInt(), anyInt(), anyInt(), eq("INVALIDPROMO")
+        )).thenThrow(new com.companya.resort.exception.InvalidPromoCodeException("Promo code 'INVALIDPROMO' is invalid or inactive"));
+
+        mockMvc.perform(get("/api/v1/public/pricing/quote")
+                        .param("roomCategoryId", "1")
+                        .param("ratePlanId", "1")
+                        .param("checkIn", "2026-11-19")
+                        .param("checkOut", "2026-11-22")
+                        .param("rooms", "1")
+                        .param("adults", "2")
+                        .param("children", "0")
+                        .param("promoCode", "INVALIDPROMO"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error").value("Invalid Promo Code"))
+                .andExpect(jsonPath("$.message").value("Promo code 'INVALIDPROMO' is invalid or inactive"));
+    }
+
+    @Test
+    void createBooking_exhaustedPromoCode_returns422() throws Exception {
+        when(bookingService.createBookingAndLockAllotment(any(), eq("idem-maxed-promo")))
+                .thenThrow(new com.companya.resort.exception.InvalidPromoCodeException("Promo code 'MAXED' has reached its maximum uses"));
+
+        String requestJson = """
+                {
+                    "roomCategoryId": 1,
+                    "ratePlanId": 1,
+                    "checkInDate": "2026-11-19",
+                    "checkOutDate": "2026-11-22",
+                    "roomsCount": 1,
+                    "adults": 2,
+                    "children": 0,
+                    "guestName": "Promo Guest",
+                    "guestEmail": "guest@example.com",
+                    "guestPhone": "9876543210",
+                    "promoCode": "MAXED",
+                    "dpdpConsentGiven": true
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/public/bookings")
+                        .header("Idempotency-Key", "idem-maxed-promo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestJson))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error").value("Invalid Promo Code"))
+                .andExpect(jsonPath("$.message").value("Promo code 'MAXED' has reached its maximum uses"));
+    }
 }

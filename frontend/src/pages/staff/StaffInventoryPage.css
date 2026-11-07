@@ -1,0 +1,731 @@
+.staff-inventory-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+}
+
+.staff-inventory__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.staff-inventory__title {
+  font-family: var(--font-heading, "Lora", Georgia, serif);
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--color-text, #1C1917);
+  margin: 0;
+}
+
+.staff-inventory__subtitle {
+  font-size: 0.9375rem;
+  color: var(--color-text-muted, #57534E);
+  margin: 0;
+}
+
+/* Range Filter Bar */
+.staff-inventory__filter-card {
+  background-color: var(--color-card, #FFFFFF);
+  border: 1px solid var(--color-border, #E7E2DA);
+  border-radius: var(--radius-md, 4px);
+  padding: 1rem 1.25rem;
+}
+
+.staff-inventory__filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+}
+
+.staff-inventory__filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.staff-inventory__form-col-span-2 {
+  grid-column: span 2;
+}
+
+.staff-inventory__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text, #1C1917);
+}
+
+.staff-inventory__input,
+.staff-inventory__select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border-input, #D4CDC3);
+  border-radius: var(--radius-sm, 2px);
+  font-size: 0.9375rem;
+  background-color: #FFFFFF;
+  color: var(--color-text, #1C1917);
+  min-height: var(--tap-min, 44px);
+  box-sizing: border-box;
+}
+
+.staff-inventory__input:focus,
+.staff-inventory__select:focus {
+  outline: none;
+  border-color: var(--color-accent, #1E3A2F);
+  box-shadow: 0 0 0 2px rgba(30, 58, 47, 0.15);
+}
+
+.staff-inventory__filter-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Bulk Editor Card */
+.staff-inventory__bulk-card {
+  background-color: #FCFBF9;
+  border: 1px solid var(--color-border, #E7E2DA);
+  border-left: 4px solid var(--color-accent, #1E3A2F);
+  border-radius: var(--radius-md, 4px);
+  padding: 1.25rem 1.5rem;
+}
+
+.staff-inventory__bulk-header {
+  margin-bottom: 1rem;
+}
+
+.staff-inventory__bulk-title {
+  font-family: var(--font-heading, "Lora", Georgia, serif);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text, #1C1917);
+  margin: 0;
+}
+
+.staff-inventory__bulk-subtitle {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted, #57534E);
+  margin-top: 0.2rem;
+}
+
+.staff-inventory__bulk-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.staff-inventory__bulk-submit {
+  display: flex;
+  align-items: flex-end;
+}
+
+.staff-inventory__feedback {
+  margin-top: 1rem;
+}
+
+.staff-inventory__dismiss-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap-min, 44px);
+  min-width: var(--tap-min, 44px);
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 1.125rem;
+  font-weight: bold;
+  border-radius: var(--radius-sm, 2px);
+  padding: 0.25rem;
+  transition: background-color 0.15s ease;
+}
+
+.staff-inventory__dismiss-btn:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Category Sections */
+.staff-inventory__groups {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.staff-inventory__group-card {
+  background-color: var(--color-card, #FFFFFF);
+  border: 1px solid var(--color-border, #E7E2DA);
+  border-radius: var(--radius-md, 4px);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-subtle, 0 4px 20px rgba(28, 25, 23, 0.04));
+}
+
+.staff-inventory__group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border, #E7E2DA);
+}
+
+.staff-inventory__group-title {
+  font-family: var(--font-heading, "Lora", Georgia, serif);
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--color-text, #1C1917);
+  margin: 0;
+}
+
+.staff-inventory__group-meta {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted, #57534E);
+}
+
+/* Horizontally Scrollable Table (Desktop) */
+.staff-inventory__table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -0.5rem;
+  padding: 0 0.5rem;
+}
+
+.staff-inventory__table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.staff-inventory__table th {
+  padding: 0.75rem 0.85rem;
+  background-color: #FAF8F5;
+  color: var(--color-text, #1C1917);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--color-border, #E7E2DA);
+  white-space: nowrap;
+}
+
+.staff-inventory__table td {
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid var(--color-border, #E7E2DA);
+  color: var(--color-text, #1C1917);
+  white-space: nowrap;
+}
+
+.staff-inventory__table tr:last-child td {
+  border-bottom: none;
+}
+
+.staff-inventory__table tr:hover td {
+  background-color: #FDFBF8;
+}
+
+.staff-inventory__table tr--blackout td {
+  background-color: #FFF9F9;
+}
+
+.staff-inventory__rate-val {
+  font-weight: 600;
+  font-family: var(--font-heading, "Lora", Georgia, serif);
+  font-size: 1rem;
+  color: var(--color-accent, #1E3A2F);
+}
+
+.staff-inventory__allotment-val {
+  font-weight: 600;
+}
+
+.staff-inventory__remaining-val {
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm, 2px);
+  display: inline-block;
+  font-size: 0.8125rem;
+}
+
+.staff-inventory__remaining-val--available {
+  background-color: var(--color-success-tint, #E4ECE3);
+  color: var(--color-success, #2E5C31);
+}
+
+.staff-inventory__remaining-val--zero {
+  background-color: var(--color-danger-tint, #F3E4E1);
+  color: var(--color-danger, #991B1B);
+}
+
+.staff-inventory__cap-badge {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted, #57534E);
+}
+
+.staff-inventory__blackout-reason {
+  font-size: 0.75rem;
+  color: var(--color-danger, #991B1B);
+  margin-top: 0.15rem;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Quick shortcut preset buttons - 44px min tap target */
+.staff-inventory__quick-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap-min, 44px);
+  min-width: var(--tap-min, 44px);
+  padding: 0.5rem 0.875rem;
+  background-color: #FFFFFF;
+  border: 1px solid var(--color-border, #E7E2DA);
+  border-radius: var(--radius-sm, 2px);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--color-text, #1C1917);
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.staff-inventory__quick-btn:hover {
+  background-color: var(--color-surface, #F3EFEA);
+  border-color: var(--color-accent, #1E3A2F);
+}
+
+/* Tab Navigation & Admin Sections */
+.staff-inventory__tabs {
+  margin-top: 0.25rem;
+}
+
+/* Blackout deletion button - 44px min tap target */
+.staff-inventory__delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap-min, 44px);
+  min-width: var(--tap-min, 44px);
+  padding: 0.5rem 1rem;
+  color: var(--color-danger, #991B1B);
+  border: 1px solid #F5B7B1;
+  background-color: transparent;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm, 2px);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.staff-inventory__delete-btn:hover:not(:disabled) {
+  background-color: #FDEDEC;
+  border-color: var(--color-danger, #991B1B);
+}
+
+.staff-inventory__delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.staff-inventory__promo-code {
+  font-family: monospace;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--color-accent, #1E3A2F);
+  background-color: var(--color-surface, #F3EFEA);
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm, 2px);
+  display: inline-block;
+}
+
+/* Promo active toggle button - 44px min tap target */
+.staff-inventory__toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap-min, 44px);
+  min-width: var(--tap-min, 44px);
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm, 2px);
+  cursor: pointer;
+  border: 1px solid var(--color-border, #E7E2DA);
+  background-color: #FFFFFF;
+  color: var(--color-text, #1C1917);
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.staff-inventory__toggle-btn:hover:not(:disabled) {
+  background-color: var(--color-surface, #F3EFEA);
+  border-color: var(--color-accent, #1E3A2F);
+}
+
+.staff-inventory__toggle-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Mobile Cards View (Hidden on Desktop) */
+.staff-inventory__mobile-cards {
+  display: none;
+}
+
+/* Rate Card Component */
+.staff-inventory__rate-card {
+  background-color: var(--color-card, #FFFFFF);
+  border: 1px solid var(--color-border, #E7E2DA);
+  border-radius: var(--radius-md, 4px);
+  padding: 0.875rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.staff-inventory__rate-card--blackout {
+  background-color: #FFF9F9;
+  border-color: #F5B7B1;
+  border-left: 4px solid var(--color-danger, #991B1B);
+}
+
+.staff-inventory__rate-card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--color-border, #E7E2DA);
+  padding-bottom: 0.5rem;
+}
+
+.staff-inventory__rate-card-subdate {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #57534E);
+  margin-left: 0.4rem;
+}
+
+.staff-inventory__rate-card-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  background-color: var(--color-surface, #F3EFEA);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm, 2px);
+}
+
+.staff-inventory__rate-card-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.staff-inventory__rate-card-metric-label {
+  color: var(--color-text-muted, #57534E);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.staff-inventory__rate-card-metric-val {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--color-text, #1C1917);
+}
+
+.staff-inventory__rate-card-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+}
+
+.staff-inventory__blackout-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.staff-inventory__blackout-reason-text {
+  font-size: 0.75rem;
+  color: var(--color-danger, #991B1B);
+  font-style: italic;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Generic Item Card (Blackouts & Promos on Mobile) */
+.staff-inventory__item-card {
+  background-color: var(--color-card, #FFFFFF);
+  border: 1px solid var(--color-border, #E7E2DA);
+  border-radius: var(--radius-md, 4px);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.staff-inventory__item-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.staff-inventory__item-card-sub {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #57534E);
+  margin-top: 0.15rem;
+}
+
+.staff-inventory__item-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.staff-inventory__item-card-reason {
+  font-size: 0.875rem;
+  color: var(--color-text, #1C1917);
+}
+
+.staff-inventory__label-muted {
+  font-weight: 600;
+  color: var(--color-text-muted, #57534E);
+  font-size: 0.8125rem;
+}
+
+.staff-inventory__item-card-actions {
+  display: flex;
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.staff-inventory__delete-btn--full,
+.staff-inventory__toggle-btn--full {
+  width: 100%;
+}
+
+.staff-inventory__promo-card-value {
+  font-family: var(--font-heading, "Lora", Georgia, serif);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-accent, #1E3A2F);
+}
+
+.staff-inventory__promo-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted, #57534E);
+  margin-top: 0.25rem;
+}
+
+/* ==========================================
+   DAILY BOOKINGS EXPORT
+   ========================================== */
+.staff-inventory__export-card {
+  max-width: 860px;
+}
+
+.staff-inventory__export-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  align-items: flex-end;
+  margin-top: 1rem;
+}
+
+.staff-inventory__export-presets-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.staff-inventory__export-presets {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.staff-inventory__export-presets .staff-inventory__quick-btn {
+  min-height: var(--tap-min, 44px);
+  padding: 0.5rem 0.875rem;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.staff-inventory__export-submit .btn {
+  min-height: var(--tap-min, 44px);
+  padding: 0.625rem 1.25rem;
+}
+
+.staff-inventory__export-guidelines {
+  margin-top: 2rem;
+  padding: 1.25rem 1.5rem;
+  background-color: var(--color-surface, #F5F1E8);
+  border: 1px solid var(--color-border, #E7E2DA);
+  border-radius: var(--radius-sm, 2px);
+}
+
+.staff-inventory__export-guidelines-heading {
+  font-family: var(--font-heading, "Lora", Georgia, serif);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--color-text, #1C1917);
+  margin: 0 0 0.75rem 0;
+}
+
+.staff-inventory__export-guidelines-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-text-muted, #57534E);
+}
+
+.staff-inventory__export-guidelines-list code {
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 0.1rem 0.3rem;
+  border-radius: 2px;
+  font-size: 0.8125rem;
+}
+
+/* ==========================================
+   RESPONSIVE BREAKPOINTS (Mobile & Tablet)
+   ========================================== */
+@media (max-width: 768px) {
+  .staff-inventory-page {
+    padding: 1rem 0.5rem;
+    gap: 1.25rem;
+  }
+
+  /* Hide 720px min-width table and show native mobile cards */
+  .staff-inventory__table-wrapper {
+    display: none;
+  }
+
+  .staff-inventory__mobile-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  /* Filters stack cleanly on mobile */
+  .staff-inventory__filter-card {
+    padding: 1rem;
+  }
+
+  .staff-inventory__filter-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.875rem;
+  }
+
+  .staff-inventory__filter-group {
+    width: 100%;
+  }
+
+  .staff-inventory__filter-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+  }
+
+  .staff-inventory__filter-actions .btn {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  /* Bulk and Admin Forms single-column on mobile */
+  .staff-inventory__bulk-card {
+    padding: 1rem;
+  }
+
+  .staff-inventory__bulk-form {
+    grid-template-columns: 1fr;
+    gap: 0.875rem;
+  }
+
+  .staff-inventory__form-col-span-2 {
+    grid-column: 1 / -1;
+  }
+
+  .staff-inventory__bulk-submit {
+    width: 100%;
+  }
+
+  .staff-inventory__bulk-submit .btn {
+    width: 100%;
+  }
+
+  /* Category card headers stack on mobile */
+  .staff-inventory__group-card {
+    padding: 1rem 0.875rem;
+  }
+
+  .staff-inventory__group-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+
+  .staff-inventory__group-title {
+    font-size: 1.2rem;
+  }
+
+  /* Daily Export mobile styles */
+  .staff-inventory__export-form {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .staff-inventory__export-presets {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .staff-inventory__export-presets .staff-inventory__quick-btn {
+    width: 100%;
+    min-height: var(--tap-min, 44px);
+  }
+
+  .staff-inventory__export-submit {
+    width: 100%;
+  }
+
+  .staff-inventory__export-submit .btn {
+    width: 100%;
+    min-height: var(--tap-min, 44px);
+  }
+
+  .staff-inventory__export-guidelines {
+    padding: 1rem;
+  }
+}

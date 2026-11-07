@@ -181,3 +181,239 @@ export async function discardAdminDraft(token, id) {
 
   return await res.json();
 }
+
+
+export async function simulateAdminEnquiry(token, payload) {
+  const url = `${BASE_URL}/api/v1/admin/enquiries/simulate`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    let errorMsg = 'Failed to simulate enquiry';
+    let errorData = null;
+    try {
+      errorData = await res.json();
+      if (errorData && errorData.message) errorMsg = errorData.message;
+    } catch (e) {}
+    const err = new Error(errorMsg);
+    err.status = res.status;
+    err.data = errorData;
+    throw err;
+  }
+
+  return await res.json();
+}
+
+export async function fetchInventoryRates(token, from, to) {
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  const url = `${BASE_URL}/api/v1/admin/inventory-rates?${params.toString()}`;
+  const res = await fetch(url, {
+    headers: getAuthHeaders(token),
+  });
+
+  if (!res.ok) {
+    let errorMsg = 'Failed to fetch inventory rates';
+    try {
+      const data = await res.json();
+      if (data && data.message) errorMsg = data.message;
+    } catch (e) {}
+    const err = new Error(errorMsg);
+    err.status = res.status;
+    throw err;
+  }
+
+  return await res.json();
+}
+
+export async function bulkUpdateInventoryRates(token, payload) {
+  const url = `${BASE_URL}/api/v1/admin/inventory-rates/bulk`;
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    let errorMsg = 'Failed to update inventory rates';
+    let errorData = null;
+    try {
+      errorData = await res.json();
+      if (errorData && errorData.message) errorMsg = errorData.message;
+    } catch (e) {}
+    const err = new Error(errorMsg);
+    err.status = res.status;
+    err.data = errorData;
+    throw err;
+  }
+
+  return await res.json();
+}
+
+
+export async function fetchAdminBlackouts(token, from, to) {
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  const query = params.toString() ? `?${params.toString()}` : '';
+  const url = `${BASE_URL}/api/v1/admin/blackouts${query}`;
+  const res = await fetch(url, {
+    headers: getAuthHeaders(token),
+  });
+
+  if (!res.ok) {
+    let errorMsg = 'Failed to fetch blackout dates';
+    try {
+      const data = await res.json();
+      if (data && data.message) errorMsg = data.message;
+    } catch (e) {}
+    const err = new Error(errorMsg);
+    err.status = res.status;
+    throw err;
+  }
+
+  return await res.json();
+}
+
+export async function createAdminBlackout(token, payload) {
+  const url = `${BASE_URL}/api/v1/admin/blackouts`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    let errorMsg = 'Failed to create blackout date';
+    try {
+      const data = await res.json();
+      if (data && data.message) errorMsg = data.message;
+    } catch (e) {}
+    const err = new Error(errorMsg);
+    err.status = res.status;
+    throw err;
+  }
+
+  return await res.json();
+}
+
+export async function deleteAdminBlackout(token, id) {
+  const url = `${BASE_URL}/api/v1/admin/blackouts/${id}`;
+  const res = await fetch(url, {
+    method: 'DELETE',
+    headers: getAuthHeaders(token),
+  });
+
+  if (!res.ok) {
+    let errorMsg = 'Failed to delete blackout date';
+    try {
+      const data = await res.json();
+      if (data && data.message) errorMsg = data.message;
+    } catch (e) {}
+    const err = new Error(errorMsg);
+    err.status = res.status;
+    throw err;
+  }
+
+  return true;
+}
+
+export async function fetchAdminPromos(token) {
+  const url = `${BASE_URL}/api/v1/admin/promos`;
+  const res = await fetch(url, {
+    headers: getAuthHeaders(token),
+  });
+
+  if (!res.ok) {
+    let errorMsg = 'Failed to fetch promo codes';
+    try {
+      const data = await res.json();
+      if (data && data.message) errorMsg = data.message;
+    } catch (e) {}
+    const err = new Error(errorMsg);
+    err.status = res.status;
+    throw err;
+  }
+
+  return await res.json();
+}
+
+export async function createAdminPromo(token, payload) {
+  const url = `${BASE_URL}/api/v1/admin/promos`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    let errorMsg = 'Failed to create promo code';
+    try {
+      const data = await res.json();
+      if (data && data.message) errorMsg = data.message;
+    } catch (e) {}
+    const err = new Error(errorMsg);
+    err.status = res.status;
+    throw err;
+  }
+
+  return await res.json();
+}
+
+export async function updateAdminPromoActive(token, id, active) {
+  const url = `${BASE_URL}/api/v1/admin/promos/${id}/active`;
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers: getAuthHeaders(token),
+    body: JSON.stringify({ active }),
+  });
+
+  if (!res.ok) {
+    let errorMsg = 'Failed to update promo status';
+    try {
+      const data = await res.json();
+      if (data && data.message) errorMsg = data.message;
+    } catch (e) {}
+    const err = new Error(errorMsg);
+    err.status = res.status;
+    throw err;
+  }
+
+  return await res.json();
+}
+
+export async function exportAdminBookingsCsv(token, date) {
+  const url = `${BASE_URL}/api/v1/admin/bookings/export?date=${encodeURIComponent(date)}`;
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    let errorMsg = 'Failed to export bookings CSV';
+    try {
+      const data = await res.json();
+      if (data && data.message) errorMsg = data.message;
+    } catch (e) {}
+    const err = new Error(errorMsg);
+    err.status = res.status;
+    throw err;
+  }
+
+  const disposition = res.headers.get('Content-Disposition');
+  let filename = `daily-bookings-${date}.csv`;
+  if (disposition && disposition.includes('filename=')) {
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    if (match && match[1]) {
+      filename = match[1];
+    }
+  }
+
+  const blob = await res.blob();
+  return { blob, filename };
+}

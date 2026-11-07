@@ -18,6 +18,15 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, "Invalid Date Range", ex.getMessage());
     }
 
+    @ExceptionHandler(MissingInventoryDatesException.class)
+    public ResponseEntity<Map<String, Object>> handleMissingInventoryDates(MissingInventoryDatesException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("error", "Unprocessable Entity");
+        body.put("message", ex.getMessage());
+        body.put("missingDates", ex.getMissingDates());
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(body);
+    }
+
     @ExceptionHandler(InvalidPromoCodeException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidPromoCode(InvalidPromoCodeException ex) {
         return buildResponse(HttpStatus.UNPROCESSABLE_ENTITY, "Invalid Promo Code", ex.getMessage());

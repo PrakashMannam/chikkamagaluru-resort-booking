@@ -49,6 +49,63 @@ export async function fetchAvailability({
   }
 }
 
+export async function fetchPricingQuote({
+  roomCategoryId,
+  categoryCode,
+  ratePlanId,
+  planCode,
+  checkIn,
+  checkOut,
+  rooms = 1,
+  adults = 2,
+  children = 0,
+  promoCode,
+}) {
+  const params = new URLSearchParams();
+  if (roomCategoryId) params.append('roomCategoryId', String(roomCategoryId));
+  if (categoryCode) params.append('categoryCode', categoryCode);
+  if (ratePlanId) params.append('ratePlanId', String(ratePlanId));
+  if (planCode) params.append('planCode', planCode);
+  if (checkIn) params.append('checkIn', checkIn);
+  if (checkOut) params.append('checkOut', checkOut);
+  if (rooms) params.append('rooms', String(rooms));
+  if (adults) params.append('adults', String(adults));
+  if (children !== undefined && children !== null) params.append('children', String(children));
+  if (promoCode && promoCode.trim()) params.append('promoCode', promoCode.trim());
+
+  const url = `${BASE_URL}/api/v1/public/pricing/quote?${params.toString()}`;
+
+  try {
+    const res = await fetch(url, {
+      headers: {
+        Accept: 'application/json',
+      },
+    });
+
+    const body = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      let message = body.message || 'Unable to calculate live pricing quote.';
+      if (res.status === 422) {
+        message = body.message || 'The promo code entered is invalid or expired.';
+      } else if (res.status === 409) {
+        message = body.message || 'No rooms available for the selected dates.';
+      }
+      const err = new Error(message);
+      err.status = res.status;
+      err.serverBody = body;
+      throw err;
+    }
+
+    return body;
+  } catch (err) {
+    if (err.status) throw err;
+    const networkErr = new Error('Connection error while fetching pricing quote.');
+    networkErr.isNetwork = true;
+    throw networkErr;
+  }
+}
+
 export async function createBooking(payload, idempotencyKey) {
   const url = `${BASE_URL}/api/v1/public/bookings`;
   const headers = {

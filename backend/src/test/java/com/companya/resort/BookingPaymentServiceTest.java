@@ -10,6 +10,7 @@ import com.companya.resort.exception.ResourceNotFoundException;
 import com.companya.resort.repository.BookingRepository;
 import com.companya.resort.repository.DailyInventoryRateRepository;
 import com.companya.resort.repository.PaymentRepository;
+import com.companya.resort.repository.PromoCodeRepository;
 import com.companya.resort.security.RateLimitingFilter;
 import com.companya.resort.service.BookingExpiryService;
 import com.companya.resort.service.BookingPaymentService;
@@ -52,6 +53,9 @@ public class BookingPaymentServiceTest {
     private DailyInventoryRateRepository dailyInventoryRateRepository;
 
     @Mock
+    private PromoCodeRepository promoCodeRepository;
+
+    @Mock
     private BookingTransactionService bookingTransactionService;
 
     private Clock fixedClock;
@@ -72,6 +76,7 @@ public class BookingPaymentServiceTest {
                 bookingRepository,
                 paymentRepository,
                 dailyInventoryRateRepository,
+                promoCodeRepository,
                 bookingTransactionService,
                 fixedClock
         );
@@ -80,6 +85,7 @@ public class BookingPaymentServiceTest {
                 bookingRepository,
                 paymentRepository,
                 dailyInventoryRateRepository,
+                promoCodeRepository,
                 fixedClock
         );
     }
@@ -265,19 +271,40 @@ public class BookingPaymentServiceTest {
         baseDto.setBookingRef(bookingRef);
 
         when(bookingRepository.findByBookingRef(bookingRef)).thenReturn(Optional.of(booking));
-        when(paymentRepository.findByBookingId(booking.getId())).thenReturn(Optional.empty());
         when(bookingTransactionService.mapToBookingResponseDto(eq(booking), isNull())).thenReturn(baseDto);
 
         BookingResponseDto result = bookingPaymentService.getBookingMasked(bookingRef);
 
         assertEquals("a***@gmail.com", result.getGuestEmail(), "Email must be masked as a***@gmail.com");
         assertEquals("98XXXXXX21", result.getGuestPhone(), "Phone must be masked as 98XXXXXX21");
+        assertNull(result.getOneTimePaymentToken(), "Public booking lookup must never disclose payment or cancellation token");
 
         // Unknown ref -> 404
         when(bookingRepository.findByBookingRef("UNKNOWN_REF")).thenReturn(Optional.empty());
         assertThrows(ResourceNotFoundException.class, () ->
                 bookingPaymentService.getBookingMasked("UNKNOWN_REF")
         );
+    }
+
+    @Test
+    void designPackTest_getBookingMasked_neverExposesPaymentToken_evenIfPendingPaymentExists() {
+        Booking booking = createSampleBooking(BookingStatus.PENDING_PAYMENT, LocalDateTime.now(fixedClock).plusMinutes(10));
+        booking.setGuestEmail("guest.secure@example.com");
+        booking.setGuestPhone("9988776655");
+
+        BookingResponseDto baseDto = new BookingResponseDto();
+        baseDto.setBookingRef(bookingRef);
+
+        when(bookingRepository.findByBookingRef(bookingRef)).thenReturn(Optional.of(booking));
+        when(bookingTransactionService.mapToBookingResponseDto(eq(booking), isNull())).thenReturn(baseDto);
+
+        BookingResponseDto result = bookingPaymentService.getBookingMasked(bookingRef);
+
+        assertNotNull(result);
+        assertEquals("BKG123456789", result.getBookingRef());
+        assertNull(result.getOneTimePaymentToken(), "Sensitive payment/cancellation token must be null on lookup");
+        // Verify paymentRepository is never queried to expose tokens during lookup
+        verify(paymentRepository, never()).findByBookingId(any());
     }
 
     @Test
@@ -625,5 +652,100 @@ public class BookingPaymentServiceTest {
         // Exactly one release happened
         assertTrue(releaseCount.get() <= 1, "Stock release must occur at most once during race");
         assertTrue(rate.getBookedCount() >= 0, "Booked count must not be decremented below 0");
+    }
+
+    @Test
+    void cancelHold_withPromoCode_releasesPromoUsage() {
+        Booking booking = createSampleBooking(BookingStatus.PENDING_PAYMENT, LocalDateTime.now(fixedClock).plusMinutes(10));
+        PromoCode promo = new PromoCode(10L, "DISCOUNT10", DiscountType.PERCENTAGE, new BigDecimal("10.00"),
+                checkIn.minusDays(1), checkOut.plusDays(10), 1, 5, 2, true);
+        booking.setPromoCode(promo);
+        Payment payment = createSamplePayment(booking);
+        List<DailyInventoryRate> rates = createSampleRates(booking.getRoomCategory(), 1);
+
+        when(bookingRepository.findAndLockByBookingRef(bookingRef)).thenReturn(Optional.of(booking));
+        when(paymentRepository.findByBookingId(booking.getId())).thenReturn(Optional.of(payment));
+        when(dailyInventoryRateRepository.findAndLockByRoomCategoryIdAndStayDateRange(any(), any(), any())).thenReturn(rates);
+        when(promoCodeRepository.findAndLockById(10L)).thenReturn(Optional.of(promo));
+        when(bookingTransactionService.mapToBookingResponseDto(any(), any())).thenReturn(new BookingResponseDto());
+
+        BookingResponseDto dto = bookingPaymentService.cancelHold(bookingRef, validToken);
+
+        assertNotNull(dto);
+        assertEquals(BookingStatus.CANCELLED, booking.getStatus());
+        assertEquals(1, promo.getCurrentUses(), "Promo currentUses must decrement by 1 on cancelHold");
+        verify(promoCodeRepository).findAndLockById(10L);
+        verify(promoCodeRepository).save(promo);
+    }
+
+    @Test
+    void paymentWebhookFailure_withPromoCode_releasesPromoUsage() {
+        Booking booking = createSampleBooking(BookingStatus.PENDING_PAYMENT, LocalDateTime.now(fixedClock).plusMinutes(10));
+        PromoCode promo = new PromoCode(10L, "DISCOUNT10", DiscountType.PERCENTAGE, new BigDecimal("10.00"),
+                checkIn.minusDays(1), checkOut.plusDays(10), 1, 5, 2, true);
+        booking.setPromoCode(promo);
+        Payment payment = createSamplePayment(booking);
+        List<DailyInventoryRate> rates = createSampleRates(booking.getRoomCategory(), 1);
+
+        when(bookingRepository.findAndLockByBookingRef(bookingRef)).thenReturn(Optional.of(booking));
+        when(paymentRepository.findByBookingId(booking.getId())).thenReturn(Optional.of(payment));
+        when(dailyInventoryRateRepository.findAndLockByRoomCategoryIdAndStayDateRange(any(), any(), any())).thenReturn(rates);
+        when(promoCodeRepository.findAndLockById(10L)).thenReturn(Optional.of(promo));
+        when(bookingTransactionService.mapToBookingResponseDto(any(), any())).thenReturn(new BookingResponseDto());
+
+        PaymentWebhookRequest request = new PaymentWebhookRequest(validToken, "FAILURE");
+        BookingResponseDto dto = bookingPaymentService.processMockWebhook(bookingRef, validToken, request);
+
+        assertNotNull(dto);
+        assertEquals(BookingStatus.FAILED, booking.getStatus());
+        assertEquals(1, promo.getCurrentUses(), "Promo currentUses must decrement by 1 on payment failure");
+        verify(promoCodeRepository).findAndLockById(10L);
+        verify(promoCodeRepository).save(promo);
+    }
+
+    @Test
+    void paymentWebhookSuccess_withPromoCode_retainsPromoUsage() {
+        Booking booking = createSampleBooking(BookingStatus.PENDING_PAYMENT, LocalDateTime.now(fixedClock).plusMinutes(10));
+        PromoCode promo = new PromoCode(10L, "DISCOUNT10", DiscountType.PERCENTAGE, new BigDecimal("10.00"),
+                checkIn.minusDays(1), checkOut.plusDays(10), 1, 5, 2, true);
+        booking.setPromoCode(promo);
+        Payment payment = createSamplePayment(booking);
+
+        when(bookingRepository.findAndLockByBookingRef(bookingRef)).thenReturn(Optional.of(booking));
+        when(paymentRepository.findByBookingId(booking.getId())).thenReturn(Optional.of(payment));
+        when(bookingTransactionService.mapToBookingResponseDto(any(), any())).thenReturn(new BookingResponseDto());
+
+        PaymentWebhookRequest request = new PaymentWebhookRequest(validToken, "SUCCESS");
+        BookingResponseDto dto = bookingPaymentService.processMockWebhook(bookingRef, validToken, request);
+
+        assertNotNull(dto);
+        assertEquals(BookingStatus.CONFIRMED, booking.getStatus());
+        assertEquals(2, promo.getCurrentUses(), "Promo currentUses must remain unchanged on payment success");
+        verify(promoCodeRepository, never()).findAndLockById(any());
+        verify(promoCodeRepository, never()).save(any());
+    }
+
+    @Test
+    void bookingExpiry_withPromoCode_releasesPromoUsage() {
+        Booking booking = createSampleBooking(BookingStatus.PENDING_PAYMENT, LocalDateTime.now(fixedClock).minusMinutes(1));
+        PromoCode promo = new PromoCode(10L, "DISCOUNT10", DiscountType.PERCENTAGE, new BigDecimal("10.00"),
+                checkIn.minusDays(1), checkOut.plusDays(10), 1, 5, 2, true);
+        booking.setPromoCode(promo);
+        Payment payment = createSamplePayment(booking);
+        List<DailyInventoryRate> rates = createSampleRates(booking.getRoomCategory(), 1);
+
+        when(bookingRepository.findExpiredBookingIdsForUpdateSkipLocked(any())).thenReturn(List.of(booking.getId()));
+        when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
+        when(paymentRepository.findByBookingId(booking.getId())).thenReturn(Optional.of(payment));
+        when(dailyInventoryRateRepository.findAndLockByRoomCategoryIdAndStayDateRange(any(), any(), any())).thenReturn(rates);
+        when(promoCodeRepository.findAndLockById(10L)).thenReturn(Optional.of(promo));
+
+        int released = bookingExpiryService.releaseExpiredHolds();
+
+        assertEquals(1, released);
+        assertEquals(BookingStatus.EXPIRED, booking.getStatus());
+        assertEquals(1, promo.getCurrentUses(), "Promo currentUses must decrement by 1 on hold expiry");
+        verify(promoCodeRepository).findAndLockById(10L);
+        verify(promoCodeRepository).save(promo);
     }
 }
