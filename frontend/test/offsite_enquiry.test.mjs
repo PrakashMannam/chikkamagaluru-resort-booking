@@ -1,30 +1,86 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {
+  buildRawEnquiryMessage,
+  DEFAULT_OFFSITE_CONFERENCE_HALL_SELECTION
+} from '../src/utils/enquiryMessageBuilder.js';
 
-test('Offsite meeting-space default is not Yes and only explicit Yes is included in payload', () => {
+test('Behavioral: DEFAULT_OFFSITE_CONFERENCE_HALL_SELECTION is neutral "unspecified"', () => {
+  assert.equal(
+    DEFAULT_OFFSITE_CONFERENCE_HALL_SELECTION,
+    'unspecified',
+    'Default conference hall selection constant must be "unspecified"'
+  );
+});
+
+test('Behavioral: Corporate Offsite message omits conference hall when default (unspecified) or explicit "no"', () => {
+  const baseParams = {
+    enquiryType: 'CORPORATE_OFFSITE',
+    organization: 'Acme Corp',
+    eventDate: '2026-11-20',
+    nights: '2',
+    guestsCount: '45',
+    roomsCount: '20',
+  };
+
+  // 1. Default unspecified
+  const defaultMsg = buildRawEnquiryMessage({
+    ...baseParams,
+    needsConferenceHall: 'unspecified',
+  });
+  assert.ok(
+    !defaultMsg.includes('with a conference hall'),
+    'Default unspecified must not claim or append "with a conference hall"'
+  );
+  assert.ok(
+    !defaultMsg.toLowerCase().includes('av'),
+    'Default unspecified must not mention AV setup'
+  );
+
+  // 2. Explicit 'no'
+  const noMsg = buildRawEnquiryMessage({
+    ...baseParams,
+    needsConferenceHall: 'no',
+  });
+  assert.ok(
+    !noMsg.includes('with a conference hall'),
+    'Explicit "no" must not claim or append "with a conference hall"'
+  );
+
+  // 3. Explicit 'yes'
+  const yesMsg = buildRawEnquiryMessage({
+    ...baseParams,
+    needsConferenceHall: 'yes',
+  });
+  assert.ok(
+    yesMsg.includes('with a conference hall'),
+    'Explicit "yes" must include "with a conference hall" in the message'
+  );
+  assert.equal(
+    yesMsg,
+    'Corporate offsite for Acme Corp, Team of 45, wants an offsite on 2026-11-20, for 2 nights, with 20 rooms, with a conference hall'
+  );
+});
+
+test('Source contract: PublicEnquiryPage initializes and resets conference hall to unspecified with neutral option', () => {
   const fileContent = fs.readFileSync('frontend/src/pages/PublicEnquiryPage.jsx', 'utf8');
 
-  // 1. Initial state is 'unspecified' and NOT 'yes'
-  assert.doesNotMatch(
-    fileContent,
-    /needsConferenceHall,\s*setNeedsConferenceHall\]\s*=\s*useState\(['"]yes['"]\)/,
-    'Initial needsConferenceHall state must NOT be "yes"'
-  );
+  // Initial state uses DEFAULT_OFFSITE_CONFERENCE_HALL_SELECTION
   assert.match(
     fileContent,
-    /needsConferenceHall,\s*setNeedsConferenceHall\]\s*=\s*useState\(['"]unspecified['"]\)/,
-    'Initial needsConferenceHall state must be "unspecified"'
+    /needsConferenceHall,\s*setNeedsConferenceHall\]\s*=\s*useState\(DEFAULT_OFFSITE_CONFERENCE_HALL_SELECTION\)/,
+    'PublicEnquiryPage must initialize needsConferenceHall to DEFAULT_OFFSITE_CONFERENCE_HALL_SELECTION'
   );
 
-  // 2. handleTypeChange resets to 'unspecified' on switching to CORPORATE_OFFSITE
+  // Switching to CORPORATE_OFFSITE resets to DEFAULT_OFFSITE_CONFERENCE_HALL_SELECTION
   assert.match(
     fileContent,
-    /setNeedsConferenceHall\(['"]unspecified['"]\)/,
-    'Switching to CORPORATE_OFFSITE must set needsConferenceHall to "unspecified"'
+    /setNeedsConferenceHall\(DEFAULT_OFFSITE_CONFERENCE_HALL_SELECTION\)/,
+    'handleTypeChange must reset needsConferenceHall to DEFAULT_OFFSITE_CONFERENCE_HALL_SELECTION'
   );
 
-  // 3. Select dropdown offers neutral 'unspecified' default option
+  // Dropdown includes neutral option
   const selectBlock = fileContent.match(/<select[^>]*id="conf-hall"[\s\S]*?<\/select>/);
   assert.ok(selectBlock, 'Meeting space select element must exist');
   assert.match(
@@ -32,26 +88,19 @@ test('Offsite meeting-space default is not Yes and only explicit Yes is included
     /<option value="unspecified">Not specified \/ please advise<\/option>/,
     'Select element must include neutral "unspecified" option'
   );
-
-  // 4. Raw message builder only appends conference space if explicitly 'yes'
-  assert.match(
-    fileContent,
-    /needsConferenceHall === ['"]yes['"] \? ['"]with a conference hall['"] : null/,
-    'Payload must only append "with a conference hall" when explicitly chosen as "yes"'
-  );
 });
 
 test('Privacy page accurately reflects confirmation link access without claiming public lookup', () => {
   const privacyContent = fs.readFileSync('frontend/src/pages/PrivacyPage.jsx', 'utf8');
 
-  // 1. Must NOT claim guests can look up reservations using a booking reference
+  // Must NOT claim unauthenticated lookup by booking reference
   assert.doesNotMatch(
     privacyContent,
     /Allowing guests to look up their reservation details using a unique booking reference/,
     'Privacy page must not claim unauthenticated reservation lookup exists'
   );
 
-  // 2. Must describe direct confirmation & receipt access via confirmation link
+  // Must describe direct confirmation & receipt access via confirmation link
   assert.match(
     privacyContent,
     /Allowing guests to access their reservation confirmation and receipt directly via the booking's confirmation link/,
