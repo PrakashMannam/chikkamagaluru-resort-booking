@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import React, { useEffect, useCallback } from 'react';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import './GuestLayout.css';
 
 function CoffeeLeafIcon() {
@@ -23,6 +23,43 @@ function CoffeeLeafIcon() {
 }
 
 export function GuestLayout() {
+  const location = useLocation();
+
+  const scrollToAnchor = useCallback((targetId) => {
+    const elem = document.getElementById(targetId);
+    if (elem) {
+      elem.scrollIntoView({ behavior: 'smooth' });
+      return true;
+    }
+    return false;
+  }, []);
+
+  useEffect(() => {
+    if (location.pathname === '/' && location.hash) {
+      const targetId = location.hash.replace('#', '');
+      if (!scrollToAnchor(targetId)) {
+        const observer = new MutationObserver((mutations, obs) => {
+          if (scrollToAnchor(targetId)) {
+            obs.disconnect();
+          }
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+        const timer = setTimeout(() => observer.disconnect(), 2000);
+        return () => {
+          observer.disconnect();
+          clearTimeout(timer);
+        };
+      }
+    }
+  }, [location.pathname, location.hash, scrollToAnchor]);
+
+  const handleAboutClick = (e) => {
+    if (location.pathname === '/' && location.hash === '#about') {
+      e.preventDefault();
+      scrollToAnchor('about');
+    }
+  };
+
   return (
     <div className="guest-shell">
       {/* 1. Top Navbar (Matches reference design) */}
@@ -42,7 +79,7 @@ export function GuestLayout() {
             <NavLink to="/stay" className="guest-header__link">Stay</NavLink>
             <NavLink to="/enquire?type=wedding" className="guest-header__link">Weddings</NavLink>
             <NavLink to="/enquire?type=offsite" className="guest-header__link">Offsites</NavLink>
-            <a href="#about" className="guest-header__link">About</a>
+            <Link to="/#about" className="guest-header__link" onClick={handleAboutClick}>About</Link>
           </nav>
 
           {/* Right CTA */}
@@ -92,7 +129,7 @@ export function GuestLayout() {
           {/* Col 4: About */}
           <div className="guest-footer__col">
             <p className="guest-footer__heading">About</p>
-            <a href="#about" className="guest-footer__link">The Estate</a>
+            <Link to="/#about" className="guest-footer__link" onClick={handleAboutClick}>The Estate</Link>
             <span className="guest-footer__location">Western Ghats, Karnataka</span>
           </div>
         </div>
