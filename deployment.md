@@ -86,6 +86,7 @@ Never commit real secrets, database passwords, or private API keys to source con
 | `SPRING_PROFILES_ACTIVE` | Optional | `default` | Set to `demo` to activate `DemoDataSeeder` (pre-seeds the 4 demo staff reviewer accounts and initial inventory rates). |
 | `FIXED_TODAY` | Optional | None (system clock) | Fixed ISO-8601 calendar date (e.g. `2026-11-02`) used by `PricingService` and inventory queries for reproducible demonstration testing. |
 | `RATE_LIMIT_BOOKING_RPM` | Optional | `10` | Maximum booking creation requests permitted per client IP per minute. |
+| `RATE_LIMIT_ENQUIRY_MAX_REQUESTS` | Optional | `5` | Maximum public enquiry submissions permitted per client IP per 10-minute window (design-pack §3). |
 | `TRUSTED_PROXY_HOPS` | Optional | `1` | Number of upstream reverse proxy hops to traverse when parsing `X-Forwarded-For` for client IP resolution. |
 | `GEMINI_API_KEY` | Optional | None | Google Gemini API key for automated AI triage of guest enquiries. If omitted or empty, `RuleFallbackService` automatically provides deterministic rule-based draft responses. |
 | `GEMINI_MODEL` | Optional | `gemini-3.8-flash` | Gemini model identifier used for enquiry assistance. |

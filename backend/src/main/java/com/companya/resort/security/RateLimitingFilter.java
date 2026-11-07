@@ -23,11 +23,15 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
     public static final int MAX_MAP_KEYS = 10_000;
     public static final long WINDOW_MS = 60_000L;
+    /** Enquiry submissions use a 10-minute sliding window (design-pack §3: 5 requests per 10 minutes per IP). */
+    public static final long ENQUIRY_WINDOW_MS = 600_000L;
 
     public enum EndpointGroup {
         BOOKING_CREATION(10),
         PAYMENT_MUTATION(30),
-        PUBLIC_READ(120);
+        PUBLIC_READ(120),
+        /** Public enquiry submission — stricter limit with a longer window (design-pack: 5 per 10 min per IP). */
+        ENQUIRY_SUBMISSION(5);
 
         private final int defaultRpm;
 
@@ -79,6 +83,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     private int bookingCreationLimit;
     private int paymentMutationLimit;
     private int readLimit;
+    private int enquirySubmissionLimit;
     private int trustedProxyHops;
 
     @Autowired
@@ -86,24 +91,30 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             @Value("${app.rate-limit.booking-rpm:${RATE_LIMIT_BOOKING_RPM:10}}") int bookingCreationLimit,
             @Value("${app.rate-limit.payment-mutation-rpm:30}") int paymentMutationLimit,
             @Value("${app.rate-limit.read-rpm:120}") int readLimit,
+            @Value("${app.rate-limit.enquiry-max-requests:${RATE_LIMIT_ENQUIRY_MAX_REQUESTS:5}}") int enquirySubmissionLimit,
             @Value("${app.rate-limit.trusted-proxy-hops:${TRUSTED_PROXY_HOPS:1}}") int trustedProxyHops
     ) {
         this.bookingCreationLimit = bookingCreationLimit > 0 ? bookingCreationLimit : 10;
         this.paymentMutationLimit = paymentMutationLimit > 0 ? paymentMutationLimit : 30;
         this.readLimit = readLimit > 0 ? readLimit : 120;
+        this.enquirySubmissionLimit = enquirySubmissionLimit > 0 ? enquirySubmissionLimit : 5;
         this.trustedProxyHops = trustedProxyHops > 0 ? trustedProxyHops : 1;
     }
 
     public RateLimitingFilter() {
-        this(10, 30, 120, resolveTrustedProxyHops());
+        this(10, 30, 120, 5, resolveTrustedProxyHops());
     }
 
     public RateLimitingFilter(int uniformLimit) {
-        this(uniformLimit, uniformLimit, uniformLimit, resolveTrustedProxyHops());
+        this(uniformLimit, uniformLimit, uniformLimit, uniformLimit, resolveTrustedProxyHops());
     }
 
     public RateLimitingFilter(int uniformLimit, int trustedProxyHops) {
-        this(uniformLimit, uniformLimit, uniformLimit, trustedProxyHops);
+        this(uniformLimit, uniformLimit, uniformLimit, uniformLimit, trustedProxyHops);
+    }
+
+    public RateLimitingFilter(int bookingCreationLimit, int paymentMutationLimit, int readLimit, int trustedProxyHops) {
+        this(bookingCreationLimit, paymentMutationLimit, readLimit, 5, trustedProxyHops);
     }
 
     private static int resolveTrustedProxyHops() {
@@ -144,10 +155,19 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         return readLimit;
     }
 
+    public void setEnquirySubmissionLimit(int enquirySubmissionLimit) {
+        this.enquirySubmissionLimit = enquirySubmissionLimit;
+    }
+
+    public int getEnquirySubmissionLimit() {
+        return enquirySubmissionLimit;
+    }
+
     public void setLimitRpm(int limitRpm) {
         this.bookingCreationLimit = limitRpm;
         this.paymentMutationLimit = limitRpm;
         this.readLimit = limitRpm;
+        this.enquirySubmissionLimit = limitRpm;
     }
 
     public int getLimitRpm() {
@@ -162,7 +182,19 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             case BOOKING_CREATION -> bookingCreationLimit;
             case PAYMENT_MUTATION -> paymentMutationLimit;
             case PUBLIC_READ -> readLimit;
+            case ENQUIRY_SUBMISSION -> enquirySubmissionLimit;
         };
+    }
+
+    /**
+     * Returns the sliding window duration for the given endpoint group.
+     * ENQUIRY_SUBMISSION uses a 10-minute window; all other groups use 1 minute.
+     */
+    public long getWindowForGroup(EndpointGroup group) {
+        if (group == EndpointGroup.ENQUIRY_SUBMISSION) {
+            return ENQUIRY_WINDOW_MS;
+        }
+        return WINDOW_MS;
     }
 
     public void setTrustedProxyHops(int trustedProxyHops) {
@@ -205,8 +237,17 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         cleanupExpiredEntries(System.currentTimeMillis());
     }
 
+    /**
+     * Removes expired entries using the longest window duration to ensure
+     * enquiry buckets (10-minute window) are not prematurely evicted.
+     */
     public void cleanupExpiredEntries(long now) {
-        requestCounts.entrySet().removeIf(entry -> entry.getValue().isExpired(now, WINDOW_MS));
+        requestCounts.entrySet().removeIf(entry -> {
+            long windowMs = entry.getKey().endsWith(":" + EndpointGroup.ENQUIRY_SUBMISSION.name())
+                    ? ENQUIRY_WINDOW_MS
+                    : WINDOW_MS;
+            return entry.getValue().isExpired(now, windowMs);
+        });
     }
 
     public EndpointGroup resolveEndpointGroup(HttpServletRequest request) {
@@ -219,6 +260,9 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             }
             if (uri.startsWith("/api/v1/public/payments/") || uri.endsWith("/cancel-hold")) {
                 return EndpointGroup.PAYMENT_MUTATION;
+            }
+            if (uri.equals("/api/v1/public/enquiries") || uri.equals("/api/v1/public/enquiries/")) {
+                return EndpointGroup.ENQUIRY_SUBMISSION;
             }
         } else if ("GET".equalsIgnoreCase(method)) {
             if (uri.startsWith("/api/v1/public/rooms/") || uri.startsWith("/api/v1/public/bookings")) {
@@ -242,8 +286,9 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
         String clientIp = extractClientIp(request);
         if (!tryAcquire(clientIp, group, System.currentTimeMillis())) {
+            long retryAfterSeconds = getWindowForGroup(group) / 1000;
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-            response.setHeader("Retry-After", "60");
+            response.setHeader("Retry-After", String.valueOf(retryAfterSeconds));
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.getWriter().write("{\"status\":429,\"error\":\"Too Many Requests\",\"message\":\"Rate limit exceeded. Please try again later.\"}");
             return;
@@ -269,6 +314,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         }
 
         String key = clientIp + ":" + group.name();
+        long windowMs = getWindowForGroup(group);
 
         // When map is full and IP+group is new, run cleanup first
         if (!requestCounts.containsKey(key) && requestCounts.size() >= MAX_MAP_KEYS) {
@@ -293,7 +339,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             return false;
         }
 
-        return bucket.tryAcquire(now, limit, WINDOW_MS);
+        return bucket.tryAcquire(now, limit, windowMs);
     }
 
     public String extractClientIp(HttpServletRequest request) {

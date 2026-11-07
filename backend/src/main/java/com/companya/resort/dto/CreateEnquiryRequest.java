@@ -17,6 +17,7 @@ public class CreateEnquiryRequest {
     private String senderContact;
 
     @NotBlank(message = "Message cannot be empty")
+    @Size(max = 5000, message = "Message must not exceed 5000 characters")
     @JsonAlias({"raw_message", "message"})
     private String rawMessage;
 
