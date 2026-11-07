@@ -2,6 +2,10 @@
 
 This document details the configuration, deployment, and operational procedures for the Chikkamagaluru Resort Booking platform across local development environments and cloud hosting targets (Vercel, Railway, and MySQL 8).
 
+> **Requirements Provenance & Explicit Disclosure of Brief Availability**:
+> The standalone upstream assignment brief (referred to historically as "the original brief" or "IsoCode Labs brief") is **not present as a discrete file** in this repository or the `docs/` directory.
+> All operational and deployment specifications documented herein are grounded directly in the committed project documentation (`RULES.md`, `docs/design-pack.md`, `docs/design-pack-patch.md`, `docs/design-pack-v2-patch.md`, `docs/design-direction-patch.md`, `docs/frontend-rules.md`, and `docs/gst-source.md`). Any requirements not present in this documentation are marked **NOT VERIFIED**.
+
 ---
 
 ## 1. Prerequisites & Toolchain Versions
@@ -64,6 +68,8 @@ Migration scripts reside in `backend/src/main/resources/db/migration/`:
 | `V4` | `V4__gst_slabs.sql` | Provisional GST tax slabs (0.00–7,500.00 INR: 5.00%, >7,500.00 INR: 18.00%, status `UNVERIFIED`). |
 | `V5` | `V5__enquiry_ai_fields.sql` | Schema enhancement adding `ai_summary` (TEXT), `extracted_rooms` (INT), and `ai_error_status` (VARCHAR(100)) to the `enquiries` table for automated triage. |
 | `V6` | `V6__blackout_dates_resort_wide_unique.sql` | Enforces uniqueness for resort-wide blackout dates via functional unique index `uk_blackout_dates_scope_date` on `((COALESCE(room_category_id, 0)), blackout_date)`, preventing duplicate resort-wide blackouts on the same calendar day. |
+| `V7` | `V7__correct_seeded_enquiry_drafts.sql` | Idempotent data migration correcting legacy seeded demo enquiry drafts for `ENQ-DEMO-ROOM1` and `ENQ-DEMO-WED1` to grounded, non-committal wording. (Pending in live production). |
+| `V8` | `V8__correct_corporate_demo_draft.sql` | Idempotent data migration correcting legacy seeded corporate demo draft for `ENQ-DEMO-CORP1` to conservative coordinator confirmation, eliminating ungrounded claims about AV projection, panoramic views, and guided cupping. (Pending in live production). |
 
 > **Immutability Principle**: Applied Flyway migration scripts are strictly immutable and must never be edited retroactively. Any new schema or data changes must be introduced as sequential forward migrations (`V7`, `V8`, etc.).
 

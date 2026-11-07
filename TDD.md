@@ -10,6 +10,45 @@ The platform fulfills two primary operational needs:
 
 ---
 
+
+
+---
+
+## 1.1 Requirements Provenance & Brief Disclosure
+
+> **Explicit Disclosure of Brief Availability**:
+> The standalone upstream assignment brief (referred to historically as "the original brief" or "IsoCode Labs brief") is **not present as a discrete file** within this repository or the `docs/` directory.
+>
+> All verified architectural, domain, and behavioral specifications in this TDD are strictly derived from the committed project documentation:
+> - `RULES.md`: Core developer constraints, database immutability, role validation, BigDecimal currency requirements, and testing criteria.
+> - `docs/design-pack.md`: Core Build blueprint (v2), 12 relational database tables, room category grouping (64 Rooms + 12 Villas), staff lanes, and enquiry triage rules.
+> - `docs/design-pack-patch.md` & `docs/design-pack-v2-patch.md`: Authoritative overrides for GST single-slab calculation (post-promo value of supply), concurrency deadlock retry, active hold capping, and rate limiter sizing.
+> - `docs/design-direction-patch.md`: WCAG AA color contrast ratios, 44px tap targets, tokens, responsive viewports (375px mobile, 768px tablet, 1024px+ desktop), and room page requirements.
+> - `docs/frontend-rules.md`: Component boundaries, local date handling, idempotent booking submission, and three-stage booking funnel rules.
+> - `docs/gst-source.md`: Statutory references (CGST Act s.15, Gazette notifications) for 5% and 18% hospitality tax brackets.
+>
+> **Requirements Categorization**:
+> 1. **Explicitly Required by Project Documentation**:
+>    - 76 physical keys (64 Estate Rooms + 12 Private Pool Villas).
+>    - Two primary system roles: Guest (public) and Reservations Staff (`ROLE_STAFF` with `is_gm` privilege flag).
+>    - Three-stage guest checkout journey: Guest Details (`/checkout`) → Payment (`/payment/:ref`) → Confirmation (`/bookings/:ref`).
+>    - 10-minute pessimistic inventory hold guarantee with token-based hold cancellation (`/cancel-hold`).
+>    - Token-bucket IP rate limiting (10 RPM bookings, 5 per 10 minutes for public enquiries).
+>    - Single GST slab lookup based on post-promo average nightly tariff on check-in date.
+>    - Provisional GST slab seeding flagged `UNVERIFIED` with UI disclaimers.
+>    - Functional unique index on resort-wide blackout dates (`uk_blackout_dates_scope_date`).
+>    - Multi-channel enquiry intake with privacy PII redaction and Gemini AI draft generation.
+>    - Rate-table quote injection (`QuoteInjectorService`) preventing hallucinated prices in staff drafts.
+>    - Mandatory staff review before dispatch (`DRAFT_PENDING_REVIEW`).
+>    - Daily CSV booking export with spreadsheet formula injection protection (CWE-1236).
+>    - Mobile-first responsive UI (375px+ without horizontal scroll).
+> 2. **Inferred from Implementation & Architecture**:
+>    - Mapping 76 physical keys to two bookable room categories (`ROOM` and `VILLA`).
+>    - Dynamic port binding for Railway container environments (`SERVER_PORT=${PORT}`).
+>    - Automated Vercel Edge deployments via GitHub webhook integration on `main`.
+> 3. **NOT VERIFIED (Original Brief Unavailable)**:
+>    - Any hypothetical requirements or evaluation criteria belonging strictly to an uncommitted external document that were not transcribed into the committed `docs/` files are marked **NOT VERIFIED**.
+
 ## 2. High-Level System Architecture
 
 The application adopts a modular 3-tier architecture with clear separation of concerns:
@@ -114,19 +153,22 @@ Database migrations are managed strictly through Flyway scripts (`backend/src/ma
    - `confidence`: Decimal score between `0.00` and `1.00`.
    - `extracted_rooms`, `extracted_guests`, `extracted_nights`, `check_in_date`, `check_out_date`, `budget_amount`.
    - `suggested_reply`: Polite response containing `{{RATE_TABLE_QUOTE_BLOCK}}`.
-4. **Hallucination & Safety Guardrails**:
-   - `DraftPriceSanitizer`: Strips invented room rates and replaces with authoritative quote placeholder; sanitizes unsupported hold claims ("We have held a room") and unverified meal/activity inclusions ("includes gourmet breakfast and plantation walk").
+4. **Hallucination Guardrails & Grounding Limits**:
+   - `DraftPriceSanitizer`: Strips invented room rates and replaces with authoritative quote placeholder `{{RATE_TABLE_QUOTE_BLOCK}}`; sanitizes unsupported hold assertions ("We have held a room" → informational disclaimer); sanitizes unverified meal/dining promises ("includes gourmet breakfast" → reservations disclaimer); and sanitizes unsupported facility/activity promises (AV projection, high-speed Wi-Fi, panoramic views, guided cupping → coordinator confirmation).
    - `QuoteInjectorService`: Directly queries authoritative database rates and GST slabs to compute exact tariffs, injecting verifiable numbers only. If dates/rates are unverified, safely defers to manual coordinator review.
    - `BudgetValidator`: Ignores hallucinated budgets unless explicit currency terms or numbers were present in raw guest input.
+   - **Real Operational Limits of AI Grounding**: Automated pattern-based sanitizers and system prompts mitigate known high-frequency failure modes (rates, holds, standard inclusions). However, regex sanitization **cannot mathematically guarantee prevention of open-ended, arbitrary LLM hallucinations** (such as novel off-menu activities, unverified property features, or specialized transit promises). Automated sanitization serves as a defense-in-depth filter, not an absolute guarantee.
 5. **Specialty Lane Routing**:
    - `COMPLAINT` or low-confidence (< 0.80): Routes directly to General Manager (`gm.demo@companya-estate.test`) with `gm_alerted = true`.
    - `ROOM_BOOKING`: Routed to Reservations Specialist (`rooms.demo@companya-estate.test`).
    - `WEDDING`: Routed to Wedding Specialist (`weddings.demo@companya-estate.test`).
    - `CORPORATE_OFFSITE`: Routed to Offsites Specialist (`offsites.demo@companya-estate.test`).
-6. **Mandatory Human Review**:
-   - Draft replies are saved as `DRAFT_PENDING_REVIEW`.
-   - No automated email, SMS, or simulated dispatch occurs until authorized staff explicitly reviews, edits, and calls `POST /api/v1/admin/enquiries/{id}/approve-draft`.
-   - Atomic draft claiming (`atomicClaimDraft`) prevents race conditions during concurrent staff approvals.
+6. **Mandatory Staff Review Control as Final Safeguard**:
+   - All AI-generated replies are strictly persisted in state `DRAFT_PENDING_REVIEW`.
+   - **No automated outbound communication** (email, SMS, WhatsApp simulation) is ever dispatched to guests autonomously.
+   - Authorized departmental staff must manually inspect the draft in the Staff Inbox, verify every claim against resort reality, edit or rewrite if necessary, and explicitly trigger approval via `POST /api/v1/admin/enquiries/{id}/approve-draft`.
+   - Human review is an active operational gate and essential defense-in-depth safeguard against unpredicted LLM hallucinations, ensuring accurate communications reach guests. Staff approval is an active control, not an excuse for sloppy upstream generation.
+   - Atomic draft claiming (`atomicClaimDraft`) prevents race conditions during concurrent staff reviews.
 
 ---
 

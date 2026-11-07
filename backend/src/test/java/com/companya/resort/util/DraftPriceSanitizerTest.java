@@ -45,6 +45,18 @@ public class DraftPriceSanitizerTest {
     }
 
     @Test
+    @DisplayName("Unsupported facility, AV equipment, and group activity claims are sanitized with coordinator disclaimer")
+    void testFacilityAndActivityClaimsSanitized() {
+        String input = "Our conference pavilion features AV projection, high-speed WiFi, and panoramic plantation views, paired with guided cupping sessions.";
+        String result = DraftPriceSanitizer.sanitize(input);
+        assertFalse(result.contains("AV projection"));
+        assertFalse(result.contains("high-speed WiFi"));
+        assertFalse(result.contains("panoramic plantation views"));
+        assertFalse(result.contains("guided cupping sessions"));
+        assertTrue(result.contains("Event facilities, audiovisual equipment, and group activities will be confirmed directly"));
+    }
+
+    @Test
     @DisplayName("Consecutive sanitized placeholders are deduplicated")
     void testPlaceholderDeduplication() {
         String input = "Tariff is ₹10,000 or ₹12,000.";

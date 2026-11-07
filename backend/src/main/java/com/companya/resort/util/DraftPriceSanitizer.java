@@ -17,7 +17,12 @@ public class DraftPriceSanitizer {
 
     // Matches unverified meal and activity inclusion assertions
     private static final Pattern MEAL_INCLUSION_PATTERN = Pattern.compile(
-            "(?i)\\b(?:includes?\\s+gourmet\\s+breakfast|complimentary\\s+plantation\\s+walk|tariff\\s+includes\\s+gourmet)\\b[^.!?\\n]*[.!?]?"
+            "(?i)\\b(?:includes?\\s+gourmet\\s+breakfast|complimentary\\s+plantation\\s+walk|tariff\\s+includes\\s+gourmet|complimentary\\s+breakfast|includes?\\s+all\\s+meals)\\b[^.!?\\n]*[.!?]?"
+    );
+
+    // Matches unsupported facility, equipment, and unverified group activity assertions
+    private static final Pattern UNSUPPORTED_FACILITY_ACTIVITY_PATTERN = Pattern.compile(
+            "(?i)\\b(?:features?\\s+(?:AV\\s+projection|projector|high-speed\\s+wi-?fi|panoramic\\s+plantation\\s+views?)|paired\\s+with\\s+guided\\s+cupping|guided\\s+cupping\\s+sessions?|complimentary\\s+(?:airport\\s+transit|spa|shuttle)|free\\s+(?:airport\\s+transit|spa|shuttle))\\b[^.!?\\n]*[.!?]?"
     );
 
     public static String sanitize(String rawDraft) {
@@ -33,7 +38,11 @@ public class DraftPriceSanitizer {
         sanitized = MEAL_INCLUSION_PATTERN.matcher(sanitized)
                 .replaceAll("Inclusions and meal plans will be confirmed by reservations based on your selected rate plan.");
 
-        // 3. Replace any invented price patterns with placeholder
+        // 3. Sanitize unsupported facility, equipment, and group activity claims
+        sanitized = UNSUPPORTED_FACILITY_ACTIVITY_PATTERN.matcher(sanitized)
+                .replaceAll("Event facilities, audiovisual equipment, and group activities will be confirmed directly by our events coordinator based on your team's requirements.");
+
+        // 4. Replace any invented price patterns with placeholder
         sanitized = PRICE_PATTERN.matcher(sanitized).replaceAll(QUOTE_BLOCK_PLACEHOLDER);
 
         // Deduplicate consecutive placeholders if multiple matched
