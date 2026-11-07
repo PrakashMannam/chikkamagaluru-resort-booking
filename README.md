@@ -132,8 +132,10 @@ Staff portal login: **http://localhost:5173/staff/login**.
 
 ## 6. Running Backend Tests
 
-### Standard Test Suite (204 Tests — No Database Required)
-Runs all 204 Unit, WebMvc, Mock, and Service tests. Database integration tests skip automatically via JUnit `Assumptions.assumeTrue`:
+The backend test suite is divided into fast unit/mock tests and MySQL-backed integration tests. The figures below reflect supplied execution results from the test runner:
+
+### Standard Test Suite (219 Tests — No Database Required)
+Runs all 219 Unit, WebMvc, Mock, Rate-Limiter (15 tests), and Service tests (0 failures, 0 errors). Database integration tests skip automatically via JUnit `Assumptions.assumeTrue`:
 
 ```powershell
 # From repository root
@@ -147,8 +149,8 @@ cd backend
 ./mvnw test
 ```
 
-### Full Integration Test Suite (219 Tests — With Local Test Database)
-Setting `TEST_DB_URL` activates all 15 database integration tests across `DatabaseMigrationIntegrationTest` (5 tests), `AllotmentConcurrencyIntegrationTest` (6 tests), and `BlackoutConcurrencyIntegrationTest` (4 tests), running all **219 tests** (0 failures, 0 errors, 0 skipped):
+### Full Integration Test Suite (234 Tests — With Local Test Database)
+Setting `TEST_DB_URL` activates all 15 database integration tests across `DatabaseMigrationIntegrationTest` (5 tests), `AllotmentConcurrencyIntegrationTest` (6 tests), and `BlackoutConcurrencyIntegrationTest` (4 tests), running all **234 tests** across 26 test classes with 0 failures, 0 errors, and 0 skipped:
 
 ```powershell
 # PowerShell
@@ -175,7 +177,7 @@ export TEST_DB_PASSWORD="your_mysql_password_here"
 - **Frontend**: Vercel at `https://chikkamagaluru-resort-booking.vercel.app` (Vercel Hobby plan, non-commercial evaluation only).
 - **Backend**: Railway at `https://resort-backend-production.up.railway.app` (Spring Boot 3 on Java 21).
 - **Database**: Railway MySQL 8 via private networking.
-- **Git HEAD Distinction**: Live cloud deployments reflect earlier commits (`b4a8308`). Current local HEAD (`270f77e`) includes verified local fixes (F-07 through F-14) not yet pushed to remote.
+- **Source & Deployment Status**: Live cloud deployments on Railway and Vercel reflect earlier deployed revision `b4a8308`, based on the last available deployment evidence. The implemented code and documentation remediations (including F-13 public enquiry rate limiting and F-06 checkout progress alignment) are present in the local source through application commit `62ab609` on branch `feature/frontend-completion`, but are **not yet deployed to cloud environments**. Do not assume local improvements are live. The separate Technical Design Document (Manus F-11) is still being prepared and is not yet included in the repository.
 
 Consult [deployment.md](deployment.md) for full deployment details, Railway port mechanics, and troubleshooting.
 
@@ -187,3 +189,5 @@ Consult [deployment.md](deployment.md) for full deployment details, Railway port
 2. **Mock Payment Simulator**: Uses internal webhook simulator; no external financial gateway is connected.
 3. **Simulated Enquiry Delivery**: Delivery events (`EMAIL_SIM`, `WHATSAPP_SIM`) are logged internally; no external carrier messaging occurs.
 4. **Provisional GST Slabs**: Seeded with status `UNVERIFIED`; must be legally verified by a chartered accountant before commercial launch.
+5. **Public Enquiry Rate Limiting & Message Boundaries**: `POST /api/v1/public/enquiries` is protected by IP-based rate limiting (5 requests per 10 minutes per IP, configurable via `RATE_LIMIT_ENQUIRY_MAX_REQUESTS`, returning HTTP 429 with `Retry-After: 600`). Raw enquiry messages are strictly bounded to a maximum of 5,000 characters.
+6. **Three-Step Booking Journey**: The guest checkout funnel strictly adheres to the three-step booking requirement: Stage 1: Guest Details & Consent (`/checkout`), Stage 2: Payment Guarantee (`/payment/:ref`), Stage 3: Confirmation Receipt (`/bookings/:ref`).

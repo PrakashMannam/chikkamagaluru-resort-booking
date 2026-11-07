@@ -209,10 +209,10 @@ npm run dev
 
 ## 7. Running the Test Suite
 
-The backend test suite is divided into fast unit/mock tests and MySQL-backed integration tests.
+The backend test suite is divided into fast unit/mock tests and MySQL-backed integration tests. The figures below reflect supplied execution results from the test runner:
 
-### Standard Test Suite (204 Tests — No Database Required)
-When `TEST_DB_URL` is omitted, JUnit `Assumptions.assumeTrue` skips the three database integration classes (`DatabaseMigrationIntegrationTest`, `AllotmentConcurrencyIntegrationTest`, and `BlackoutConcurrencyIntegrationTest`). All 204 unit, mock, and WebMvc tests run cleanly:
+### Standard Test Suite (219 Tests — No Database Required)
+When `TEST_DB_URL` is omitted, JUnit `Assumptions.assumeTrue` skips the three database integration classes (`DatabaseMigrationIntegrationTest`, `AllotmentConcurrencyIntegrationTest`, and `BlackoutConcurrencyIntegrationTest`). All 219 unit, mock, and WebMvc tests run cleanly with 0 failures and 0 errors:
 
 ```powershell
 # From repository root
@@ -226,8 +226,8 @@ cd backend
 ./mvnw test
 ```
 
-### Full Integration Test Suite (219 Tests — With Local Test Database)
-When `TEST_DB_URL` points to `resort_test`, all **219 tests** execute across all 25 test classes with 0 failures, 0 errors, and 0 skipped:
+### Full Integration Test Suite (234 Tests — With Local Test Database)
+When `TEST_DB_URL` points to `resort_test`, all **234 tests** execute across all 26 test classes with 0 failures, 0 errors, and 0 skipped:
 
 ```powershell
 # PowerShell
@@ -275,8 +275,9 @@ export TEST_DB_PASSWORD="your_mysql_password_here"
 | `HealthEndpointTest` | WebMvc Mock | 1 | No | `/health` endpoint verification |
 | `PricingServiceTest` | Service Unit | 8 | No | Tariff calculation, meal supplements, tax slabs |
 | `PublicRoomControllerTest` | WebMvc Mock | 13 | No | Public room category and rate quote endpoints |
+| `RateLimitingFilterEnquiryTest` | WebMvc Mock / Unit | 15 | No | Public enquiry and endpoint rate-limiting rules, token bucket, spoofing mitigation, 10-minute window |
 | `SimulatedDeliveryAdapterTest` | Service Unit | 4 | No | Email/WhatsApp simulated delivery adapter |
-| **TOTAL** | | **219** (204 without DB) | | **100% Pass Rate (0 failures, 0 errors, 0 skipped)** |
+| **TOTAL** | | **234** (219 without DB) | | **100% Pass Rate (0 failures, 0 errors, 0 skipped)** |
 
 ---
 
@@ -344,8 +345,8 @@ The application is deployed across high-availability managed cloud infrastructur
 | **Database** | Railway MySQL 8 | `mysql.railway.internal:3306/railway` | **LIVE & PERSISTENT** (Attached persistent volume) |
 
 > **Important — Git Baseline vs Live Cloud Deployments**:
-> The live Railway and Vercel instances were deployed from earlier commits on `origin/feature/frontend-completion` (commit `b4a8308`).
-> The current local Git HEAD (`270f77e`) contains local verification checkpoints and stability fixes (F-07 through F-14: secure CSV export, resort-wide blackout race condition resolution, cross-route anchor navigation, mobile inventory management, etc.) that have **not yet been pushed or deployed**. Do not assume local improvements are live in cloud environments until a subsequent release is published.
+> Live cloud deployments on Railway and Vercel reflect earlier deployed revision `b4a8308`, based on the last available deployment evidence.
+> The implemented code and documentation remediations (including public enquiry rate limiting [F-13], 5,000-character enquiry message boundary, and three-step checkout progress alignment [F-06]) are present in the local source through application commit `62ab609` on branch `feature/frontend-completion`, but are **not yet deployed to cloud environments**. Do not assume local improvements are live. Additionally, the separate Technical Design Document (Manus F-11) is still being prepared and is not yet included in the repository.
 
 ---
 
@@ -388,6 +389,14 @@ Staff portal login: `/staff/login`.
 2. **Vercel Hobby Plan Terms**:
    - The live frontend deployment is hosted under Vercel's personal **Hobby** tier and is intended strictly for non-commercial portfolio evaluation, technical review, and demonstration.
    - Commercial operation requires an upgraded Vercel plan (Pro or Enterprise) in compliance with the [Vercel Fair Use Guidelines](https://vercel.com/docs/limits/fair-use-guidelines).
+3. **Public Enquiry Rate Limiting & Message Boundaries**:
+   - `POST /api/v1/public/enquiries` is protected by IP-based token-bucket rate limiting enforcing 5 requests per 10 minutes per IP (configurable via `RATE_LIMIT_ENQUIRY_MAX_REQUESTS`, returning HTTP 429 with `Retry-After: 600`).
+   - Raw enquiry message inputs are strictly bounded to a maximum of 5,000 characters via `@Size(max = 5000)`.
+4. **Three-Step Booking Journey**:
+   - The booking checkout funnel strictly implements the three-step booking requirement:
+     - Stage 1: Guest Details & Consent (`/checkout`, `Step 1 of 3`)
+     - Stage 2: Payment Guarantee (`/payment/:ref`, `Step 2 of 3 • Payment`)
+     - Stage 3: Confirmation Receipt (`/bookings/:ref`, `Step 3 of 3 • Confirmation`)
 
 ---
 
@@ -434,5 +443,5 @@ curl -s -I https://chikkamagaluru-resort-booking.vercel.app/staff/login
 | `Access denied for user 'root'@'localhost'` | Incorrect MySQL credentials. | Verify `DB_USER` and `DB_PASSWORD` match your local MySQL configuration. |
 | Browser shows CORS error when making API requests | `CORS_ALLOWED_ORIGIN` does not match the frontend origin. | Ensure `CORS_ALLOWED_ORIGIN` exactly matches the requesting URL without a trailing slash (e.g. `http://localhost:5173` locally or `https://chikkamagaluru-resort-booking.vercel.app` on Railway). |
 | Port binding collision: `Web server failed to start. Port 8080 was already in use.` | Another process is holding port 8080. | Stop conflicting process or run Spring Boot with a custom port: `cd backend; .\mvnw.cmd spring-boot:run -Dspring-boot.run.arguments="--server.port=8081"`. |
-| Integration tests skipped (`Tests run: 208`) | `TEST_DB_URL` environment variable is not exported. | Export `$env:TEST_DB_URL="jdbc:mysql://localhost:3306/resort_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"` before running `mvn test`. |
+| Integration tests skipped (`Tests run: 219`) | `TEST_DB_URL` environment variable is not exported. | Export `$env:TEST_DB_URL="jdbc:mysql://localhost:3306/resort_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"` before running `mvn test`. |
 | Functional index syntax error on migration `V6` | MySQL version is older than 8.0.16. | Upgrade MySQL Server to version 8.0.16 or newer. Functional indexes and ANSI `CHECK` constraints require MySQL 8.0.16+. |
