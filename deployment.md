@@ -211,8 +211,8 @@ npm run dev
 
 The backend test suite is divided into fast unit/mock tests and MySQL-backed integration tests. The figures below reflect supplied execution results from the test runner:
 
-### Standard Test Suite (219 Tests — No Database Required)
-When `TEST_DB_URL` is omitted, JUnit `Assumptions.assumeTrue` skips the three database integration classes (`DatabaseMigrationIntegrationTest`, `AllotmentConcurrencyIntegrationTest`, and `BlackoutConcurrencyIntegrationTest`). All 219 unit, mock, and WebMvc tests run cleanly with 0 failures and 0 errors:
+### Standard Test Suite (226 Tests — No Database Required)
+When `TEST_DB_URL` is omitted, JUnit `Assumptions.assumeTrue` skips the three database integration classes (`DatabaseMigrationIntegrationTest`, `AllotmentConcurrencyIntegrationTest`, and `BlackoutConcurrencyIntegrationTest`). All 226 unit, mock, and WebMvc tests run cleanly with 0 failures and 0 errors:
 
 ```powershell
 # From repository root
@@ -226,8 +226,8 @@ cd backend
 ./mvnw test
 ```
 
-### Full Integration Test Suite (234 Tests — With Local Test Database)
-When `TEST_DB_URL` points to `resort_test`, all **234 tests** execute across all 26 test classes with 0 failures, 0 errors, and 0 skipped:
+### Full Integration Test Suite (241 Tests — With Local Test Database)
+When `TEST_DB_URL` points to `resort_test`, all **241 tests** execute across all 26 test classes with 0 failures, 0 errors, and 0 skipped:
 
 ```powershell
 # PowerShell
@@ -259,11 +259,11 @@ export TEST_DB_PASSWORD="your_mysql_password_here"
 | `AdminInventoryServiceTest` | Service Unit | 6 | No | Inventory update and allotment service logic |
 | `AdminPromoEndpointsWebMvcTest` | WebMvc Mock | 5 | No | Promo code management endpoints |
 | `AllotmentConcurrencyIntegrationTest` | Concurrency Integration | 6 | **Yes (`TEST_DB_URL`)** | Multi-threaded allotment booking isolation |
-| `AuthAndSecurityTest` | Security Integration | 12 | No | Authentication and role authorization checks |
+| `AuthAndSecurityTest` | Security Integration | 14 | No | Authentication and role authorization checks |
 | `BlackoutConcurrencyIntegrationTest` | Concurrency Integration | 4 | **Yes (`TEST_DB_URL`)** | Multi-threaded blackout race prevention exercising V6 functional unique index in MySQL 8 |
 | `BookingEndpointsWebMvcTest` | WebMvc Mock | 10 | No | Public booking endpoints |
 | `BookingPaymentServiceTest` | Service Unit | 22 | No | Payment lifecycle and hold management |
-| `BookingServiceTest` | Service Unit | 21 | No | Booking creation, validation, hold timeouts |
+| `BookingServiceTest` | Service Unit | 25 | No | Booking creation, validation, hold timeouts |
 | `CsvExporterTest` | Utility Unit | 12 | No | RFC 4180 CSV escaping, CRLF, injection prevention |
 | `DatabaseMigrationIntegrationTest` | Migration Integration | 5 | **Yes (`TEST_DB_URL`)** | Flyway V1–V6 schema, tables, constraints, functional indexes |
 | `DemoDataSeederIntegrationTest` | Seeder Integration | 1 | No | Seeder execution verification |
@@ -274,10 +274,10 @@ export TEST_DB_PASSWORD="your_mysql_password_here"
 | `EnquiryServiceTest` | Service Unit | 26 | No | Enquiry business logic and state machine |
 | `HealthEndpointTest` | WebMvc Mock | 1 | No | `/health` endpoint verification |
 | `PricingServiceTest` | Service Unit | 8 | No | Tariff calculation, meal supplements, tax slabs |
-| `PublicRoomControllerTest` | WebMvc Mock | 13 | No | Public room category and rate quote endpoints |
+| `PublicRoomControllerTest` | WebMvc Mock | 14 | No | Public room category and rate quote endpoints |
 | `RateLimitingFilterEnquiryTest` | WebMvc Mock / Unit | 15 | No | Public enquiry and endpoint rate-limiting rules, token bucket, spoofing mitigation, 10-minute window |
 | `SimulatedDeliveryAdapterTest` | Service Unit | 4 | No | Email/WhatsApp simulated delivery adapter |
-| **TOTAL** | | **234** (219 without DB) | | **100% Pass Rate (0 failures, 0 errors, 0 skipped)** |
+| **TOTAL** | | **241** (226 without DB) | | **100% Pass Rate (0 failures, 0 errors, 0 skipped)** |
 
 ---
 
@@ -449,5 +449,5 @@ curl -s -I https://chikkamagaluru-resort-booking.vercel.app/staff/login
 | `Access denied for user 'root'@'localhost'` | Incorrect MySQL credentials. | Verify `DB_USER` and `DB_PASSWORD` match your local MySQL configuration. |
 | Browser shows CORS error when making API requests | `CORS_ALLOWED_ORIGIN` does not match the frontend origin. | Ensure `CORS_ALLOWED_ORIGIN` exactly matches the requesting URL without a trailing slash (e.g. `http://localhost:5173` locally or `https://chikkamagaluru-resort-booking.vercel.app` on Railway). |
 | Port binding collision: `Web server failed to start. Port 8080 was already in use.` | Another process is holding port 8080. | Stop conflicting process or run Spring Boot with a custom port: `cd backend; .\mvnw.cmd spring-boot:run -Dspring-boot.run.arguments="--server.port=8081"`. |
-| Integration tests skipped (`Tests run: 219`) | `TEST_DB_URL` environment variable is not exported. | Export `$env:TEST_DB_URL="jdbc:mysql://localhost:3306/resort_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"` before running `mvn test`. |
+| Integration tests skipped (`Tests run: 226`) | `TEST_DB_URL` environment variable is not exported. | Export `$env:TEST_DB_URL="jdbc:mysql://localhost:3306/resort_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"` before running `mvn test`. |
 | Functional index syntax error on migration `V6` | MySQL version is older than 8.0.16. | Upgrade MySQL Server to version 8.0.16 or newer. Functional indexes and ANSI `CHECK` constraints require MySQL 8.0.16+. |

@@ -152,6 +152,23 @@ class PublicRoomControllerTest {
     }
 
     @Test
+    void createBooking_validationFailure_invalidPhone_returns400() throws Exception {
+        LocalDate checkIn = LocalDate.now().plusDays(5);
+        LocalDate checkOut = LocalDate.now().plusDays(7);
+        CreateBookingRequest invalidPhoneRequest = new CreateBookingRequest(
+                "idem-phone-val", 1L, 1L, checkIn, checkOut, 1, 2, 0,
+                "Vikram Rao", "vikram@example.com", "0000000000", null, true
+        );
+
+        mockMvc.perform(post("/api/v1/public/bookings")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidPhoneRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Validation Failed"))
+                .andExpect(jsonPath("$.details.guestPhone").exists());
+    }
+
+    @Test
     void createBooking_blackoutConflict_returns409() throws Exception {
         LocalDate checkIn = LocalDate.now().plusDays(5);
         LocalDate checkOut = LocalDate.now().plusDays(7);

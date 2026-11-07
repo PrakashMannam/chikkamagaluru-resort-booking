@@ -114,8 +114,14 @@ public class DemoDataSeederTest {
 
         demoDataSeeder.seedDemoEnquiries();
 
+        ArgumentCaptor<com.companya.resort.entity.EnquiryDraft> draftCaptor = ArgumentCaptor.forClass(com.companya.resort.entity.EnquiryDraft.class);
         verify(enquiryRepository, times(5)).save(any(com.companya.resort.entity.Enquiry.class));
-        verify(enquiryDraftRepository, times(5)).save(any(com.companya.resort.entity.EnquiryDraft.class));
+        verify(enquiryDraftRepository, times(5)).save(draftCaptor.capture());
+
+        for (com.companya.resort.entity.EnquiryDraft d : draftCaptor.getAllValues()) {
+            assertFalse(d.getDraftBody().toLowerCase().contains("we have held"), "Draft must not claim a room hold");
+            assertFalse(d.getDraftBody().toLowerCase().contains("gourmet breakfast"), "Draft must not claim unverified inclusions");
+        }
 
         // Idempotency: when all 5 codes exist, nothing is saved
         reset(enquiryRepository, enquiryDraftRepository);

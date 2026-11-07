@@ -8,6 +8,7 @@ import com.companya.resort.dto.GeminiEnquiryExtraction;
 import com.companya.resort.dto.PublicEnquiryResponse;
 import com.companya.resort.dto.RouteEnquiryRequest;
 import com.companya.resort.dto.SimulateEnquiryRequest;
+import com.companya.resort.entity.DraftGeneratedBy;
 import com.companya.resort.entity.DraftStatus;
 import com.companya.resort.entity.Enquiry;
 import com.companya.resort.entity.EnquiryCategory;
@@ -512,6 +513,15 @@ public class EnquiryServiceTest {
         assertEquals(EnquiryCategory.UNSORTED, saved.getCategory());
         assertEquals("MISSING_API_KEY", saved.getAiErrorStatus());
         assertEquals(gmUser, saved.getAssignedToUser());
+        assertEquals(RoutingMethod.RULE_FALLBACK, saved.getRoutingMethod());
+        assertEquals(BigDecimal.ZERO, saved.getAiConfidence());
+
+        ArgumentCaptor<EnquiryDraft> draftCaptor = ArgumentCaptor.forClass(EnquiryDraft.class);
+        verify(enquiryDraftRepository, atLeastOnce()).save(draftCaptor.capture());
+        EnquiryDraft savedDraft = draftCaptor.getValue();
+        assertEquals(DraftGeneratedBy.RULE_TEMPLATE, savedDraft.getGeneratedBy());
+        assertFalse(savedDraft.getDraftBody().toLowerCase().contains("held a"), "Draft must not claim a room hold");
+        assertFalse(savedDraft.getDraftBody().toLowerCase().contains("we have held"), "Draft must not claim a room hold");
     }
 
     @Test

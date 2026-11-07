@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import java.time.LocalDate;
 
 public class CreateBookingRequest {
@@ -40,6 +41,10 @@ public class CreateBookingRequest {
     private String guestEmail;
 
     @NotBlank(message = "Guest phone is required")
+    @Pattern(
+            regexp = "^(?:\\+?91[\\-\\s]?)?[0]?([6-9])(?!\\1{9})\\d{9}$",
+            message = "Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9"
+    )
     private String guestPhone;
 
     private String promoCode;
