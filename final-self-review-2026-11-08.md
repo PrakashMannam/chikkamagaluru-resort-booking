@@ -1,8 +1,8 @@
 # Independent product self-review — 8 November 2026
 
-**Verdict: roughly 92% complete by functional readiness, not 100%.** The core guest booking and staff triage workflows are present, and the local `audit/final-hardening` candidate now has additional fixes and passing frontend checks. Important release gates remain: the production build still shows the fixed November dates, the reported payment-hold defect has not been reproduced or verified against a deployed fix, and MySQL-backed concurrency has not been tested. This percentage is a judgment, not a formal acceptance score.
+**Verdict: roughly 92% complete by functional readiness, not 100%.** The core guest booking and staff triage workflows are present, and candidate branch `audit/final-hardening` now has additional fixes and passing frontend checks. Important release gates remain: the production build still shows the fixed November dates, the reported payment-hold defect has not been reproduced or verified against a deployed fix, and MySQL-backed concurrency has not been tested. This percentage is a judgment, not a formal acceptance score.
 
-The source baseline reviewed was repository `main` at `2c7dc65`; the candidate changes are not merged into `main` or verified in production. The supplied deployment report records Railway commit `3ea8538` and schema v8, but the public health endpoint does not identify the deployed source revision. No production booking, enquiry, payment, inventory, migration, or other data write was made.
+The source baseline reviewed was repository `main` at `2c7dc65`; the candidate changes are pushed in [PR #11][7] but are not merged into `main` or verified in production. The supplied deployment report records Railway commit `3ea8538` and schema v8, but the public health endpoint does not identify the deployed source revision. No production booking, enquiry, payment, inventory, migration, or other data write was made.
 
 ## What is now improved in the candidate
 
@@ -92,3 +92,5 @@ I estimate the project at **about 92% overall**. The local candidate is stronger
 [4]: https://resort-backend-production.up.railway.app/health "Read-only Railway health endpoint"
 [5]: https://github.com/advisories/GHSA-4w7w-66w2-5vf9 "Vite security advisory reviewed for dependency remediation"
 [6]: https://vite.dev/releases "Official Vite release support information reviewed"
+
+[7]: https://github.com/PrakashMannam/chikkamagaluru-resort-booking/pull/11 "Pull request for the audit candidate"
