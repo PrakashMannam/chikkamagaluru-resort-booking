@@ -175,7 +175,7 @@ class RateLimitingFilterEnquiryTest {
     }
 
     @Test
-    @DisplayName("Unrelated routes (health, auth/login, admin) bypass the rate limiter")
+    @DisplayName("Health and admin routes bypass limiting while login is rate limited")
     void unrelatedRoutes_bypassRateLimiter() throws Exception {
         // Health endpoint
         MockHttpServletRequest healthReq = new MockHttpServletRequest("GET", "/health");
@@ -183,11 +183,31 @@ class RateLimitingFilterEnquiryTest {
 
         // Auth login
         MockHttpServletRequest loginReq = new MockHttpServletRequest("POST", "/api/v1/auth/login");
-        assertNull(filter.resolveEndpointGroup(loginReq));
+        assertEquals(EndpointGroup.LOGIN_ATTEMPT, filter.resolveEndpointGroup(loginReq));
 
         // Admin endpoint
         MockHttpServletRequest adminReq = new MockHttpServletRequest("GET", "/api/v1/admin/enquiries");
         assertNull(filter.resolveEndpointGroup(adminReq));
+    }
+
+    @Test
+    @DisplayName("11th login attempt from one client IP within a minute receives HTTP 429")
+    void loginAttemptsExceedingLimit_returns429() throws Exception {
+        String clientIp = "198.51.100.55";
+        for (int i = 0; i < 10; i++) {
+            MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/auth/login");
+            request.addHeader("X-Forwarded-For", clientIp);
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            filter.doFilter(request, response, (req, res) -> {});
+            assertEquals(200, response.getStatus());
+        }
+
+        MockHttpServletRequest blocked = new MockHttpServletRequest("POST", "/api/v1/auth/login");
+        blocked.addHeader("X-Forwarded-For", clientIp);
+        MockHttpServletResponse blockedResponse = new MockHttpServletResponse();
+        filter.doFilter(blocked, blockedResponse, (req, res) -> {});
+        assertEquals(429, blockedResponse.getStatus());
+        assertEquals("60", blockedResponse.getHeader("Retry-After"));
     }
 
     // -----------------------------------------------------------------------

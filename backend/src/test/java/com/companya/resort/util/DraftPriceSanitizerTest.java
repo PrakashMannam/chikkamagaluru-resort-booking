@@ -53,7 +53,16 @@ public class DraftPriceSanitizerTest {
         assertFalse(result.contains("high-speed WiFi"));
         assertFalse(result.contains("panoramic plantation views"));
         assertFalse(result.contains("guided cupping sessions"));
-        assertTrue(result.contains("Event facilities, audiovisual equipment, and group activities will be confirmed directly"));
+        assertTrue(result.contains("Our events coordinator will confirm equipment and activities directly"));
+    }
+
+    @Test
+    @DisplayName("Unverified Wi-Fi and meeting-room claims are deferred even with alternate wording")
+    void testAlternateAmenityClaimsSanitized() {
+        String result = DraftPriceSanitizer.sanitize("The meeting room includes Wi-Fi and a large projection screen.");
+        assertFalse(result.toLowerCase().contains("meeting room includes"));
+        assertFalse(result.toLowerCase().contains("wi-fi"));
+        assertTrue(result.contains("Our team will confirm property features, facilities, meals, and inclusions directly with you."));
     }
 
     @Test

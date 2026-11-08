@@ -30,6 +30,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         BOOKING_CREATION(10),
         PAYMENT_MUTATION(30),
         PUBLIC_READ(120),
+        LOGIN_ATTEMPT(10),
         /** Public enquiry submission — stricter limit with a longer window (design-pack: 5 per 10 min per IP). */
         ENQUIRY_SUBMISSION(5);
 
@@ -182,6 +183,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             case BOOKING_CREATION -> bookingCreationLimit;
             case PAYMENT_MUTATION -> paymentMutationLimit;
             case PUBLIC_READ -> readLimit;
+            case LOGIN_ATTEMPT -> 10;
             case ENQUIRY_SUBMISSION -> enquirySubmissionLimit;
         };
     }
@@ -255,6 +257,9 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         String uri = request.getRequestURI();
 
         if ("POST".equalsIgnoreCase(method)) {
+            if (uri.equals("/api/v1/auth/login") || uri.equals("/api/v1/auth/login/")) {
+                return EndpointGroup.LOGIN_ATTEMPT;
+            }
             if (uri.equals("/api/v1/public/bookings") || uri.equals("/api/v1/public/bookings/")) {
                 return EndpointGroup.BOOKING_CREATION;
             }

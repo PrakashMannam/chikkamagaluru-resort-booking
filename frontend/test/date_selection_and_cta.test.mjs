@@ -3,8 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
   BOOKING_WINDOW,
-  DEFAULT_CHECK_IN,
-  DEFAULT_CHECK_OUT,
+  isValidStayDateRange,
   isValidFutureDate,
   parseLocalDate,
   formatLocalDate,
@@ -12,9 +11,13 @@ import {
 } from '../src/utils/dateUtils.js';
 import { shouldShowHeaderCta } from '../src/utils/navigationUtils.js';
 
-test('dateUtils exports DEFAULT_CHECK_IN (2026-11-14) and DEFAULT_CHECK_OUT (2026-11-16)', () => {
-  assert.equal(DEFAULT_CHECK_IN, '2026-11-14', 'DEFAULT_CHECK_IN must be 2026-11-14');
-  assert.equal(DEFAULT_CHECK_OUT, '2026-11-16', 'DEFAULT_CHECK_OUT must be 2026-11-16');
+test('stay date ranges must be valid, future, ordered, and within the booking window', () => {
+  assert.equal(isValidStayDateRange('2026-11-14', '2026-11-16', '2026-11-08'), true);
+  assert.equal(isValidStayDateRange('2026-11-14', '2026-11-16', '2026-11-15'), false);
+  assert.equal(isValidStayDateRange('bad', '2026-11-16', '2026-11-08'), false);
+  assert.equal(isValidStayDateRange('2026-11-16', '2026-11-14', '2026-11-08'), false);
+  assert.equal(isValidStayDateRange('2027-04-30', '2027-05-01', '2026-11-08'), false);
+  assert.equal(isValidStayDateRange('2026-02-30', '2026-03-02', '2026-02-01'), false);
 });
 
 test('isValidFutureDate validates stay dates against local calendar', () => {
@@ -30,18 +33,12 @@ test('isValidFutureDate validates stay dates against local calendar', () => {
   assert.equal(isValidFutureDate('invalid-date'), false, 'Invalid format must be rejected');
 });
 
-test('GuestAvailabilityPage defaults dates and auto-fetches availability on load', () => {
+test('GuestAvailabilityPage requires valid query dates and does not silently default or fetch without them', () => {
   const availSrc = fs.readFileSync('frontend/src/pages/GuestAvailabilityPage.jsx', 'utf8');
 
-  // Must import and use DEFAULT_CHECK_IN and DEFAULT_CHECK_OUT
-  assert.ok(
-    availSrc.includes("searchParams.get('checkIn') || DEFAULT_CHECK_IN"),
-    'GuestAvailabilityPage must default checkIn to DEFAULT_CHECK_IN'
-  );
-  assert.ok(
-    availSrc.includes("searchParams.get('checkOut') || DEFAULT_CHECK_OUT"),
-    'GuestAvailabilityPage must default checkOut to DEFAULT_CHECK_OUT'
-  );
+  assert.ok(availSrc.includes('isValidStayDateRange(queryCheckIn, queryCheckOut)'));
+  assert.ok(!availSrc.includes('DEFAULT_CHECK_IN') && !availSrc.includes('DEFAULT_CHECK_OUT'));
+  assert.ok(availSrc.includes('if (!checkIn || !checkOut)'));
 
   // Auto-fetches immediately in useEffect
   assert.ok(
@@ -49,10 +46,10 @@ test('GuestAvailabilityPage defaults dates and auto-fetches availability on load
     'GuestAvailabilityPage must call loadAvailability in useEffect'
   );
 
-  // Single horizontal filter bar has "Modify Search" button, NOT "Search Availability"
+  // Empty date-first state has an availability action; valid-date state has a modification action.
   assert.ok(
-    availSrc.includes('Modify Search'),
-    'Filter bar button must be labeled "Modify Search"'
+    availSrc.includes("{datesSelected ? 'Modify Search' : 'Check Availability'}"),
+    'Stay submit button must say Check Availability before the first search and Modify Search afterwards'
   );
   assert.ok(
     !availSrc.includes('>Search Availability<') && !availSrc.includes('>Search availability<'),
@@ -118,6 +115,31 @@ test('Navbar renders Back to Estate utility link on inner pages instead of Check
   );
 });
 
+test('Guest navigation includes an accessible mobile menu and 44px touch targets', () => {
+  const layoutSrc = fs.readFileSync('frontend/src/components/layout/GuestLayout.jsx', 'utf8');
+  const cssSrc = fs.readFileSync('frontend/src/components/layout/GuestLayout.css', 'utf8');
+  assert.ok(layoutSrc.includes('aria-expanded={mobileMenuOpen}'));
+  assert.ok(layoutSrc.includes('aria-controls="guest-main-navigation"'));
+  assert.ok(cssSrc.includes('.guest-header__nav.is-open'));
+  assert.ok(cssSrc.includes('min-height: var(--tap-min)'));
+  assert.ok(cssSrc.includes('@media (max-width: 480px)'));
+  assert.ok(cssSrc.includes('.guest-header__cta {\n    display: none;'));
+});
+
+test('Landing guest selector has an explicit programmatic label', () => {
+  const landingSrc = fs.readFileSync('frontend/src/pages/LandingPage.jsx', 'utf8');
+  assert.ok(landingSrc.includes('htmlFor="lp-search-guests"'));
+  assert.ok(landingSrc.includes('id="lp-search-guests"'));
+});
+
+test('Staff inventory dates use current IST time instead of stale demo dates', () => {
+  const staffSrc = fs.readFileSync('frontend/src/pages/staff/StaffInventoryPage.jsx', 'utf8');
+  assert.ok(staffSrc.includes('const DEFAULT_FROM = getTodayIst();'));
+  assert.ok(staffSrc.includes('const DEFAULT_TO = addIsoDays(DEFAULT_FROM, 13);'));
+  assert.ok(staffSrc.includes('One week ahead'));
+  assert.ok(!staffSrc.includes('2026-11-05') && !staffSrc.includes('2026-11-14'));
+});
+
 test('RoomDetailPage: Preserves stay criteria, provides "Change dates", and primary button is "Book Now"', () => {
   const roomSrc = fs.readFileSync('frontend/src/pages/RoomDetailPage.jsx', 'utf8');
 
@@ -178,8 +200,8 @@ test('Single Primary CTA Audit: No page renders both "Check Availability" and "S
   assert.equal(shouldShowHeaderCta('/checkout'), false);
   assert.equal(shouldShowHeaderCta('/enquire'), false);
 
-  // On /stay: page button is "Modify Search"
-  assert.ok(!availSrc.includes('>Check Availability<'));
+  // On /stay: the button label is state-specific, so the no-date form is actionable.
+  assert.ok(availSrc.includes("{datesSelected ? 'Modify Search' : 'Check Availability'}"));
   assert.ok(!availSrc.includes('>Search Availability<'));
 
   // On room details: primary button is "Book Now"

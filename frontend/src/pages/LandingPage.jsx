@@ -258,8 +258,9 @@ export default function LandingPage() {
             <div className="lp-search-cell">
               <UserIcon />
               <div className="lp-search-field">
-                <label className="lp-search-label">Guests</label>
+                <label htmlFor="lp-search-guests" className="lp-search-label">Guests</label>
                 <select
+                  id="lp-search-guests"
                   className="lp-search-select"
                   value={adults}
                   onChange={(e) => setAdults(Number(e.target.value))}

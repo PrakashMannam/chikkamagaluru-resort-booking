@@ -96,7 +96,17 @@ test('Source Contract: GuestPaymentPage does not independently remove token or s
 
   // Ensure handleSimulate catch checks server-side expiration authoritative signals
   assert.ok(
-    paymentSrc.includes('err.status === 409') && paymentSrc.includes("includes('expired')"),
-    'handleSimulate must respond to authoritative server-side 409 expired rejection'
+    paymentSrc.includes("errorCode === 'Booking Hold Expired'") && paymentSrc.includes('/expired/i.test(err.message'),
+    'handleSimulate must respond to an explicit server-side expiry signal'
   );
+  assert.ok(
+    !paymentSrc.includes('err.status === 409'),
+    'A generic 409 conflict such as token reuse must not be treated as hold expiry'
+  );
+});
+
+test('Staff inventory and CSV presets do not retain a fixed November 2026 date', () => {
+  const staffSrc = fs.readFileSync('frontend/src/pages/staff/StaffInventoryPage.jsx', 'utf8');
+  assert.ok(staffSrc.includes('const DEFAULT_FROM = getTodayIst();'));
+  assert.ok(!staffSrc.includes('2026-11-05') && !staffSrc.includes('2026-11-14'));
 });

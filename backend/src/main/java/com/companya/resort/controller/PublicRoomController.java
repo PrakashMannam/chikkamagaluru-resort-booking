@@ -90,7 +90,6 @@ public class PublicRoomController {
     public ResponseEntity<BookingResponseDto> cancelHold(
             @PathVariable String bookingRef,
             @RequestHeader(value = "X-Payment-Token", required = false) String tokenHeader,
-            @RequestParam(value = "token", required = false) String tokenParam,
             @RequestBody(required = false) CancelHoldRequest request
     ) {
         String token = null;
@@ -98,8 +97,6 @@ public class PublicRoomController {
             token = request.getToken();
         } else if (tokenHeader != null && !tokenHeader.isBlank()) {
             token = tokenHeader;
-        } else if (tokenParam != null && !tokenParam.isBlank()) {
-            token = tokenParam;
         }
 
         BookingResponseDto response = bookingPaymentService.cancelHold(bookingRef, token);

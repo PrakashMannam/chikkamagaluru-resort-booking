@@ -7,7 +7,7 @@
 
 - **GitHub Repository**: [https://github.com/PrakashMannam/chikkamagaluru-resort-booking](https://github.com/PrakashMannam/chikkamagaluru-resort-booking)
 - **Live Application (Frontend on Vercel Edge)**: [https://chikkamagaluru-resort-booking.vercel.app](https://chikkamagaluru-resort-booking.vercel.app)
-- **Live Backend API (Railway Cloud)**: [https://chikkamagaluru-resort-booking-production.up.railway.app](https://chikkamagaluru-resort-booking-production.up.railway.app)
+- **Live Backend API (Railway Cloud)**: [https://resort-backend-production.up.railway.app](https://resort-backend-production.up.railway.app)
 
 ---
 
@@ -33,28 +33,32 @@ Company A operates a boutique coffee-estate luxury resort in Chikkamagaluru, Kar
 
 ---
 
-## 2. Requirements Baseline & Brief Compliance Matrix
+## 2. Requirements Baseline & Evidence-Based Status
 
-Every functional, technical, and operational constraint from the IsoCode Labs problem statement has been verified and delivered end to end:
+The tracked brief in `docs/isocode-assignment-brief.md` is the requirements baseline used here. The statuses below reflect source review and the checks actually run on 8 November 2026; they are not a blanket certification of compliance, legal compliance, or production readiness.
 
-| Requirement Category | Client Brief Specification | Implementation Status | Implementation Evidence |
+| Requirement Category | Brief Requirement | Evidence-Based Status (8 Nov 2026) | Evidence and Limit |
 | :--- | :--- | :--- | :--- |
-| **Direct Booking Engine** | Rooms with photos, live availability, rate plans, prices with statutory GST, test payment, instant confirmation | **100% VERIFIED** | `/stay`, `/rooms/:code`, `/checkout`, `/payment/:ref`, `/bookings/:ref` |
-| **Allotment Control** | Site sells only admin-set allotment; atomic inventory locking prevents overbooking under concurrent access | **100% VERIFIED** | `SELECT ... FOR UPDATE` row locks in `BookingTransactionService`, 10-minute hold expiration, rollback on timeout |
-| **Admin Controls** | Daily rates, website allotment, blackout dates, promo code management | **100% VERIFIED** | `/staff/inventory`: grid editor for rates/allotments, resort-wide/category blackout dates, promo discount engine |
-| **Enquiry Inbox** | Unified inbox for web form, simulated email, simulated WhatsApp messages | **100% VERIFIED** | `/staff/enquiries`: filterable tabs for Rooms, Weddings, Offsites, Complaints, and Unsorted |
-| **AI Router & Extraction** | Classifies enquiries (Room, Wedding, Offsite, Complaint), extracts dates/guests/budget, assigns owner, drafts reply | **100% VERIFIED** | `GeminiAiRoutingService`: Google Gemini 1.5 with PII redaction, structured JSON schema extraction, deterministic lane assignment |
-| **AI Safety & Fallbacks** | Low confidence (<0.70) routes to GM unsorted lane; 1-click staff re-routing; drafts never auto-dispatched; prices injected from rate tables; complaints alert GM | **100% VERIFIED** | `QuoteInjectorService` (rate table injection), `DraftPriceSanitizer`, GM alert flags, staff manual approval step |
-| **Structured Event Form** | Dedicated structured form for weddings and corporate offsites | **100% VERIFIED** | `/enquire`: dynamic step form with guest count, room requirements, catering, budget, and neutral AV setup options |
-| **Daily Reservation Export** | Daily booking export for legacy PMS/reservation system | **100% VERIFIED** | `GET /api/v1/admin/bookings/export` CSV export with spreadsheet formula injection sanitization (CWE-1236) |
-| **Data Privacy & Legal** | DPDP Act 2023 compliance; foreign guest Form C passport details taken at check-in, not stored online | **100% VERIFIED** | Explicit DPDP consent checkbox on `/checkout`, no passport field in forms, private booking confirmation link access |
-| **Responsive Design** | Minimal, polished UX; fast loading on slow hill-station networks; no screen displays competing CTAs | **100% VERIFIED** | WebP responsive images, 44px tap targets, 0 horizontal overflow at 390px, 768px, and 1280px viewports |
+| **Direct Booking Engine** | Photos, availability, rate plans, tax display, test payment, confirmation | **Implemented; partially re-verified** | Guest routes and client flow are present; frontend tests and production build pass. No new production booking or payment write was made in this audit. |
+| **Allotment Control** | Sell admin-set allotment and avoid concurrent overbooking | **Implemented; database concurrency NOT VERIFIED in this run** | `BookingTransactionService` uses database locking and holds. MySQL-backed concurrency tests were not run here, so no absolute guarantee is claimed. |
+| **Admin Controls** | Rates, allotment, blackout dates, promo codes | **Implemented; automated tests pass** | Admin services and endpoints are covered by unit/mock tests. No production records were changed. |
+| **Enquiry Inbox** | Web form, simulated email, and simulated WhatsApp in one inbox | **Implemented; automated tests pass** | Staff inbox and simulated adapters are present. No live enquiry was submitted in this audit. |
+| **AI Router & Extraction** | Classify, extract fields, assign an owner, and draft a reply | **Implemented; live model behavior not re-verified** | Gemini integration and deterministic fallback exist. This audit did not send a new request to the external AI service. |
+| **AI Safety & Fallbacks** | Human approval, low-confidence/complaint routing, table-grounded prices | **Implemented; guardrails tested, model output not guaranteed** | Draft sanitization, PII masking, staff review, and routing tests exist. Sanitization is defense-in-depth, not a guarantee against every possible model claim. |
+| **Structured Event Form** | Structured wedding and event enquiry form | **Implemented; source behavior tested** | `/enquire` provides structured fields and neutral meeting-space selection. No production enquiry was created. |
+| **Daily Reservation Export** | Daily booking export | **Implemented; endpoint covered by tests** | CSV export is present with formula-injection sanitization. No production data was modified; current export contents were not reviewed here. |
+| **Data Privacy & Legal** | Handle personal data responsibly; collect Form C details at check-in | **Privacy controls present; legal compliance NOT CERTIFIED** | Consent and private confirmation access are implemented. This is not a legal audit or DPDP compliance certification. |
+| **Responsive Design** | Minimal, mobile-responsive pages without horizontal overflow | **Partially verified** | Local preview of the landing page at exact 390px and 768px CSS widths showed no horizontal overflow after a header fix. Other routes and 1280px were not measured in this run. |
+
+### Assumptions and Limits
+
+The financial and occupancy figures in the brief are planning assumptions, not independently measured resort results. Room names, descriptions, capacities, amenity text, and demo tariffs seeded in `V3__reference_data.sql` are project demo data and have not been confirmed by the resort. Tax slabs are explicitly marked `UNVERIFIED` in reference data and must not be represented as legally validated statutory advice. The booking window (`2026-11-02` to `2027-04-30`) is a demo configuration assumption and must be made configurable or rolled forward before bookings beyond that period are needed. Payment and message delivery are simulated. The zero-overbooking objective depends on correct database transactions and must be validated with the dedicated MySQL concurrency tests before making an absolute claim.
 
 ---
 
 ## 3. High-Level System Architecture & Technology Choices
 
-The platform is designed around a modular, three-tier architecture that guarantees transactional integrity, strict separation of concerns, and rapid global asset delivery:
+The platform uses a modular, three-tier architecture intended to separate guest, staff, and persistence responsibilities. Transactional integrity and availability depend on database behavior and deployment configuration and are not guaranteed by architecture diagrams alone:
 
 ```
 [ Edge Client Layer ]
@@ -68,100 +72,86 @@ The platform is designed around a modular, three-tier architecture that guarante
   ├── Spring Boot 3.3.5 / Java 21 LTS
   ├── Spring Security 6 (Stateless HMAC-SHA256 JWT, Role & Lane Authorization)
   ├── Transaction Manager (Pessimistic Row-Level Locking, 10-Minute Hold Scheduler)
-  ├── Gemini AI Router (Google Gemini 1.5, Structured Schema Extraction, Hallucination Guardrails)
-  ├── Pricing & GST Calculation Engine (Stateless Statutory Single-Slab Valuation)
+  ├── Gemini AI Router (configurable Gemini model; code default `gemini-3.8-flash`, structured extraction and draft guardrails)
+  ├── Pricing & provisional tax display engine (seeded tax slabs marked `UNVERIFIED`)
   └── Simulated Delivery Adapters (Email SIM, WhatsApp SIM with Unique Delivery IDs)
          │
          │ JDBC Connection Pool (HikariCP, utf8mb4)
          ▼
 [ Persistence Layer (Managed MySQL 8.0 on Railway) ]
-  ├── Flyway Database Migrations (V1 to V8 Idempotent Schema & Seed Scripts)
+  ├── Flyway Database Migrations (V1 to V8 versioned schema, reference data, and draft corrections)
   ├── 12 Normalized Relational Tables with Foreign Key Constraints
-  └── Atomic Inventory Allocation (`daily_inventory`, `booking_allocations`)
+  └── Inventory row locks and counters (`daily_inventory_rates.booked_count`)
 ```
 
 ### Why These Technologies Were Chosen
 1. **Java 21 LTS & Spring Boot 3.3.5**:
-   - **Concurrency & ACID Transactions**: Hospitality booking requires strict database isolation. Spring’s declarative transaction management combined with Java 21 virtual thread capability ensures reliable handling of concurrent checkout sessions without race conditions.
+   - **Concurrency & ACID Transactions**: Inventory holds use Spring transactions and database row locks. Java 21 virtual-thread capability is not itself a concurrency-safety mechanism; MySQL-backed race tests are required to validate the inventory guarantee.
    - **Type Safety**: Financial calculations (room tariffs, GST percentages, promo deductions) are strictly bounded by `BigDecimal`, preventing floating-point inaccuracies.
 2. **React 18 & Vite**:
-   - **Sub-Second Hill-Station Load Times**: Vite bundles compiled into modern ES modules produce a production bundle under 210 KB (gzipped), ensuring instant rendering even on congested 3G/4G mountain networks.
-   - **Component Decoupling**: Guest checkout and staff operational dashboards remain entirely modular with zero unnecessary re-renders.
+   - **Build Output**: The 8 November 2026 local production build emitted a 203.77 KB main JavaScript chunk (66.05 KB gzip). This does not include all lazy chunks, images, or network transfer, and no 3G/4G performance measurement was run.
+   - **Component Decoupling**: Guest checkout and staff operational dashboards are split into route-level components; render performance was not profiled.
 3. **Managed MySQL 8.0**:
-   - **Functional Unique Indexes**: Supports ANSI SQL `CHECK` constraints and functional expressions (`COALESCE(category_id, 0)`), guaranteeing resort-wide and category-specific blackout date integrity.
-   - **Pessimistic Locking**: Native support for `SELECT ... FOR UPDATE` ensures no two guests can hold the same physical allotment simultaneously.
-4. **Google Gemini 1.5**:
-   - **Structured JSON Mode**: Extracts complex multi-parameter event payloads (guest counts, date ranges, budgets) directly into strongly typed DTOs with built-in confidence scoring.
+   - **Functional Unique Indexes**: The V6 migration adds a functional unique index using `COALESCE(room_category_id, 0)` for resort-wide and category-specific blackout dates. The MySQL migration/concurrency path was not exercised in this audit run.
+   - **Pessimistic Locking**: `SELECT ... FOR UPDATE` is used in the inventory transaction path. The database-backed concurrency result remains unverified until the integration suite runs against MySQL.
+4. **Gemini API (configured model)**:
+   - **Structured Extraction**: The configured model is asked for structured enquiry fields and a confidence value, then application logic validates and routes the result. The current code default is `gemini-3.8-flash`; the deployed environment's selected model and live response behavior were not independently checked in this audit.
 
 ---
 
 ## 4. Relational Data Model & Database Schema
 
-The database schema is partitioned into 12 normalized tables managed via Flyway migrations:
+The V2 Flyway migration creates 12 tables. Later migrations add enquiry fields, reference data, tax configuration, a blackout uniqueness index, and corrections to demo drafts. The schema does **not** contain a `booking_allocations` table; booking activity is reflected in `daily_inventory_rates.booked_count`.
 
-```
-+-------------------+       +-----------------------+       +-------------------+
-|   room_categories |<------|   rooms (76 Keys)     |       |    rate_plans     |
-| (ROOM, VILLA)     |       | (64 Rooms, 12 Villas) |       | (EP, CP, MAP)     |
-+---------+---------+       +-----------------------+       +---------+---------+
-          |                                                           |
-          +-----------------------------+-----------------------------+
-                                        |
-                                        ▼
-+-----------------------+   +-----------------------+   +-----------------------+
-|    daily_inventory    |   |      daily_rates      |   |    blackout_dates     |
-| (Allotment & Booked)  |   | (Base Rate per Date)  |   | (Functional Index)    |
-+-----------+-----------+   +-----------------------+   +-----------------------+
-            |
-            ▼
-+-----------------------+   +-----------------------+   +-----------------------+
-|  booking_allocations  |-->|       bookings        |<--|      promo_codes      |
-| (Atomic Day Tracking) |   | (Hold, Confirmed, Ref)|   | (Percentage Discount) |
-+-----------------------+   +-----------------------+   +-----------------------+
-                                        ▲
-                                        | (Link via Ref)
-+-----------------------+   +-----------+-----------+   +-----------------------+
-|        users          |   |       enquiries       |-->|    enquiry_drafts     |
-| (Roles: STAFF, GM)    |-->| (Multi-channel Inbox) |   | (Human Review Queue)  |
-+-----------------------+   +-----------------------+   +-----------------------+
-```
+The actual V2 tables are:
+
+1. `users`
+2. `room_categories`
+3. `physical_units`
+4. `rate_plans`
+5. `daily_inventory_rates` (base rate, website allotment, booked count, and optimistic version)
+6. `blackout_dates`
+7. `promo_codes`
+8. `gst_tax_slabs`
+9. `bookings`
+10. `payments`
+11. `enquiries`
+12. `enquiry_drafts`
+
+`physical_units`, `rate_plans`, `daily_inventory_rates`, and `blackout_dates` reference `room_categories`. `bookings` references a room category, rate plan, and optional promo code. `payments` has a one-to-one foreign-key relationship with `bookings`. Enquiries may be assigned to a user, and `enquiry_drafts` references an enquiry and the staff member who sends a draft.
 
 ### Key Entity Specifications
-1. **`room_categories`**: Represents the two physical accommodation types (`ROOM` with 64 units, `VILLA` with 12 units). Defines base capacities, square footage, and photo manifests.
-2. **`daily_inventory`**: Tracks the admin-set website allotment (`website_allotment_total`) and active confirmed/held reservations (`booked_count`) for each date and category.
-3. **`bookings`**: Stores reservation state (`HELD`, `CONFIRMED`, `CANCELLED`, `EXPIRED`), guest contact details, total price, applied promo code, and explicit UTC expiration instant (`expires_at`).
-4. **`booking_allocations`**: Child table storing the discrete daily room count deductions for each reservation date.
-5. **`enquiries` & `enquiry_drafts`**: Stores incoming customer messages, AI classification categories (`ROOM_BOOKING`, `WEDDING`, `CORPORATE_OFFSITE`, `COMPLAINT`, `UNSORTED`), confidence scores, assigned staff member, and generated response drafts pending review.
-6. **`blackout_dates`**: Enforces inventory closure dates with a functional unique index:
-   ```sql
-   CREATE UNIQUE INDEX uk_blackout_dates_scope_date 
-   ON blackout_dates (stay_date, (COALESCE(room_category_id, 0)));
-   ```
+1. **`room_categories` and `physical_units`**: The brief describes a 76-key property; the reference seed divides demo inventory into 64 room units and 12 villa units. This category split and related marketing copy are project data, not separately confirmed property facts.
+2. **`daily_inventory_rates`**: Stores `base_rate_inr`, `website_allotment_total`, and `booked_count` for each room category and stay date. The booking service updates these locked rows within its transaction.
+3. **`bookings`**: The schema status values are `PENDING_PAYMENT`, `CONFIRMED`, `FAILED`, `EXPIRED`, and `CANCELLED`. It stores the booking's pricing snapshot, guest data, dates, and `expires_at` timestamp.
+4. **`payments`**: Stores a unique single-use token and mock payment state for each booking; the gateway is simulated.
+5. **`enquiries` and `enquiry_drafts`**: Store incoming messages, classification, confidence, assignment, and a response draft that requires staff review.
+6. **`blackout_dates`**: V6 adds the MySQL functional unique index `uk_blackout_dates_scope_date` on `((COALESCE(room_category_id, 0)), blackout_date)` to prevent duplicate resort-wide or category-specific closures for a date.
 
 ---
 
 ## 5. Core System Workflows & Business Logic
 
-### 5.1 Three-Stage Guest Booking Funnel (Zero Overbooking Guarantee)
-The guest booking journey is strictly constrained to three clear, purposeful steps:
+### 5.1 Three-Stage Guest Booking Funnel (Inventory-Control Design)
+The guest booking journey is designed around three clear steps. The inventory transaction is intended to protect the admin-set website allotment; its concurrency guarantee must be established with the MySQL integration tests.
 
 ```
 [ Step 1: Details & Consent ] ──▶ [ Step 2: Payment Simulation ] ──▶ [ Step 3: Instant Confirmation ]
         (/checkout)                       (/payment/:ref)                     (/bookings/:ref)
   - Guest Name, Email, Phone        - Authoritative UTC Expiry Clock    - Reference Code (BKG-XXXXXX)
-  - DPDP 2023 Consent Checkbox      - 10-Minute Pessimistic Hold        - Detailed Price & GST Breakdown
-  - Promo Code Validation           - Idempotent Test Card Mock         - Direct Booking Confirmation Link
+  - Privacy Notice & Consent        - 10-Minute Inventory Hold           - Detailed Price & provisional GST
+  - Promo Code Validation           - Idempotent Mock Payment            - Private Confirmation Link
 ```
 
 1. **Step 1: Guest Details & Consent (`/checkout`)**:
    - The guest selects their preferred room and rate plan (`EP` Room Only, `CP` Breakfast Included, `MAP` Breakfast + Dinner).
    - Validates guest full name, email, and mobile number.
-   - Requires explicit consent under India’s Digital Personal Data Protection (DPDP) Act 2023.
+   - Requires the guest to acknowledge the privacy notice and consent checkbox; this implementation is not a legal compliance certification.
    - Upon form submission, the backend executes an atomic transaction in `BookingTransactionService`:
      - Checks resort and category blackout dates.
-     - Performs `SELECT ... FOR UPDATE` row locks across each requested stay date in `daily_inventory`.
+     - Performs `SELECT ... FOR UPDATE` row locks across each requested stay date in `daily_inventory_rates`.
      - Verifies `booked_count + requested_rooms <= website_allotment_total`.
-     - Increments `booked_count` and generates a booking record with `status = 'HELD'` and `expires_at = Instant.now().plus(10, ChronoUnit.MINUTES)`.
+     - Increments `booked_count` and generates a booking record with `status = 'PENDING_PAYMENT'`; the backend clock sets `expires_at` ten minutes after hold creation.
 2. **Step 2: Payment Simulation (`/payment/:ref`)**:
    - Displays live reservation summary and active hold countdown timer.
    - **Timezone-Safe Architecture**: The backend serializes `expires_at` as an explicit UTC ISO-8601 string ending in `Z` (e.g. `2026-11-08T04:15:30Z`), preventing browser timezone shifts (such as India Standard Time UTC+5:30) from causing premature client expiration.
@@ -178,8 +168,8 @@ Enquiries from the public web form (`/enquire`), forwarded emails, and WhatsApp 
 
 ```
 [ Incoming Message ] ──▶ [ PII Redaction ] ──▶ [ Gemini AI Router ] ──▶ [ Guardrails & Quote Injection ]
-  - Web Form              - Phone/Email Mask     - Category Intent         - Rate Table Price Lookup
-  - Email (Simulated)     - Name Tokenization    - Entity Extraction       - Draft Sanitizer (No Held Claims)
+  - Web Form              - Identifier Masking   - Category Intent         - Rate Table Price Lookup
+  - Email (Simulated)                            - Entity Extraction       - Draft Sanitizer (No Held Claims)
   - WhatsApp (Simulated)                         - Confidence Score        - GM Alert if Complaint / Low Conf
                                                                                           │
                                                                                           ▼
@@ -188,16 +178,16 @@ Enquiries from the public web form (`/enquire`), forwarded emails, and WhatsApp 
 ```
 
 1. **PII Masking & Safe Prompting**:
-   - Senders' phone numbers and emails are masked prior to external API dispatch to comply with DPDP principles.
-2. **Gemini 1.5 Classification & Extraction**:
+   - The raw enquiry message is passed through a redactor that masks contact and common government-ID patterns before Gemini dispatch. This is a privacy control, not proof of legal compliance; the original enquiry remains in the staff system.
+2. **Gemini Classification & Extraction** (configurable; code default `gemini-3.8-flash`):
    - Categorizes enquiry into `ROOM_BOOKING`, `WEDDING`, `CORPORATE_OFFSITE`, `COMPLAINT`, or `UNSORTED`.
    - Extracts structured parameters: `checkInDate`, `checkOutDate`, `guestCount`, `roomCount`, `approximateBudget`.
    - Generates a contextual reply draft and computes a classification confidence score between `0.00` and `1.00`.
-3. **Strict Hallucination Guardrails**:
-   - **Quote Injection (`QuoteInjectorService`)**: The AI is prohibited from inventing tariffs. If dates and room categories are identified, real-time rates are looked up from `daily_rates` and injected into the draft template.
-   - **Draft Price Sanitizer (`DraftPriceSanitizer`)**: Strips any unauthorized promotional promises or unsupported facility claims (e.g., promises of unverified AV gear or automatic room holds).
+3. **Draft Safety Guardrails (Defense in Depth)**:
+   - **Quote Injection (`QuoteInjectorService`)**: When dates and room categories are identified, the application looks up rates from `daily_inventory_rates` and injects the quote; the AI is not the source of prices.
+   - **Draft Sanitizer (`DraftPriceSanitizer`)**: Removes unsupported numeric price claims and defers unverified facility/amenity claims (including AV and room-hold promises). This reduces, but cannot eliminate, model-output risk.
    - **Safety Rules**:
-     - Enquiries with confidence score `< 0.70` are routed to the **Unsorted Lane** monitored by the General Manager.
+     - Enquiries with confidence below the configured threshold (default `0.80`) are routed to the **Unsorted Lane** monitored by the General Manager.
      - Enquiries classified as `COMPLAINT` immediately trigger a `gm_alerted = true` flag.
      - **Drafts are NEVER sent automatically**: Every draft defaults to `DRAFT_PENDING_REVIEW` and requires reservations staff or GM review, editing, and one-click dispatch approval.
      - Staff can re-route any misclassified enquiry with a single click.
@@ -212,16 +202,14 @@ The color palette reflects the plantation landscape: **Deep Forest Green** (`#1E
 
 ### Screen 1: The Landing Page (`/`)
 - **Design Intent**: Sells the estate retreat experience without overwhelming the guest with competing actions.
-- **Deduplicated Visual Hierarchy**: 
-  - The hero section presents high-resolution WebP photography with warm typography.
-  - The floating search bar is the **single primary call-to-action** on screen, labeled **`Search Availability`**.
-  - The top navbar contains the brand and section links, with an accessibility shortcut that smooth-scrolls to the search bar.
-  - The hero text overlay removes redundant booking buttons, retaining only a secondary `Plan an Event` link for wedding and corporate planners.
+- **Booking Controls**:
+  - The hero section presents WebP photography with warm typography. `Book a Stay` scrolls/focuses the date form; `Plan an Event` links to the enquiry flow.
+  - The search form's `Search Availability` button validates selected dates and submits the search. The header's `Check Availability` shortcut also scrolls to this form when displayed; it is hidden on booking subroutes and at widths up to 480px.
 
 ### Screen 2: Stay / Availability & Rooms (`/stay`)
 - **Design Intent**: Instant clarity on room options and rate plans with zero friction.
 - **Single Compact Filter Bar**: Features a single horizontal bar (`Check-in | Check-out | Guests | Modify Search`).
-- **Auto-Fetch on Load**: Defaults to standard dates (`2026-11-14` to `2026-11-16`) or URL parameters, auto-fetching rooms immediately so guests never face an empty screen or an unnecessary initial search click.
+- **Date-First State**: No stay dates are silently prefilled. A missing or invalid date pair shows a date-entry form and prompt; it does not call availability until valid dates are selected and submitted. A valid URL date pair loads availability automatically.
 - **Navbar Deduplication**: The navbar on `/stay` omits the generic "Check Availability" button, showing only a clean `← Back to Estate` utility link.
 - **Robust Empty State**: If a date is fully booked, displays an informative card with formatted dates (never broken `"for to is"`), with actions to adjust dates or submit a direct enquiry.
 
@@ -281,14 +269,18 @@ In strict accordance with the client brief's *CORE BUILD* guidelines and *OUT OF
 
 ---
 
-## 8. Responsive Viewport Compliance Matrix
+## 8. Responsive Viewport Checks (8 November 2026)
 
-All guest and staff interfaces were validated via headless Chrome across target responsive breakpoints:
+The built local preview was rendered in same-origin browser frames with exact CSS viewport widths. Landing, date-first Stay, corporate-offsite enquiry, and staff login routes were measured; this does not certify every guest or staff route or a physical device.
 
-| Viewport Breakpoint | Dimensions | Tested Routes | Horizontal Overflow | Result |
-| :--- | :--- | :--- | :--- | :--- |
-| **Mobile (iPhone 14 / Compact)** | 390px × 844px | `/`, `/stay`, `/rooms/:code`, `/checkout`, `/enquire`, `/staff/enquiries` | **Zero** (`scrollWidth = 390px`) | **PASS** |
-| **Tablet (iPad Portrait)** | 768px × 1024px | `/`, `/stay`, `/checkout`, `/staff/inventory` | **Zero** (`scrollWidth = 768px`) | **PASS** |
-| **Desktop (Standard Laptop)** | 1280px × 800px | All guest routes & staff dashboards | **Zero** (`scrollWidth = 1280px`) | **PASS** |
+| Viewport (`window.innerWidth`) | Routes tested | Document width / `scrollWidth` | Result |
+| :--- | :--- | :--- | :--- |
+| 390px | `/`, `/stay`, `/enquire?type=offsite`, `/staff/login` | 375px / 375px on all four | **PASS; no horizontal overflow** |
+| 768px | `/`, `/stay`, `/enquire?type=offsite`, `/staff/login` | 753px / 753px on the first three; 768px / 768px on staff login | **PASS; no horizontal overflow** |
 
-Tap targets across all interactive mobile elements meet or exceed the **44px × 44px** standard (`var(--tap-min, 2.75rem)`).
+At 390px, the initial landing measurement found `.guest-header__cta` extending beyond the page edge; hiding that duplicate header action at widths up to 480px removed the overflow. The mobile navigation toggle was also exercised: it opened with `aria-expanded="true"`, exposed four links, and closed with `aria-expanded="false"`. Other routes, 1280px layout, and all tap-target dimensions still need explicit checks; the 44px CSS token does not substitute for measuring every control.
+
+
+## 9. Release and Audit Notes (8 November 2026)
+
+The repository `main` baseline inspected for this audit is `2c7dc65`. The latest supplied Railway deployment report records commit `3ea8538` and Flyway schema version `v8`; that report predates the current `main` head. A read-only request to the public `/health` endpoint returned `{"status":"ok"}`, and the Vercel homepage loaded, but neither response identifies the exact deployed source commit. Therefore the deployed release alignment is **NOT VERIFIED**. This audit made no production booking, enquiry, payment, migration, or other data write. Local remediation changes are not production-deployed.

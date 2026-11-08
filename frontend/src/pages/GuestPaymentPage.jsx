@@ -133,9 +133,11 @@ export function GuestPaymentPage() {
         sessionStorage.removeItem(`booking_${ref}`);
       }
     } catch (err) {
-      const isExp = (err.status === 409) ||
-                    (err.message && err.message.toLowerCase().includes('expired')) ||
-                    (err.serverBody?.error && typeof err.serverBody.error === 'string' && err.serverBody.error.toLowerCase().includes('expired'));
+      const errorCode = typeof err.serverBody?.error === 'string' ? err.serverBody.error : '';
+      const serverMessage = typeof err.serverBody?.message === 'string' ? err.serverBody.message : '';
+      const isExp = errorCode === 'Booking Hold Expired' ||
+                    /expired/i.test(err.message || '') ||
+                    /expired/i.test(serverMessage);
       if (isExp) {
         setIsExpired(true);
         sessionStorage.removeItem(`booking_${ref}`);

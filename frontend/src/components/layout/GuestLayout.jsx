@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { shouldShowHeaderCta } from '../../utils/navigationUtils.js';
 import './GuestLayout.css';
@@ -26,6 +26,7 @@ function CoffeeLeafIcon() {
 export function GuestLayout() {
   const location = useLocation();
   const showHeaderCta = shouldShowHeaderCta(location.pathname);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const scrollToAnchor = useCallback((targetId) => {
     const elem = document.getElementById(targetId);
@@ -55,6 +56,10 @@ export function GuestLayout() {
     }
   }, [location.pathname, location.hash, scrollToAnchor]);
 
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname, location.search]);
+
   const handleAboutClick = (e) => {
     if (location.pathname === '/' && location.hash === '#about') {
       e.preventDefault();
@@ -76,12 +81,27 @@ export function GuestLayout() {
             </div>
           </Link>
 
+          <button
+            type="button"
+            className="guest-header__menu-toggle"
+            aria-label={mobileMenuOpen ? 'Close main navigation' : 'Open main navigation'}
+            aria-expanded={mobileMenuOpen}
+            aria-controls="guest-main-navigation"
+            onClick={() => setMobileMenuOpen((open) => !open)}
+          >
+            {mobileMenuOpen ? 'Close' : 'Menu'}
+          </button>
+
           {/* Center Links */}
-          <nav className="guest-header__nav" aria-label="Main navigation">
+          <nav
+            id="guest-main-navigation"
+            className={`guest-header__nav${mobileMenuOpen ? ' is-open' : ''}`}
+            aria-label="Main navigation"
+          >
             <NavLink to="/stay" className="guest-header__link">Stay</NavLink>
             <NavLink to="/enquire?type=wedding" className="guest-header__link">Weddings</NavLink>
             <NavLink to="/enquire?type=offsite" className="guest-header__link">Offsites</NavLink>
-            <Link to="/#about" className="guest-header__link" onClick={handleAboutClick}>About</Link>
+            <Link to="/#about" className="guest-header__link" onClick={(e) => { setMobileMenuOpen(false); handleAboutClick(e); }}>About</Link>
           </nav>
 
           {/* Right CTA: contextually omitted on /stay, /rooms/:code, and booking funnel */}

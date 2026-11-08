@@ -3,13 +3,12 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { fetchAvailability } from '../api/roomsApi';
 import {
   BOOKING_WINDOW,
-  DEFAULT_CHECK_IN,
-  DEFAULT_CHECK_OUT,
   calculateNights,
   formatCompactDate,
   formatLocalDate,
   parseLocalDate,
   getNextDay,
+  isValidStayDateRange,
 } from '../utils/dateUtils';
 import { formatINR } from '../utils/formatUtils';
 import { Skeleton, ErrorBanner } from '../components/ui';
@@ -65,10 +64,12 @@ export function GuestAvailabilityPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  // Search parameters from URL — no silent defaults; null means guest has not selected dates yet
-  const checkIn = searchParams.get('checkIn') || DEFAULT_CHECK_IN;
-  const checkOut = searchParams.get('checkOut') || DEFAULT_CHECK_OUT;
-  const datesSelected = Boolean(checkIn && checkOut);
+  // Only use a query date pair after validating it; malformed or stale URLs return to the date-first state.
+  const queryCheckIn = searchParams.get('checkIn') || '';
+  const queryCheckOut = searchParams.get('checkOut') || '';
+  const datesSelected = isValidStayDateRange(queryCheckIn, queryCheckOut);
+  const checkIn = datesSelected ? queryCheckIn : '';
+  const checkOut = datesSelected ? queryCheckOut : '';
   const rooms = Number(searchParams.get('rooms')) || 1;
   const adults = Number(searchParams.get('adults')) || 2;
   const children = Number(searchParams.get('children')) || 0;
@@ -354,7 +355,7 @@ export function GuestAvailabilityPage() {
 
                 <div className="stay-search-edit__actions">
                   <button type="submit" className="stay-search-edit__submit-btn">
-                    Modify Search
+                    {datesSelected ? 'Modify Search' : 'Check Availability'}
                   </button>
                   {datesSelected && (
                     <button

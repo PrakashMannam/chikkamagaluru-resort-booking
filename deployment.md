@@ -4,7 +4,7 @@ This document details the configuration, deployment, and operational procedures 
 
 > **Requirements Provenance & IsoCode Labs Brief Alignment**:
 > The complete IsoCode Labs Take-Home Assignment Brief for *Company A, Chikkamagaluru* is documented and committed in [`docs/isocode-assignment-brief.md`](docs/isocode-assignment-brief.md).
-> All operational, deployment, and testing procedures documented herein are verified 100% compliant with the client problem statement and core build requirements.
+> This guide documents setup and deployment procedures; it is not a compliance certification. See `TDD.md` for the source-aware requirements matrix, assumptions, audit limits, and release status. Production deployment settings and exact live source revision are not fully verifiable from this repository.
 
 ---
 
@@ -12,13 +12,13 @@ This document details the configuration, deployment, and operational procedures 
 
 Ensure the following runtimes and tools are installed and available on your system path:
 
-| Tool | Minimum Version | Verified Version | Verification Command | Notes |
+| Tool | Minimum Version | Observed in Audit Environment (8 Nov 2026) | Verification Command | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| **Java Development Kit** | OpenJDK 21 LTS | 21.0.11 | `java -version` | Backend runtime (Spring Boot 3.3.5) |
-| **Apache Maven** | 3.9+ | 3.9.6 | `mvn -version` | Or use the wrapper located in `backend/` (`.\backend\mvnw.cmd` / `./backend/mvnw`) |
-| **Node.js** | 20+ LTS | 24.14.0 | `node -v` | Frontend build and dev server |
-| **npm** | 10+ | 10.9.2 | `npm -v` | Frontend package manager |
-| **MySQL Server** | 8.0.16 or newer | 8.0.36 | `mysql --version` | **Strict requirement**: ANSI SQL `CHECK` constraints and functional indexes (`COALESCE(...)`) require MySQL >= 8.0.16 |
+| **Java Development Kit** | OpenJDK 21 LTS | 21.0.12.1 | `java -version` | Backend runtime (Spring Boot 3.3.5) |
+| **Apache Maven** | 3.9+ | Maven Wrapper 3.9.9 | `./backend/mvnw -version` | Use the wrapper located in `backend/` (`.\backend\mvnw.cmd` / `./backend/mvnw`). |
+| **Node.js** | `^20.19.0` or `>=22.12.0` | 22.23.4 | `node -v` | Vite 7 / React plugin build runtime; this is the audit environment, not a Vercel runtime observation. |
+| **npm** | 10+ | 10.9.9 | `npm -v` | Frontend package manager |
+| **MySQL Server** | 8.0.16 or newer | Not connected; local client reports 8.0.46 | `mysql --version` | MySQL integration tests were not run in this task; the client version does not prove the production server version. |
 
 ### Repository Setup
 ```bash
@@ -68,10 +68,10 @@ Migration scripts reside in `backend/src/main/resources/db/migration/`:
 | `V4` | `V4__gst_slabs.sql` | Provisional GST tax slabs (0.00–7,500.00 INR: 5.00%, >7,500.00 INR: 18.00%, status `UNVERIFIED`). |
 | `V5` | `V5__enquiry_ai_fields.sql` | Schema enhancement adding `ai_summary` (TEXT), `extracted_rooms` (INT), and `ai_error_status` (VARCHAR(100)) to the `enquiries` table for automated triage. |
 | `V6` | `V6__blackout_dates_resort_wide_unique.sql` | Enforces uniqueness for resort-wide blackout dates via functional unique index `uk_blackout_dates_scope_date` on `((COALESCE(room_category_id, 0)), blackout_date)`, preventing duplicate resort-wide blackouts on the same calendar day. |
-| `V7` | `V7__correct_seeded_enquiry_drafts.sql` | Idempotent data migration correcting legacy seeded demo enquiry drafts for `ENQ-DEMO-ROOM1` and `ENQ-DEMO-WED1` to grounded, non-committal wording. (Pending in live production). |
-| `V8` | `V8__correct_corporate_demo_draft.sql` | Idempotent data migration correcting legacy seeded corporate demo draft for `ENQ-DEMO-CORP1` to conservative coordinator confirmation, eliminating ungrounded claims about AV projection, panoramic views, and guided cupping. (Pending in live production). |
+| `V7` | `V7__correct_seeded_enquiry_drafts.sql` | Idempotent data migration correcting legacy seeded demo enquiry drafts for `ENQ-DEMO-ROOM1` and `ENQ-DEMO-WED1` to grounded, non-committal wording. The latest supplied deployment report records it as applied. |
+| `V8` | `V8__correct_corporate_demo_draft.sql` | Idempotent data migration correcting the legacy seeded corporate demo draft. The latest supplied deployment report records it as applied, with deployed schema version v8; the current production source revision remains unverified. |
 
-> **Immutability Principle**: Applied Flyway migration scripts are strictly immutable and must never be edited retroactively. Any new schema or data changes must be introduced as sequential forward migrations (`V7`, `V8`, etc.).
+> **Immutability Principle**: Applied Flyway migration scripts are strictly immutable and must never be edited retroactively. Any new schema or data changes must be introduced as sequential forward migrations after the highest applied version (currently v8 in the latest supplied deployment report).
 
 ---
 
@@ -213,83 +213,37 @@ npm run dev
 
 ---
 
-## 7. Running the Test Suite
+## 7. Automated Test Evidence (8 November 2026)
 
-The backend test suite is divided into fast unit/mock tests and MySQL-backed integration tests. The figures below reflect supplied execution results from the test runner:
+The following results are from the local `audit/final-hardening` worktree based on repository `main` commit `2c7dc65`. They are not production test results.
 
-### Standard Test Suite (226 Tests — No Database Required)
-When `TEST_DB_URL` is omitted, JUnit `Assumptions.assumeTrue` skips the three database integration classes (`DatabaseMigrationIntegrationTest`, `AllotmentConcurrencyIntegrationTest`, and `BlackoutConcurrencyIntegrationTest`). All 226 unit, mock, and WebMvc tests run cleanly with 0 failures and 0 errors:
+**Backend:** `cd backend && bash ./mvnw -q test` completed with 238 tests, 0 failures, 0 errors, and 0 skipped, as counted from Surefire XML reports. `TEST_DB_URL` was not configured, so the MySQL-backed migration and inventory-concurrency tests were not verified. A passing unit/mock suite does not prove zero overbooking under concurrent MySQL transactions.
 
-```powershell
-# From repository root
-cd backend
-.\mvnw.cmd test
-```
+**Frontend:** `node --test frontend/test/*.test.mjs` passed 25 tests with 0 failures. `npm run build` completed successfully. `npm audit --audit-level=moderate` reported 0 known vulnerabilities. `git diff --check` reported no whitespace errors.
+
+To reproduce the frontend checks from the repository root:
 
 ```bash
-# Bash
+node --test frontend/test/*.test.mjs
+cd frontend
+npm ci --ignore-scripts
+npm run build
+npm audit --audit-level=moderate
+```
+
+To run the backend suite, use the checked-in Maven wrapper from `backend/`:
+
+```bash
 cd backend
 ./mvnw test
 ```
 
-### Full Integration Test Suite (241 Tests — With Local Test Database)
-When `TEST_DB_URL` points to `resort_test`, all **241 tests** execute across all 26 test classes with 0 failures, 0 errors, and 0 skipped:
-
-```powershell
-# PowerShell
-cd backend
-$env:TEST_DB_URL="jdbc:mysql://localhost:3306/resort_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
-$env:TEST_DB_USER="root"
-$env:TEST_DB_PASSWORD="your_mysql_password_here"
-.\mvnw.cmd test
-```
-
-```bash
-# Bash
-cd backend
-export TEST_DB_URL="jdbc:mysql://localhost:3306/resort_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
-export TEST_DB_USER="root"
-export TEST_DB_PASSWORD="your_mysql_password_here"
-./mvnw test
-```
-
-### Per-Class Test Count Reconciliation (Surefire XML Reports)
-
-| Test Class | Category | Tests Run | Requires MySQL? | Notes |
-| :--- | :--- | :--- | :--- | :--- |
-| `AdminBlackoutEndpointsWebMvcTest` | WebMvc Mock | 5 | No | Staff blackout HTTP endpoint validation |
-| `AdminBlackoutPromoServiceTest` | Service Unit | 14 | No | Blackout and promo business rules |
-| `AdminBookingExportServiceTest` | Service Unit | 9 | No | Daily CSV booking export formatting & status mapping |
-| `AdminBookingExportWebMvcTest` | WebMvc Mock | 5 | No | Staff CSV export endpoint authorization & headers |
-| `AdminInventoryEndpointsWebMvcTest` | WebMvc Mock | 7 | No | Inventory management endpoints |
-| `AdminInventoryServiceTest` | Service Unit | 6 | No | Inventory update and allotment service logic |
-| `AdminPromoEndpointsWebMvcTest` | WebMvc Mock | 5 | No | Promo code management endpoints |
-| `AllotmentConcurrencyIntegrationTest` | Concurrency Integration | 6 | **Yes (`TEST_DB_URL`)** | Multi-threaded allotment booking isolation |
-| `AuthAndSecurityTest` | Security Integration | 14 | No | Authentication and role authorization checks |
-| `BlackoutConcurrencyIntegrationTest` | Concurrency Integration | 4 | **Yes (`TEST_DB_URL`)** | Multi-threaded blackout race prevention exercising V6 functional unique index in MySQL 8 |
-| `BookingEndpointsWebMvcTest` | WebMvc Mock | 10 | No | Public booking endpoints |
-| `BookingPaymentServiceTest` | Service Unit | 22 | No | Payment lifecycle and hold management |
-| `BookingServiceTest` | Service Unit | 25 | No | Booking creation, validation, hold timeouts |
-| `CsvExporterTest` | Utility Unit | 12 | No | RFC 4180 CSV escaping, CRLF, injection prevention |
-| `DatabaseMigrationIntegrationTest` | Migration Integration | 5 | **Yes (`TEST_DB_URL`)** | Flyway V1–V6 schema, tables, constraints, functional indexes |
-| `DemoDataSeederIntegrationTest` | Seeder Integration | 1 | No | Seeder execution verification |
-| `DemoDataSeederTest` | Unit Test | 2 | No | Demo user credential verification |
-| `DraftApprovalConcurrencyIntegrationTest` | Concurrency Integration | 2 | No | Concurrent enquiry draft approval deduplication |
-| `EnquiryEndpointsWebMvcTest` | WebMvc Mock | 12 | No | Staff and public enquiry endpoints |
-| `EnquirySafetyAndParsingTest` | Unit Test | 7 | No | Guest input sanitization and PII safety |
-| `EnquiryServiceTest` | Service Unit | 26 | No | Enquiry business logic and state machine |
-| `HealthEndpointTest` | WebMvc Mock | 1 | No | `/health` endpoint verification |
-| `PricingServiceTest` | Service Unit | 8 | No | Tariff calculation, meal supplements, tax slabs |
-| `PublicRoomControllerTest` | WebMvc Mock | 14 | No | Public room category and rate quote endpoints |
-| `RateLimitingFilterEnquiryTest` | WebMvc Mock / Unit | 15 | No | Public enquiry and endpoint rate-limiting rules, token bucket, spoofing mitigation, 10-minute window |
-| `SimulatedDeliveryAdapterTest` | Service Unit | 4 | No | Email/WhatsApp simulated delivery adapter |
-| **TOTAL** | | **241** (226 without DB) | | **100% Pass Rate (0 failures, 0 errors, 0 skipped)** |
-
+For migration and inventory-concurrency validation, set `TEST_DB_URL`, `TEST_DB_USER`, and `TEST_DB_PASSWORD` to a dedicated isolated `resort_test` database only. Never point `TEST_DB_URL` or `DB_URL` at production. The database-backed tests were not run as part of this audit.
 ---
 
 ## 8. Target Cloud Architecture & Railway Port Mechanics
 
-The application is deployed across high-availability managed cloud infrastructure:
+The application uses the following managed-provider topology; availability guarantees and private Railway configuration were not audited:
 
 ```
 +-------------------------------------------------------------------------+
@@ -309,7 +263,7 @@ The application is deployed across high-availability managed cloud infrastructur
 | - React 18 SPA                     |  | - Spring Boot 3.3.5 (Java 21)   |
 | - Vercel Rewrites (`vercel.json`)  |  | - Port: ${PORT:8080} dynamic    |
 | - Static Assets: WebP / JPG        |  | - CORS: Allowed Vercel Origin   |
-| - Tier: Hobby (Non-Commercial Demo)|  | - Auth: Stateless JWT (HS256)   |
+| - Plan: Not independently verified |  | - Auth: Stateless JWT (HS256)   |
 +------------------------------------+  +----------------+----------------+
                                                          |
                                         Private Network  | JDBC via TCP
@@ -322,7 +276,7 @@ The application is deployed across high-availability managed cloud infrastructur
                                         | - Host: mysql.railway.internal  |
                                         | - Port: 3306                    |
                                         | - Storage: Persistent Volume    |
-                                        | - Migrations: Flyway V1-V6      |
+                                        | - Migrations: Flyway V1-V8      |
                                         +---------------------------------+
 ```
 
@@ -352,12 +306,11 @@ The application is deployed across high-availability managed cloud infrastructur
 
 | Component | Provider | Live URL | Observed Status |
 | :--- | :--- | :--- | :--- |
-| **Frontend** | Vercel (Hobby) | `https://chikkamagaluru-resort-booking.vercel.app` | **LIVE & VERIFIED** (HTTP 200, edge-cached) |
-| **Backend** | Railway | `https://resort-backend-production.up.railway.app` | **LIVE & HEALTHY** (HTTP 200 on `/health`) |
-| **Database** | Railway MySQL 8 | `mysql.railway.internal:3306/railway` | **LIVE & PERSISTENT** (Attached persistent volume) |
+| **Frontend** | Vercel | `https://chikkamagaluru-resort-booking.vercel.app` | Public page loaded on 8 Nov 2026; exact deployed commit is **NOT VERIFIED**. `/stay` displayed default 14–16 Nov dates without query parameters. |
+| **Backend** | Railway | `https://resort-backend-production.up.railway.app` | Read-only `GET /health` returned `{"status":"ok"}`; exact deployed commit is **NOT VERIFIED**. |
+| **Database** | Railway MySQL 8 | `mysql.railway.internal:3306/railway` | Not directly accessed in this audit. Latest supplied deployment report records Flyway schema v8; current connectivity and persistence settings were not independently verified. |
 
-> **Deployment Verification**:
-> Production deployments on Railway (backend deployment `d688632a-acc8-4236-9479-7906b0714718`) and Vercel (frontend) are live and verified on release commit `e4cb404`. The Technical Design Document is documented in [TDD.md](TDD.md).
+> **Release status (8 November 2026)**: The current public repository `main` is commit `2c7dc65`. The latest supplied Railway deployment report records commit `3ea8538` with V7 and V8 applied; that is not the current `main` head. Public endpoints respond, but they do not identify the live source revision. Local remediation changes in this audit are not production-deployed. No production booking, enquiry, payment, inventory, migration, or other data write was performed. See [TDD.md](TDD.md) for requirement and audit caveats.
 
 ---
 
@@ -367,6 +320,8 @@ When running with `SPRING_PROFILES_ACTIVE=demo`, the backend automatically seeds
 ```text
 DEMO-ONLY-NOT-REAL-PASS-2026!
 ```
+
+> **Demo-only security warning**: This shared password is public in this repository. Do not run the `demo` profile against any database containing real guest or staff data. For production, disable demo seeding and provision named staff accounts with unique credentials. If a public portfolio demo keeps these accounts enabled, use synthetic-only data and treat the staff portal as publicly accessible.
 
 | Email | Full Name | Role | Specialty Lane | Permissions & Scope |
 | :--- | :--- | :--- | :--- | :--- |
@@ -392,14 +347,13 @@ Staff portal login: `/staff/login`.
 
 ---
 
-## 12. Regulatory Compliance & Hosting Disclaimers
+## 12. Tax & Hosting Caveats
 
 1. **Provisional GST Slabs (`UNVERIFIED`)**:
    - GST tax calculations applied by the platform (e.g. 5% on tariff <= 7,500 INR, 18% on tariff > 7,500 INR) are provisional and explicitly flagged `UNVERIFIED` in the database.
    - The checkout interface presents a mandatory disclaimer that tax figures are provisional and must be verified by property management with a certified chartered accountant prior to commercial operation.
-2. **Vercel Hobby Plan Terms**:
-   - The live frontend deployment is hosted under Vercel's personal **Hobby** tier and is intended strictly for non-commercial portfolio evaluation, technical review, and demonstration.
-   - Commercial operation requires an upgraded Vercel plan (Pro or Enterprise) in compliance with the [Vercel Fair Use Guidelines](https://vercel.com/docs/limits/fair-use-guidelines).
+2. **Hosting-provider plan**:
+   - The current Vercel account plan and its applicable terms were not independently verified in this audit. Review the provider's current plan, fair-use rules, and billing requirements before any commercial launch. This guide does not make a legal or plan-compliance determination.
 3. **Public Enquiry Rate Limiting & Message Boundaries**:
    - `POST /api/v1/public/enquiries` is protected by IP-based token-bucket rate limiting enforcing 5 requests per 10 minutes per IP (configurable via `RATE_LIMIT_ENQUIRY_MAX_REQUESTS`, returning HTTP 429 with `Retry-After: 600`).
    - Raw enquiry message inputs are strictly bounded to a maximum of 5,000 characters via `@Size(max = 5000)`.
@@ -434,8 +388,14 @@ curl -s -i -X OPTIONS "https://resort-backend-production.up.railway.app/health" 
 # 3. Verify public room inventory query
 curl -s "https://resort-backend-production.up.railway.app/api/v1/public/rooms"
 
-# 4. Verify public pricing calculation
-curl -s "https://resort-backend-production.up.railway.app/api/v1/public/pricing/quote?roomCategoryId=1&ratePlanId=1&checkIn=2026-11-13&checkOut=2026-11-16"
+# 4. Verify public pricing calculation (use a future range within the configured booking window)
+: "${CHECK_IN:?Export CHECK_IN as a future YYYY-MM-DD date within the configured window}"
+: "${CHECK_OUT:?Export CHECK_OUT as a later YYYY-MM-DD date within the configured window}"
+curl --get "https://resort-backend-production.up.railway.app/api/v1/public/pricing/quote" \
+  --data-urlencode "roomCategoryId=1" \
+  --data-urlencode "ratePlanId=1" \
+  --data-urlencode "checkIn=${CHECK_IN}" \
+  --data-urlencode "checkOut=${CHECK_OUT}"
 
 # 5. Verify frontend root and SPA route resolution
 curl -s -I https://chikkamagaluru-resort-booking.vercel.app/
@@ -454,5 +414,5 @@ curl -s -I https://chikkamagaluru-resort-booking.vercel.app/staff/login
 | `Access denied for user 'root'@'localhost'` | Incorrect MySQL credentials. | Verify `DB_USER` and `DB_PASSWORD` match your local MySQL configuration. |
 | Browser shows CORS error when making API requests | `CORS_ALLOWED_ORIGIN` does not match the frontend origin. | Ensure `CORS_ALLOWED_ORIGIN` exactly matches the requesting URL without a trailing slash (e.g. `http://localhost:5173` locally or `https://chikkamagaluru-resort-booking.vercel.app` on Railway). |
 | Port binding collision: `Web server failed to start. Port 8080 was already in use.` | Another process is holding port 8080. | Stop conflicting process or run Spring Boot with a custom port: `cd backend; .\mvnw.cmd spring-boot:run -Dspring-boot.run.arguments="--server.port=8081"`. |
-| Integration tests skipped (`Tests run: 226`) | `TEST_DB_URL` environment variable is not exported. | Export `$env:TEST_DB_URL="jdbc:mysql://localhost:3306/resort_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"` before running `mvn test`. |
+| MySQL-backed integration tests did not run | `TEST_DB_URL` is unset or no dedicated test database is available. | Configure `TEST_DB_URL`, `TEST_DB_USER`, and `TEST_DB_PASSWORD` for an isolated `resort_test` database, then run `./mvnw test` from `backend/`. Never use production credentials or a production database URL. |
 | Functional index syntax error on migration `V6` | MySQL version is older than 8.0.16. | Upgrade MySQL Server to version 8.0.16 or newer. Functional indexes and ANSI `CHECK` constraints require MySQL 8.0.16+. |

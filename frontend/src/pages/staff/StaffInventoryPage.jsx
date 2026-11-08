@@ -19,12 +19,24 @@ import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { Tabs } from '../../components/ui/Tabs';
 import './StaffInventoryPage.css';
 
+const getTodayIst = () => {
+  try {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+  } catch (e) {
+    return new Date().toISOString().slice(0, 10);
+  }
+};
+
+const addIsoDays = (dateStr, days) => {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
+};
+
 const SEED_MIN_DATE = '2026-11-01';
 const SEED_MAX_DATE = '2027-04-30';
 
-// Default to 14 days starting from demo baseline Nov 5, 2026
-const DEFAULT_FROM = '2026-11-05';
-const DEFAULT_TO = '2026-11-18';
+const DEFAULT_FROM = getTodayIst();
+const DEFAULT_TO = addIsoDays(DEFAULT_FROM, 13);
 
 export function StaffInventoryPage() {
   const { token } = useStaffAuth();
@@ -82,14 +94,6 @@ export function StaffInventoryPage() {
   // ==========================================
   // TAB 4: DAILY EXPORT STATE
   // ==========================================
-  const getTodayIst = () => {
-    try {
-      return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
-    } catch (e) {
-      return new Date().toISOString().slice(0, 10);
-    }
-  };
-
   const [exportDate, setExportDate] = useState(getTodayIst);
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState(null);
@@ -1417,13 +1421,13 @@ export function StaffInventoryPage() {
                     type="button"
                     className="staff-inventory__quick-btn"
                     onClick={() => {
-                      const demoDate = '2026-11-14';
-                      setExportDate(demoDate);
-                      handleExportCsv(demoDate);
+                      const sampleDate = addIsoDays(getTodayIst(), 7);
+                      setExportDate(sampleDate);
+                      handleExportCsv(sampleDate);
                     }}
                     disabled={isExporting}
                   >
-                    Demo 14 Nov 2026
+                    One week ahead
                   </button>
                 </div>
               </div>

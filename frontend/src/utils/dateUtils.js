@@ -8,17 +8,14 @@ export const BOOKING_WINDOW = {
   MAX_DATE: '2027-04-30',
 };
 
-// Initial default dates for auto-fetching availability on /stay per reference mockup
-export const DEFAULT_CHECK_IN = '2026-11-14';
-export const DEFAULT_CHECK_OUT = '2026-11-16';
-
 export function parseLocalDate(dateStr) {
   if (!dateStr || typeof dateStr !== 'string') return null;
   const parts = dateStr.split('-');
   if (parts.length !== 3) return null;
   const [year, month, day] = parts.map(Number);
   if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) return null;
-  return new Date(year, month - 1, day);
+  const date = new Date(year, month - 1, day);
+  return formatLocalDate(date) === dateStr ? date : null;
 }
 
 export function formatLocalDate(date) {
@@ -76,6 +73,16 @@ export function isValidFutureDate(dateStr) {
   if (!d || Number.isNaN(d.getTime())) return false;
   const today = parseLocalDate(formatLocalDate(new Date()));
   return d >= today;
+}
+
+export function isValidStayDateRange(checkIn, checkOut, todayStr = formatLocalDate(new Date())) {
+  const arrival = parseLocalDate(checkIn);
+  const departure = parseLocalDate(checkOut);
+  const today = parseLocalDate(todayStr);
+  if (!arrival || !departure || !today) return false;
+
+  const earliestArrival = todayStr > BOOKING_WINDOW.MIN_DATE ? todayStr : BOOKING_WINDOW.MIN_DATE;
+  return checkIn >= earliestArrival && checkOut > checkIn && checkOut <= BOOKING_WINDOW.MAX_DATE;
 }
 
 /**

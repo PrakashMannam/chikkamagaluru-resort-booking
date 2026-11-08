@@ -55,17 +55,21 @@ public class EnquirySafetyAndParsingTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
-    @DisplayName("PII Redactor should mask email addresses and phone numbers before sending to AI")
+    @DisplayName("PII Redactor should mask contact details and common government ID formats before sending to AI")
     void testPiiRedactor() {
-        String input = "Hi, my email is ananya.sharma@example.com and mobile is +91 9876543210. Also reachable at 08262-234567 or intl +1 555-123-4567.";
+        String input = "Synthetic guest: guest.qa@example.test, mobile +91 60000 00000, landline 08262-000000, intl +1 555-010-0100, Aadhaar 0000 0000 0000, PAN AAAAA0000A, passport P0000000.";
         String redacted = PiiRedactor.redact(input);
 
-        assertFalse(redacted.contains("ananya.sharma@example.com"));
-        assertFalse(redacted.contains("9876543210"));
-        assertFalse(redacted.contains("08262-234567"));
-        assertFalse(redacted.contains("555-123-4567"));
+        assertFalse(redacted.contains("guest.qa@example.test"));
+        assertFalse(redacted.contains("60000 00000"));
+        assertFalse(redacted.contains("08262-000000"));
+        assertFalse(redacted.contains("555-010-0100"));
+        assertFalse(redacted.contains("0000 0000 0000"));
+        assertFalse(redacted.contains("AAAAA0000A"));
+        assertFalse(redacted.contains("P0000000"));
         assertTrue(redacted.contains("[REDACTED_EMAIL]"));
         assertTrue(redacted.contains("[REDACTED_PHONE]"));
+        assertTrue(redacted.contains("[REDACTED_ID]"));
     }
 
     @Test
@@ -94,6 +98,16 @@ public class EnquirySafetyAndParsingTest {
 
         assertFalse(sanitized.contains("₹14,500"));
         assertFalse(sanitized.contains("29,000"));
+        assertTrue(sanitized.contains("{{RATE_TABLE_QUOTE_BLOCK}}"));
+    }
+
+    @Test
+    @DisplayName("DraftPriceSanitizer removes bare numeric rate claims but preserves party sizes")
+    void testBareNumericRateClaimSanitizer() {
+        String sanitized = DraftPriceSanitizer.sanitize("For 2 rooms and 4 adults, the nightly rate is 14500 per night.");
+        assertFalse(sanitized.contains("14500"));
+        assertTrue(sanitized.contains("2 rooms"));
+        assertTrue(sanitized.contains("4 adults"));
         assertTrue(sanitized.contains("{{RATE_TABLE_QUOTE_BLOCK}}"));
     }
 

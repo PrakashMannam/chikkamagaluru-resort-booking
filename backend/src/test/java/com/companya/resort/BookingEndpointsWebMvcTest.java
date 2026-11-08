@@ -27,6 +27,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -179,6 +180,20 @@ public class BookingEndpointsWebMvcTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("Bad Request"))
                 .andExpect(jsonPath("$.message").value("One-time payment token is required to cancel hold"));
+    }
+
+    @Test
+    void cancelHold_tokenInQueryString_isNotAccepted() throws Exception {
+        when(bookingPaymentService.cancelHold(eq("BKG123456789"), eq(null)))
+                .thenThrow(new IllegalArgumentException("One-time payment token is required to cancel hold"));
+
+        mockMvc.perform(post("/api/v1/public/bookings/BKG123456789/cancel-hold")
+                        .param("token", "synthetic-token-not-for-url")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+
+        verify(bookingPaymentService).cancelHold(eq("BKG123456789"), eq(null));
     }
 
     @Test

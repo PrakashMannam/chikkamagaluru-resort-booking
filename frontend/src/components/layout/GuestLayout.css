@@ -22,6 +22,7 @@
 }
 
 .guest-header__inner {
+  position: relative;
   max-width: 80rem;
   height: 100%;
   margin: 0 auto;
@@ -76,9 +77,68 @@
   gap: 2rem; /* gap-8 */
 }
 
+.guest-header__menu-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap-min);
+  padding: 0 0.75rem;
+  border: 1px solid #E5E0D8;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: #1C1917;
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.guest-header__menu-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #F7F4EE, 0 0 0 4px #1E3A2F;
+}
+
+.guest-header__nav.is-open {
+  position: absolute;
+  z-index: 101;
+  top: calc(100% - 1px);
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 0.5rem 1rem;
+  background: #F7F4EE;
+  border-bottom: 1px solid #E5E0D8;
+  box-shadow: 0 8px 18px rgba(28, 25, 23, 0.08);
+}
+
+.guest-header__nav.is-open .guest-header__link {
+  min-height: var(--tap-min);
+  border-top: 1px solid #E5E0D8;
+}
+
 @media (min-width: 768px) {
+  .guest-header__menu-toggle {
+    display: none;
+  }
+
   .guest-header__nav {
     display: flex;
+    position: static;
+  }
+
+  .guest-header__nav.is-open {
+    position: static;
+    flex-direction: row;
+    gap: 2rem;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .guest-header__nav.is-open .guest-header__link {
+    border-top: 0;
   }
 }
 
@@ -124,7 +184,13 @@
   box-shadow: 0 0 0 2px #F7F4EE, 0 0 0 4px #1E3A2F;
 }
 
-/* 2. Light Cream Footer (Matches reference design) */
+@media (max-width: 480px) {
+  .guest-header__cta {
+    display: none;
+  }
+}
+
+/* 2. Light Cream Footer (Matches reference design light warm cream) */
 .guest-footer {
   background-color: #F7F4EE;
   border-top: 1px solid #E5E0D8;
