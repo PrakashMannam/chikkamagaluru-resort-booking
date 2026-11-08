@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { fetchAvailability, fetchPricingQuote, createBooking } from '../api/roomsApi';
 import {
-  BOOKING_WINDOW,
   calculateNights,
   formatDisplayDate,
 } from '../utils/dateUtils';
@@ -34,8 +33,8 @@ export function GuestCheckoutPage() {
   const navigate = useNavigate();
 
   // Query parameters
-  const checkIn = searchParams.get('checkIn') || BOOKING_WINDOW.DEFAULT_CHECK_IN;
-  const checkOut = searchParams.get('checkOut') || BOOKING_WINDOW.DEFAULT_CHECK_OUT;
+  const checkIn = searchParams.get('checkIn') || '';
+  const checkOut = searchParams.get('checkOut') || '';
   const rooms = Number(searchParams.get('rooms')) || 1;
   const adults = Number(searchParams.get('adults')) || 2;
   const children = Number(searchParams.get('children')) || 0;
@@ -84,7 +83,17 @@ export function GuestCheckoutPage() {
     };
   }
 
+  useEffect(() => {
+    if (!checkIn || !checkOut) {
+      navigate('/stay', { replace: true });
+    }
+  }, [checkIn, checkOut, navigate]);
+
   const loadData = useCallback(async () => {
+    if (!checkIn || !checkOut) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setLoadError(null);
     try {

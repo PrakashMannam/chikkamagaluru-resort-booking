@@ -14,8 +14,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.security.SecureRandom;
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
@@ -301,7 +303,9 @@ public class BookingTransactionService {
         dto.setGstAmountInr(booking.getGstAmountInr());
         dto.setTotalPayableInr(booking.getTotalPayableInr());
         dto.setGstVerificationStatus("UNVERIFIED");
-        dto.setExpiresAt(booking.getExpiresAt());
+        // expiresAt is stored as LocalDateTime in UTC (Clock.systemUTC()); convert to Instant for
+                // unambiguous JSON serialization (always ends in "Z"), so browsers parse it correctly.
+                dto.setExpiresAt(booking.getExpiresAt() != null ? booking.getExpiresAt().toInstant(ZoneOffset.UTC) : null);
         dto.setOneTimePaymentToken(paymentToken);
         return dto;
     }

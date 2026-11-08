@@ -63,9 +63,10 @@ export function GuestAvailabilityPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  // Search parameters from URL with fallbacks
-  const checkIn = searchParams.get('checkIn') || BOOKING_WINDOW.DEFAULT_CHECK_IN;
-  const checkOut = searchParams.get('checkOut') || BOOKING_WINDOW.DEFAULT_CHECK_OUT;
+  // Search parameters from URL — no silent defaults; null means guest has not selected dates yet
+  const checkIn = searchParams.get('checkIn') || null;
+  const checkOut = searchParams.get('checkOut') || null;
+  const datesSelected = Boolean(checkIn && checkOut);
   const rooms = Number(searchParams.get('rooms')) || 1;
   const adults = Number(searchParams.get('adults')) || 2;
   const children = Number(searchParams.get('children')) || 0;
@@ -90,13 +91,20 @@ export function GuestAvailabilityPage() {
 
   // API State
   const [data, setData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Start in non-loading state when no dates are present; will update on first fetch
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const todayStr = useMemo(() => formatLocalDate(new Date()), []);
   const minCheckIn = todayStr > BOOKING_WINDOW.MIN_DATE ? todayStr : BOOKING_WINDOW.MIN_DATE;
 
   const loadAvailability = useCallback(async () => {
+    // Do not silently fetch with absent dates — show the date-first prompt instead.
+    if (!checkIn || !checkOut) {
+      setIsLoading(false);
+      setData(null);
+      return;
+    }
     setIsLoading(true);
     setError(null);
 
@@ -212,7 +220,7 @@ export function GuestAvailabilityPage() {
       {/* 1. Compact Top Search Strip (Storyboard Screen 2) */}
       <section className="stay-search-strip" aria-label="Reservation Parameters">
         <div className="stay-search-strip__inner">
-          {!isModifying ? (
+          {(datesSelected && !isModifying) ? (
             <div className="stay-search-summary">
               <div className="stay-search-summary__items">
                 <div className="stay-search-summary__cell">
@@ -247,23 +255,27 @@ export function GuestAvailabilityPage() {
           ) : (
             <form className="stay-search-edit" onSubmit={handleSearchSubmit} noValidate>
               <div className="stay-search-edit__header">
-                <span className="stay-search-edit__title">Modify Your Stay Dates &amp; Guests</span>
-                <button
-                  type="button"
-                  className="stay-search-edit__close-btn"
-                  onClick={() => {
-                    setFormCheckIn(checkIn);
-                    setFormCheckOut(checkOut);
-                    setFormRooms(rooms);
-                    setFormAdults(adults);
-                    setFormChildren(children);
-                    setFormError('');
-                    setIsModifying(false);
-                  }}
-                  aria-label="Close modification form"
-                >
-                  <CloseIcon />
-                </button>
+                <span className="stay-search-edit__title">
+                  {!datesSelected ? 'Select Your Stay Dates & Guests' : 'Modify Your Stay Dates & Guests'}
+                </span>
+                {datesSelected && (
+                  <button
+                    type="button"
+                    className="stay-search-edit__close-btn"
+                    onClick={() => {
+                      setFormCheckIn(checkIn);
+                      setFormCheckOut(checkOut);
+                      setFormRooms(rooms);
+                      setFormAdults(adults);
+                      setFormChildren(children);
+                      setFormError('');
+                      setIsModifying(false);
+                    }}
+                    aria-label="Close modification form"
+                  >
+                    <CloseIcon />
+                  </button>
+                )}
               </div>
 
               <div className="stay-search-edit__grid">
@@ -340,23 +352,25 @@ export function GuestAvailabilityPage() {
 
                 <div className="stay-search-edit__actions">
                   <button type="submit" className="stay-search-edit__submit-btn">
-                    Update Search
+                    {!datesSelected ? 'Search Availability' : 'Update Search'}
                   </button>
-                  <button
-                    type="button"
-                    className="stay-search-edit__cancel-btn"
-                    onClick={() => {
-                      setFormCheckIn(checkIn);
-                      setFormCheckOut(checkOut);
-                      setFormRooms(rooms);
-                      setFormAdults(adults);
-                      setFormChildren(children);
-                      setFormError('');
-                      setIsModifying(false);
-                    }}
-                  >
-                    Cancel
-                  </button>
+                  {datesSelected && (
+                    <button
+                      type="button"
+                      className="stay-search-edit__cancel-btn"
+                      onClick={() => {
+                        setFormCheckIn(checkIn);
+                        setFormCheckOut(checkOut);
+                        setFormRooms(rooms);
+                        setFormAdults(adults);
+                        setFormChildren(children);
+                        setFormError('');
+                        setIsModifying(false);
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -376,19 +390,35 @@ export function GuestAvailabilityPage() {
           {/* Section Heading matching Screen 2 */}
           <div className="stay-heading-row">
             <h1 id="stay-results-heading" className="stay-heading-row__title">
-              {isLoading
+              {!datesSelected
+                ? 'Select your stay dates to view availability'
+                : isLoading
                 ? 'Checking live availability...'
                 : hasAvailableRooms
                 ? `${availableCategories.length} ${availableCategories.length === 1 ? 'accommodation type' : 'accommodation types'} available`
                 : 'No accommodation types available'}
             </h1>
+            {datesSelected && (
             <span className="stay-heading-row__meta">
               {formatCompactDate(checkIn)} &ndash; {formatCompactDate(checkOut)} ({nights} {nights === 1 ? 'night' : 'nights'})
             </span>
+            )}
           </div>
 
+          {/* Date Selection Prompt: shown when guest arrives with no query parameters */}
+          {!datesSelected && !isLoading && (
+            <div className="stay-date-prompt" role="status" aria-live="polite">
+              <div className="stay-date-prompt__icon" aria-hidden="true">📅</div>
+              <h2 className="stay-date-prompt__heading">Select your stay dates</h2>
+              <p className="stay-date-prompt__body">
+                Choose your check-in and check-out dates above and tap{' '}
+                <strong>Search Availability</strong> to see live room availability and pricing.
+              </p>
+            </div>
+          )}
+
           {/* Loading Skeletons */}
-          {isLoading && (
+          {datesSelected && isLoading && (
             <div className="stay-skeleton-list" aria-label="Loading available accommodations" aria-busy="true">
               {[1, 2].map((idx) => (
                 <div key={idx} className="stay-skeleton-card">
@@ -410,7 +440,7 @@ export function GuestAvailabilityPage() {
           )}
 
           {/* Error Banner */}
-          {!isLoading && error && (
+          {datesSelected && !isLoading && error && (
             <div className="stay-error-wrapper">
               <ErrorBanner
                 variant="error"
