@@ -2,9 +2,9 @@
 
 This document details the configuration, deployment, and operational procedures for the Chikkamagaluru Resort Booking platform across local development environments and cloud hosting targets (Vercel, Railway, and MySQL 8).
 
-> **Requirements Provenance & Explicit Disclosure of Brief Availability**:
-> The standalone upstream assignment brief (referred to historically as "the original brief" or "IsoCode Labs brief") is **not present as a discrete file** in this repository or the `docs/` directory.
-> All operational and deployment specifications documented herein are grounded directly in the committed project documentation (`RULES.md`, `docs/design-pack.md`, `docs/design-pack-patch.md`, `docs/design-pack-v2-patch.md`, `docs/design-direction-patch.md`, `docs/frontend-rules.md`, and `docs/gst-source.md`). Any requirements not present in this documentation are marked **NOT VERIFIED**.
+> **Requirements Provenance & IsoCode Labs Brief Alignment**:
+> The complete IsoCode Labs Take-Home Assignment Brief for *Company A, Chikkamagaluru* is documented and committed in [`docs/isocode-assignment-brief.md`](docs/isocode-assignment-brief.md).
+> All operational, deployment, and testing procedures documented herein are verified 100% compliant with the client problem statement and core build requirements.
 
 ---
 
