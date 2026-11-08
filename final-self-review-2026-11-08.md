@@ -78,7 +78,7 @@ A dedicated GM financial analytics dashboard is listed as a future roadmap item 
 
 ## Verification run
 
-The local frontend suite passed **25/25** tests, the production frontend build succeeded, and `npm audit --audit-level=moderate` reported zero known vulnerabilities. The backend unit/mock suite passed **238 tests** with no reported failures, errors, or skips; MySQL-backed tests were not run because `TEST_DB_URL` was not configured. `git diff --check` passed. PR #11 is open and its two Vercel-related checks succeeded, but that is not proof of a production release [7]. Detailed commands and scope are in `deployment.md` Section 7.
+The local frontend suite passed **25/25** tests, the production frontend build succeeded, and `npm audit --audit-level=moderate` reported zero known vulnerabilities. The backend unit/mock suite passed **238 tests** with no reported failures, errors, or skips; MySQL-backed tests were not run because `TEST_DB_URL` was not configured. `git diff --check` passed. PR #11 is open and its two Vercel-related checks succeeded, but that is not proof of a production release [7]. Navigating to the PR preview's Stay route redirected to Vercel login, so its page content was not inspected; responsive checks used the local built preview [8]. Detailed commands and scope are in `deployment.md` Section 7.
 
 ## Completion estimate and next release gates
 
@@ -94,3 +94,4 @@ I estimate the project at **about 92% overall**. The local candidate is stronger
 [6]: https://vite.dev/releases "Official Vite release support information reviewed"
 
 [7]: https://github.com/PrakashMannam/chikkamagaluru-resort-booking/pull/11 "Pull request for the audit candidate"
+[8]: https://chikkamagaluru-resort-booking-git-a-083405-prakash-s-projects22.vercel.app/stay "PR #11 Vercel preview Stay route; access redirected to Vercel login"
