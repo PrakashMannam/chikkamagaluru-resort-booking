@@ -748,4 +748,46 @@ public class BookingPaymentServiceTest {
         verify(promoCodeRepository).findAndLockById(10L);
         verify(promoCodeRepository).save(promo);
     }
+    @Test
+    void paymentWebhook_withinOneMinuteOfExpiry_succeedsAndConfirmsBooking() {
+        // Hold expiring in 50 seconds (less than 1 minute remaining)
+        LocalDateTime nearExpiry = LocalDateTime.now(fixedClock).plusSeconds(50);
+        Booking booking = createSampleBooking(BookingStatus.PENDING_PAYMENT, nearExpiry);
+        Payment payment = createSamplePayment(booking);
+
+        when(bookingRepository.findAndLockByBookingRef(bookingRef)).thenReturn(Optional.of(booking));
+        when(paymentRepository.findByBookingId(booking.getId())).thenReturn(Optional.of(payment));
+        when(bookingTransactionService.mapToBookingResponseDto(any(), any())).thenAnswer(inv -> {
+            BookingResponseDto d = new BookingResponseDto();
+            d.setBookingRef(bookingRef);
+            d.setStatus("CONFIRMED");
+            return d;
+        });
+
+        PaymentWebhookRequest request = new PaymentWebhookRequest(validToken, "SUCCESS");
+        BookingResponseDto response = bookingPaymentService.processMockWebhook(bookingRef, validToken, request);
+
+        assertEquals(BookingStatus.CONFIRMED, booking.getStatus());
+        assertEquals(PaymentStatus.SUCCESS, payment.getStatus());
+        assertTrue(payment.getTokenUsed());
+        assertNotNull(response);
+    }
+
+    @Test
+    void paymentWebhook_atExactExpiryTime_rejectedAsExpired() {
+        // Hold expiring right at current time
+        LocalDateTime exactNow = LocalDateTime.now(fixedClock);
+        Booking booking = createSampleBooking(BookingStatus.PENDING_PAYMENT, exactNow);
+        Payment payment = createSamplePayment(booking);
+
+        when(bookingRepository.findAndLockByBookingRef(bookingRef)).thenReturn(Optional.of(booking));
+        when(paymentRepository.findByBookingId(booking.getId())).thenReturn(Optional.of(payment));
+
+        PaymentWebhookRequest request = new PaymentWebhookRequest(validToken, "SUCCESS");
+        assertThrows(BookingHoldExpiredException.class, () ->
+                bookingPaymentService.processMockWebhook(bookingRef, validToken, request)
+        );
+        assertEquals(BookingStatus.EXPIRED, booking.getStatus());
+        assertTrue(payment.getTokenUsed());
+    }
 }

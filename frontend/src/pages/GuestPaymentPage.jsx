@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { fetchBooking, simulatePayment, cancelHold } from '../api/roomsApi';
-import { formatDisplayDate } from '../utils/dateUtils';
+import { formatDisplayDate, parseServerExpiry } from '../utils/dateUtils';
 import { formatINR } from '../utils/formatUtils';
 import {
   Button,
@@ -79,10 +79,13 @@ export function GuestPaymentPage() {
   // Expiration countdown based on server expiresAt or session creation time
   useEffect(() => {
     let targetTime;
-    if (bookingData?.expiresAt) {
-      targetTime = new Date(bookingData.expiresAt).getTime();
-    } else if (sessionItem?.expiresAt) {
-      targetTime = new Date(sessionItem.expiresAt).getTime();
+    const serverParsed = parseServerExpiry(bookingData?.expiresAt);
+    const sessionParsed = parseServerExpiry(sessionItem?.expiresAt);
+
+    if (serverParsed) {
+      targetTime = serverParsed;
+    } else if (sessionParsed) {
+      targetTime = sessionParsed;
     } else if (sessionItem?.createdAt) {
       targetTime = sessionItem.createdAt + 10 * 60 * 1000;
     } else {
@@ -92,10 +95,9 @@ export function GuestPaymentPage() {
     function tick() {
       const diff = Math.max(0, Math.floor((targetTime - Date.now()) / 1000));
       setTimeLeft(diff);
-      if (diff <= 0) {
-        setIsExpired(true);
-        sessionStorage.removeItem(`booking_${ref}`);
-      }
+      // NOTE: The client timer must NOT independently invalidate a booking or delete
+      // the payment token merely on client-side arithmetic. Server-side validation
+      // remains authoritative. Token is preserved and payment is permitted.
     }
 
     tick();
@@ -131,11 +133,14 @@ export function GuestPaymentPage() {
         sessionStorage.removeItem(`booking_${ref}`);
       }
     } catch (err) {
-      if (err.message.includes('expired') || err.status === 409) {
+      const isExp = (err.status === 409) ||
+                    (err.message && err.message.toLowerCase().includes('expired')) ||
+                    (err.serverBody?.error && typeof err.serverBody.error === 'string' && err.serverBody.error.toLowerCase().includes('expired'));
+      if (isExp) {
         setIsExpired(true);
         sessionStorage.removeItem(`booking_${ref}`);
       } else {
-        setError(err.message);
+        setError(err.message || 'Payment simulation failed.');
       }
     } finally {
       setIsProcessing(false);

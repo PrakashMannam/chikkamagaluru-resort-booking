@@ -21,8 +21,8 @@ export function RoomDetailPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const checkIn = searchParams.get('checkIn') || BOOKING_WINDOW.DEFAULT_CHECK_IN;
-  const checkOut = searchParams.get('checkOut') || BOOKING_WINDOW.DEFAULT_CHECK_OUT;
+  const checkIn = searchParams.get('checkIn') || '';
+  const checkOut = searchParams.get('checkOut') || '';
   const rooms = Number(searchParams.get('rooms')) || 1;
   const adults = Number(searchParams.get('adults')) || 2;
   const children = Number(searchParams.get('children')) || 0;
@@ -32,7 +32,17 @@ export function RoomDetailPage() {
   const [error, setError] = useState(null);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
 
+  useEffect(() => {
+    if (!checkIn || !checkOut) {
+      navigate('/stay', { replace: true });
+    }
+  }, [checkIn, checkOut, navigate]);
+
   const loadData = useCallback(async () => {
+    if (!checkIn || !checkOut) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setError(null);
 

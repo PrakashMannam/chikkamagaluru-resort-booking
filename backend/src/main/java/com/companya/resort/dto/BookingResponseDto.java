@@ -3,8 +3,8 @@ package com.companya.resort.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 public class BookingResponseDto {
 
@@ -31,7 +31,9 @@ public class BookingResponseDto {
     private BigDecimal gstAmountInr;
     private BigDecimal totalPayableInr;
     private String gstVerificationStatus;
-    private LocalDateTime expiresAt;
+    // Serialized as an explicit UTC ISO-8601 Instant ("...Z") so that browsers
+    // can unambiguously parse it with new Date(...) regardless of local timezone.
+    private Instant expiresAt;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String oneTimePaymentToken;
@@ -223,11 +225,11 @@ public class BookingResponseDto {
         this.gstVerificationStatus = gstVerificationStatus;
     }
 
-    public LocalDateTime getExpiresAt() {
+    public Instant getExpiresAt() {
         return expiresAt;
     }
 
-    public void setExpiresAt(LocalDateTime expiresAt) {
+    public void setExpiresAt(Instant expiresAt) {
         this.expiresAt = expiresAt;
     }
 

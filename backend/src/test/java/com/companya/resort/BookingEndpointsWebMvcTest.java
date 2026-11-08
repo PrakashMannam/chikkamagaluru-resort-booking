@@ -15,6 +15,7 @@ import com.companya.resort.security.JwtService;
 import com.companya.resort.service.BookingPaymentService;
 import com.companya.resort.service.BookingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -221,5 +222,21 @@ public class BookingEndpointsWebMvcTest {
         mockMvc.perform(get("/api/v1/public/bookings/UNKNOWN12345"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("Resource Not Found"));
+    }
+    @Test
+    void bookingResponseDto_expiresAt_serializesAsUtcIsoInstantEndingWithZ() throws Exception {
+        BookingResponseDto dto = new BookingResponseDto();
+        dto.setBookingRef("BKG123456789");
+        dto.setStatus("PENDING_PAYMENT");
+        dto.setGuestEmail("a***@gmail.com");
+        dto.setGuestPhone("98XXXXXX21");
+        Instant instant = Instant.parse("2026-11-08T04:15:30Z");
+        dto.setExpiresAt(instant);
+
+        when(bookingPaymentService.getBookingMasked(eq("BKG123456789"))).thenReturn(dto);
+
+        mockMvc.perform(get("/api/v1/public/bookings/BKG123456789"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.expiresAt").value("2026-11-08T04:15:30Z"));
     }
 }

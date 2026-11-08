@@ -6,8 +6,7 @@
 export const BOOKING_WINDOW = {
   MIN_DATE: '2026-11-02',
   MAX_DATE: '2027-04-30',
-  DEFAULT_CHECK_IN: '2026-11-10',
-  DEFAULT_CHECK_OUT: '2026-11-12',
+  // No static DEFAULT_CHECK_IN / DEFAULT_CHECK_OUT — guests must select dates.
 };
 
 export function parseLocalDate(dateStr) {
@@ -62,4 +61,51 @@ export function getNextDay(dateStr) {
   if (!d) return '';
   d.setDate(d.getDate() + 1);
   return formatLocalDate(d);
+}
+
+/**
+ * Returns true if the YYYY-MM-DD string is a valid date that is not in the past
+ * relative to today's local date.
+ */
+export function isValidFutureDate(dateStr) {
+  if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false;
+  const d = parseLocalDate(dateStr);
+  if (!d || Number.isNaN(d.getTime())) return false;
+  const today = parseLocalDate(formatLocalDate(new Date()));
+  return d >= today;
+}
+
+/**
+ * Safely parses a server-provided expiry timestamp into UTC epoch milliseconds.
+ * - If timestamp is numeric (ms or sec), converts directly.
+ * - If string contains an explicit offset or 'Z', uses standard Date.parse.
+ * - If string is timezone-less (e.g. "2026-11-08T04:15:30"), forces UTC interpretation ('Z')
+ *   to avoid browser local-timezone corruption (e.g. Asia/Kolkata +05:30 shift).
+ * - Returns null for missing, malformed, or invalid dates.
+ */
+export function parseServerExpiry(expiresAt) {
+  if (expiresAt === null || expiresAt === undefined || expiresAt === '') {
+    return null;
+  }
+  if (typeof expiresAt === 'number') {
+    if (Number.isNaN(expiresAt) || !Number.isFinite(expiresAt) || expiresAt <= 0) return null;
+    return expiresAt > 1e11 ? expiresAt : Math.round(expiresAt * 1000);
+  }
+  if (typeof expiresAt !== 'string') {
+    return null;
+  }
+  const trimmed = expiresAt.trim();
+  if (!trimmed) return null;
+
+  // Check if string has explicit timezone ('Z', '+HH:mm', '-HH:mm', '+HHmm', etc.)
+  if (/Z|[+-]\d{2}(?::?\d{2})?$/i.test(trimmed)) {
+    const t = new Date(trimmed).getTime();
+    return Number.isNaN(t) ? null : t;
+  }
+
+  // Timezone-less string (e.g. "2026-11-08T10:15:30" or "2026-11-08 10:15:30")
+  // Force UTC parsing by appending 'Z', never let the browser parse as local time!
+  const isoUtc = trimmed.includes('T') ? `${trimmed}Z` : `${trimmed.replace(' ', 'T')}Z`;
+  const t = new Date(isoUtc).getTime();
+  return Number.isNaN(t) ? null : t;
 }
