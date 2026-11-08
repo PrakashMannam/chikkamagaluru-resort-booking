@@ -123,7 +123,7 @@ test('Guest navigation includes an accessible mobile menu and 44px touch targets
   assert.ok(cssSrc.includes('.guest-header__nav.is-open'));
   assert.ok(cssSrc.includes('min-height: var(--tap-min)'));
   assert.ok(cssSrc.includes('@media (max-width: 480px)'));
-  assert.ok(cssSrc.includes('.guest-header__cta {\n    display: none;'));
+  assert.ok(/\.guest-header__cta\s*\{\s*display:\s*none;/.test(cssSrc));
 });
 
 test('Landing guest selector has an explicit programmatic label', () => {
