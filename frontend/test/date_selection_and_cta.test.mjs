@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { BOOKING_WINDOW, isValidFutureDate, parseLocalDate, formatLocalDate, getNextDay } from '../src/utils/dateUtils.js';
+import { shouldShowHeaderCta } from '../src/utils/navigationUtils.js';
 
 test('Issue 2 Regression: dateUtils does NOT contain static DEFAULT_CHECK_IN or DEFAULT_CHECK_OUT', () => {
   assert.equal(
@@ -61,10 +62,10 @@ test('Source Contract: GuestAvailabilityPage does not silently default stay date
     'GuestAvailabilityPage must render .stay-date-prompt when dates are not selected'
   );
 
-  // Form submit button must show "Search Availability" when dates are not selected
+  // Form submit button must show "Search availability"
   assert.ok(
-    availSrc.includes("{!datesSelected ? 'Search Availability' : 'Update Search'}"),
-    'Search form CTA must be "Search Availability" on initial date-selection-first state'
+    availSrc.includes('Search availability'),
+    'Search form CTA must be "Search availability"'
   );
 });
 
@@ -119,5 +120,87 @@ test('Source Contract: LandingPage "Book a Stay" CTA navigates to /stay without 
   assert.ok(
     searchBody.includes("setError('Departure date must follow arrival date.');"),
     'handleSearch must validate departure is after arrival'
+  );
+});
+
+// ==============================================================================
+// ISSUE 3 TESTS: Contextual header CTA & unambiguous availability actions
+// ==============================================================================
+
+test('Issue 3: shouldShowHeaderCta contextually hides header CTA on /stay and /rooms/:code', () => {
+  // Must hide on availability results and rooms
+  assert.equal(shouldShowHeaderCta('/stay'), false, 'Header CTA must be hidden on /stay');
+  assert.equal(shouldShowHeaderCta('/stay/'), false, 'Header CTA must be hidden on /stay/');
+  assert.equal(shouldShowHeaderCta('/rooms/ROOM'), false, 'Header CTA must be hidden on /rooms/ROOM');
+  assert.equal(shouldShowHeaderCta('/rooms/VILLA'), false, 'Header CTA must be hidden on /rooms/VILLA');
+
+  // Must hide during the 3-step booking funnel to avoid competing actions
+  assert.equal(shouldShowHeaderCta('/checkout'), false, 'Header CTA must be hidden on /checkout');
+  assert.equal(shouldShowHeaderCta('/payment/BKG123'), false, 'Header CTA must be hidden on /payment/:ref');
+  assert.equal(shouldShowHeaderCta('/bookings/BKG123'), false, 'Header CTA must be hidden on /bookings/:ref');
+
+  // Must remain visible on other public pages where jumping to availability is helpful
+  assert.equal(shouldShowHeaderCta('/'), true, 'Header CTA must be visible on landing page');
+  assert.equal(shouldShowHeaderCta('/enquire'), true, 'Header CTA must be visible on /enquire');
+  assert.equal(shouldShowHeaderCta('/privacy'), true, 'Header CTA must be visible on /privacy');
+  assert.equal(shouldShowHeaderCta('/terms'), true, 'Header CTA must be visible on /terms');
+});
+
+test('Issue 3: RoomDetailPage provides visible stay criteria and single clear "Change dates" action returning to /stay with preserved params', () => {
+  const roomSrc = fs.readFileSync('frontend/src/pages/RoomDetailPage.jsx', 'utf8');
+
+  // Preserved stay criteria strip
+  assert.ok(
+    roomSrc.includes('room-detail__stay-criteria'),
+    'RoomDetailPage must render stay criteria container'
+  );
+  assert.ok(
+    roomSrc.includes('formatDisplayDate(checkIn)'),
+    'RoomDetailPage must display formatted check-in date'
+  );
+  assert.ok(
+    roomSrc.includes('formatDisplayDate(checkOut)'),
+    'RoomDetailPage must display formatted check-out date'
+  );
+
+  // Clear "Change dates" action
+  assert.ok(
+    roomSrc.includes('room-detail__change-dates-btn'),
+    'RoomDetailPage must render .room-detail__change-dates-btn'
+  );
+  assert.ok(
+    roomSrc.includes('Change dates'),
+    'Action button text must be "Change dates"'
+  );
+
+  // Returns to backUrl (/stay with all query parameters intact)
+  assert.ok(
+    roomSrc.includes('const backUrl = `/stay?checkIn=${encodeURIComponent(checkIn)}&checkOut=${encodeURIComponent(checkOut)}&rooms=${rooms}&adults=${adults}&children=${children}`;'),
+    'backUrl must preserve checkIn, checkOut, rooms, adults, children'
+  );
+  assert.ok(
+    roomSrc.includes('<Link to={backUrl} className="room-detail__change-dates-btn"'),
+    '"Change dates" button must link to backUrl'
+  );
+});
+
+test('Issue 3: Single primary action per relevant page without header competition', () => {
+  const layoutSrc = fs.readFileSync('frontend/src/components/layout/GuestLayout.jsx', 'utf8');
+
+  // Header conditionally renders CTA based on route
+  assert.ok(
+    layoutSrc.includes('const showHeaderCta = shouldShowHeaderCta(location.pathname);'),
+    'GuestLayout must check shouldShowHeaderCta with location.pathname'
+  );
+  assert.ok(
+    layoutSrc.includes('{showHeaderCta && ('),
+    'GuestLayout header CTA must be conditionally rendered'
+  );
+
+  // GuestAvailabilityPage has exactly one primary action: "Search availability"
+  const availSrc = fs.readFileSync('frontend/src/pages/GuestAvailabilityPage.jsx', 'utf8');
+  assert.ok(
+    availSrc.includes('Search availability'),
+    'GuestAvailabilityPage action button must be labeled "Search availability"'
   );
 });

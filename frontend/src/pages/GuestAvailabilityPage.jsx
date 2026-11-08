@@ -352,7 +352,7 @@ export function GuestAvailabilityPage() {
 
                 <div className="stay-search-edit__actions">
                   <button type="submit" className="stay-search-edit__submit-btn">
-                    {!datesSelected ? 'Search Availability' : 'Update Search'}
+                    Search availability
                   </button>
                   {datesSelected && (
                     <button
