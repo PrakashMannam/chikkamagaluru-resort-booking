@@ -176,9 +176,20 @@ export default function LandingPage() {
               Stay amidst coffee gardens, misty hills and the quiet of the Western Ghats.
             </p>
             <div className="lp-hero-buttons">
-              <Link to="/stay" className="lp-btn-book">
+              <button
+                type="button"
+                className="lp-btn-book"
+                onClick={() => {
+                  const el = checkInInputRef.current || document.getElementById('lp-checkin');
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.focus();
+                    try { el.showPicker?.(); } catch (err) {}
+                  }
+                }}
+              >
                 Book a Stay
-              </Link>
+              </button>
               <Link to="/enquire" className="lp-btn-event">
                 Plan an Event
               </Link>

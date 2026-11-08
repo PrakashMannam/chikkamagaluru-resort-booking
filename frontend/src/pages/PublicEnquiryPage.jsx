@@ -545,7 +545,7 @@ export function PublicEnquiryPage() {
                 isLoading={isSubmitting}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Submitting to Concierge...' : 'Submit Estate Enquiry'}
+                {isSubmitting ? 'Submitting to Concierge...' : 'Submit Enquiry'}
               </Button>
             </div>
           </form>

@@ -3,6 +3,8 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { fetchAvailability } from '../api/roomsApi';
 import {
   BOOKING_WINDOW,
+  DEFAULT_CHECK_IN,
+  DEFAULT_CHECK_OUT,
   calculateNights,
   formatCompactDate,
   formatLocalDate,
@@ -64,8 +66,8 @@ export function GuestAvailabilityPage() {
   const navigate = useNavigate();
 
   // Search parameters from URL — no silent defaults; null means guest has not selected dates yet
-  const checkIn = searchParams.get('checkIn') || null;
-  const checkOut = searchParams.get('checkOut') || null;
+  const checkIn = searchParams.get('checkIn') || DEFAULT_CHECK_IN;
+  const checkOut = searchParams.get('checkOut') || DEFAULT_CHECK_OUT;
   const datesSelected = Boolean(checkIn && checkOut);
   const rooms = Number(searchParams.get('rooms')) || 1;
   const adults = Number(searchParams.get('adults')) || 2;
@@ -352,7 +354,7 @@ export function GuestAvailabilityPage() {
 
                 <div className="stay-search-edit__actions">
                   <button type="submit" className="stay-search-edit__submit-btn">
-                    Search availability
+                    Modify Search
                   </button>
                   {datesSelected && (
                     <button
@@ -411,8 +413,7 @@ export function GuestAvailabilityPage() {
               <div className="stay-date-prompt__icon" aria-hidden="true">📅</div>
               <h2 className="stay-date-prompt__heading">Select your stay dates</h2>
               <p className="stay-date-prompt__body">
-                Choose your check-in and check-out dates above and tap{' '}
-                <strong>Search Availability</strong> to see live room availability and pricing.
+                Choose your check-in and check-out dates above to see live room availability and pricing.
               </p>
             </div>
           )}
@@ -453,7 +454,7 @@ export function GuestAvailabilityPage() {
           )}
 
           {/* Empty State */}
-          {!isLoading && !error && (!hasAvailableRooms || categories.length === 0) && (
+          {!isLoading && !error && data && !hasAvailableRooms && (
             <div className="stay-empty-state">
               <div className="stay-empty-state__card">
                 <div className="stay-empty-state__icon-wrap">
