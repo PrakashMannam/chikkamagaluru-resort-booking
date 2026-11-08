@@ -6,8 +6,11 @@
 export const BOOKING_WINDOW = {
   MIN_DATE: '2026-11-02',
   MAX_DATE: '2027-04-30',
-  // No static DEFAULT_CHECK_IN / DEFAULT_CHECK_OUT — guests must select dates.
 };
+
+// Initial default dates for auto-fetching availability on /stay per reference mockup
+export const DEFAULT_CHECK_IN = '2026-11-14';
+export const DEFAULT_CHECK_OUT = '2026-11-16';
 
 export function parseLocalDate(dateStr) {
   if (!dateStr || typeof dateStr !== 'string') return null;

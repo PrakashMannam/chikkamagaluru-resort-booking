@@ -279,3 +279,26 @@
   font-weight: 600;
   color: #1E3A2F;
 }
+
+/* Utility group on inner pages */
+.guest-header__utility-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.guest-header__utility-link {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1E3A2F;
+  text-decoration: none;
+  min-height: var(--tap-min);
+  display: inline-flex;
+  align-items: center;
+  transition: color var(--motion-fast) ease;
+}
+
+.guest-header__utility-link:hover {
+  text-decoration: underline;
+  color: #152921;
+}

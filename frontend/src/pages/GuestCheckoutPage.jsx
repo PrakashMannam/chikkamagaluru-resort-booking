@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { fetchAvailability, fetchPricingQuote, createBooking } from '../api/roomsApi';
 import {
+  DEFAULT_CHECK_IN,
+  DEFAULT_CHECK_OUT,
   calculateNights,
   formatDisplayDate,
 } from '../utils/dateUtils';
@@ -33,8 +35,8 @@ export function GuestCheckoutPage() {
   const navigate = useNavigate();
 
   // Query parameters
-  const checkIn = searchParams.get('checkIn') || '';
-  const checkOut = searchParams.get('checkOut') || '';
+  const checkIn = searchParams.get('checkIn') || DEFAULT_CHECK_IN;
+  const checkOut = searchParams.get('checkOut') || DEFAULT_CHECK_OUT;
   const rooms = Number(searchParams.get('rooms')) || 1;
   const adults = Number(searchParams.get('adults')) || 2;
   const children = Number(searchParams.get('children')) || 0;
@@ -518,7 +520,7 @@ export function GuestCheckoutPage() {
                     disabled={isSubmitting}
                     className="checkout-form__submit-btn"
                   >
-                    {isSubmitting ? 'Securing 10-Minute Hold…' : 'Proceed to Test Payment'}
+                    {isSubmitting ? 'Securing 10-Minute Hold…' : 'Proceed to Payment'}
                   </Button>
                   <p className="checkout-form__guarantee-note">
                     Holding allotment for 10 minutes without charge. No real payment required in test build.

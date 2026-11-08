@@ -85,10 +85,27 @@ export function GuestLayout() {
           </nav>
 
           {/* Right CTA: contextually omitted on /stay, /rooms/:code, and booking funnel */}
-          {showHeaderCta && (
-            <Link to="/stay" className="guest-header__cta">
+          {showHeaderCta ? (
+            <button
+              type="button"
+              className="guest-header__cta"
+              onClick={() => {
+                const el = document.getElementById('lp-checkin') || document.querySelector('.lp-search-container');
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  el.focus?.();
+                  try { el.showPicker?.(); } catch (err) {}
+                }
+              }}
+            >
               Check Availability
-            </Link>
+            </button>
+          ) : (
+            <div className="guest-header__utility-group">
+              <Link to="/" className="guest-header__utility-link">
+                &larr; Back to Estate
+              </Link>
+            </div>
           )}
         </div>
       </header>

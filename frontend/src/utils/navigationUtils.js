@@ -3,25 +3,17 @@
  */
 
 /**
- * Determines whether the shared GuestLayout header should render the generic
- * "Check Availability" CTA.
+ * Determines whether the shared GuestLayout header should render the top-right
+ * "Check Availability" CTA button.
  *
- * It is contextually suppressed on:
- * - /stay: The availability page already features a prominent page-level date/guest search control.
- * - /rooms/:code: The room details page provides an in-situ "Change dates" action adjacent to the stay criteria.
- * - /checkout, /payment, /bookings: Funnel stages where leaving the flow is discouraged.
- *
- * It remains visible on:
- * - / (Landing Page)
- * - /enquire
- * - /privacy, /terms, etc.
+ * Per the reference mockup and client brief:
+ * - On the Landing Page ('/'): Renders "Check Availability" (smooth-scrolls / focuses hero search).
+ * - On ALL Inner Booking & Enquiry Pages ('/stay', '/stay/*', '/rooms/*', '/checkout',
+ *   '/booking/*', '/payment/*', '/enquire'): DO NOT render the "Check Availability" button.
+ *   The right side of the navbar on inner pages displays a clean utility link ("← Back to Estate").
  */
 export function shouldShowHeaderCta(pathname) {
-  if (!pathname) return true;
-  if (pathname === '/stay' || pathname.startsWith('/stay/')) return false;
-  if (pathname.startsWith('/rooms')) return false;
-  if (pathname.startsWith('/checkout')) return false;
-  if (pathname.startsWith('/payment')) return false;
-  if (pathname.startsWith('/bookings')) return false;
-  return true;
+  if (!pathname) return false;
+  // ONLY render the top-right Check Availability button on the Landing Page
+  return pathname === '/';
 }

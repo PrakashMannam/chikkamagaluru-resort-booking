@@ -3,6 +3,8 @@ import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { fetchAvailability } from '../api/roomsApi';
 import {
   BOOKING_WINDOW,
+  DEFAULT_CHECK_IN,
+  DEFAULT_CHECK_OUT,
   calculateNights,
   formatDisplayDate,
 } from '../utils/dateUtils';
@@ -21,8 +23,8 @@ export function RoomDetailPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const checkIn = searchParams.get('checkIn') || '';
-  const checkOut = searchParams.get('checkOut') || '';
+  const checkIn = searchParams.get('checkIn') || DEFAULT_CHECK_IN;
+  const checkOut = searchParams.get('checkOut') || DEFAULT_CHECK_OUT;
   const rooms = Number(searchParams.get('rooms')) || 1;
   const adults = Number(searchParams.get('adults')) || 2;
   const children = Number(searchParams.get('children')) || 0;
@@ -316,7 +318,7 @@ export function RoomDetailPage() {
                           disabled={!category.hasAllotment || category.isBlackedOut}
                           onClick={() => handleSelectRatePlan(plan)}
                         >
-                          Select
+                          Book Now
                         </Button>
                       </div>
                     </div>
