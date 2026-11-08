@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { shouldShowHeaderCta } from '../../utils/navigationUtils.js';
 import './GuestLayout.css';
 
 function CoffeeLeafIcon() {
@@ -24,6 +25,7 @@ function CoffeeLeafIcon() {
 
 export function GuestLayout() {
   const location = useLocation();
+  const showHeaderCta = shouldShowHeaderCta(location.pathname);
 
   const scrollToAnchor = useCallback((targetId) => {
     const elem = document.getElementById(targetId);
@@ -82,10 +84,12 @@ export function GuestLayout() {
             <Link to="/#about" className="guest-header__link" onClick={handleAboutClick}>About</Link>
           </nav>
 
-          {/* Right CTA */}
-          <Link to="/stay" className="guest-header__cta">
-            Check Availability
-          </Link>
+          {/* Right CTA: contextually omitted on /stay, /rooms/:code, and booking funnel */}
+          {showHeaderCta && (
+            <Link to="/stay" className="guest-header__cta">
+              Check Availability
+            </Link>
+          )}
         </div>
       </header>
 
