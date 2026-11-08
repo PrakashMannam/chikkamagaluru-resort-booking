@@ -54,7 +54,7 @@ class V8MigrationIntegrationTest {
     @DisplayName("V8 Migration is strictly idempotent and updates only pending ENQ-DEMO-CORP1 draft")
     void testV8MigrationTargetingAndIdempotence() throws Exception {
         String legacyText = "Dear Ms. Sen,\n\nThank you for considering our estate for your annual leadership offsite. Our conference pavilion features AV projection, high-speed WiFi, and panoramic plantation views, paired with guided cupping sessions.\n\nOur corporate specialist Meera Nair will contact you today with comprehensive proposal options.\n\nWarm regards,\nCorporate Events Team";
-        String correctedText = "Dear Ms. Sen,\n\nThank you for considering our estate for your annual leadership offsite. Regarding meeting space, accommodation, and group activities for your team, our corporate specialist will confirm available facilities, room allotments, and event options with you directly.\n\nOur corporate specialist Meera Nair will contact you today with comprehensive proposal options.\n\nWarm regards,\nCorporate Events Team";
+        String correctedText = "Dear Ms. Sen,\n\nThank you for considering our estate for your annual leadership offsite. Regarding meeting space, accommodation, and group activities for your team, our corporate specialist will confirm available facilities, room allotments, and event options with you directly.\n\nOur corporate specialist will review your requirements and follow up regarding suitable options.\n\nWarm regards,\nCorporate Events Team";
 
         // Read V8 SQL script
         String v8Sql;
