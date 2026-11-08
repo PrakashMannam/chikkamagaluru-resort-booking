@@ -153,19 +153,22 @@ Database migrations are managed strictly through Flyway scripts (`backend/src/ma
    - `confidence`: Decimal score between `0.00` and `1.00`.
    - `extracted_rooms`, `extracted_guests`, `extracted_nights`, `check_in_date`, `check_out_date`, `budget_amount`.
    - `suggested_reply`: Polite response containing `{{RATE_TABLE_QUOTE_BLOCK}}`.
-4. **Hallucination & Safety Guardrails**:
-   - `DraftPriceSanitizer`: Strips invented room rates and replaces with authoritative quote placeholder; sanitizes unsupported hold claims ("We have held a room") and unverified meal/activity inclusions ("includes gourmet breakfast and plantation walk").
+4. **Hallucination Guardrails & Grounding Limits**:
+   - `DraftPriceSanitizer`: Strips invented room rates and replaces with authoritative quote placeholder `{{RATE_TABLE_QUOTE_BLOCK}}`; sanitizes unsupported hold assertions ("We have held a room" → informational disclaimer); sanitizes unverified meal/dining promises ("includes gourmet breakfast" → reservations disclaimer); and sanitizes unsupported facility/activity promises (AV projection, high-speed Wi-Fi, panoramic views, guided cupping → coordinator confirmation).
    - `QuoteInjectorService`: Directly queries authoritative database rates and GST slabs to compute exact tariffs, injecting verifiable numbers only. If dates/rates are unverified, safely defers to manual coordinator review.
    - `BudgetValidator`: Ignores hallucinated budgets unless explicit currency terms or numbers were present in raw guest input.
+   - **Real Operational Limits of AI Grounding**: Automated pattern-based sanitizers and system prompts mitigate known high-frequency failure modes (rates, holds, standard inclusions). However, regex sanitization **cannot mathematically guarantee prevention of open-ended, arbitrary LLM hallucinations** (such as novel off-menu activities, unverified property features, or specialized transit promises). Automated sanitization serves as a defense-in-depth filter, not an absolute guarantee.
 5. **Specialty Lane Routing**:
    - `COMPLAINT` or low-confidence (< 0.80): Routes directly to General Manager (`gm.demo@companya-estate.test`) with `gm_alerted = true`.
    - `ROOM_BOOKING`: Routed to Reservations Specialist (`rooms.demo@companya-estate.test`).
    - `WEDDING`: Routed to Wedding Specialist (`weddings.demo@companya-estate.test`).
    - `CORPORATE_OFFSITE`: Routed to Offsites Specialist (`offsites.demo@companya-estate.test`).
-6. **Mandatory Human Review**:
-   - Draft replies are saved as `DRAFT_PENDING_REVIEW`.
-   - No automated email, SMS, or simulated dispatch occurs until authorized staff explicitly reviews, edits, and calls `POST /api/v1/admin/enquiries/{id}/approve-draft`.
-   - Atomic draft claiming (`atomicClaimDraft`) prevents race conditions during concurrent staff approvals.
+6. **Mandatory Staff Review Control as Final Safeguard**:
+   - All AI-generated replies are strictly persisted in state `DRAFT_PENDING_REVIEW`.
+   - **No automated outbound communication** (email, SMS, WhatsApp simulation) is ever dispatched to guests autonomously.
+   - Authorized departmental staff must manually inspect the draft in the Staff Inbox, verify every claim against resort reality, edit or rewrite if necessary, and explicitly trigger approval via `POST /api/v1/admin/enquiries/{id}/approve-draft`.
+   - Human review is an active operational gate and essential defense-in-depth safeguard against unpredicted LLM hallucinations, ensuring accurate communications reach guests. Staff approval is an active control, not an excuse for sloppy upstream generation.
+   - Atomic draft claiming (`atomicClaimDraft`) prevents race conditions during concurrent staff reviews.
 
 ---
 

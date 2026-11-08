@@ -251,7 +251,7 @@ public class DemoDataSeeder implements CommandLineRunner {
             d.setEnquiry(e);
             d.setGeneratedBy(DraftGeneratedBy.AI_ROUTER);
             d.setStatus(DraftStatus.DRAFT_PENDING_REVIEW);
-            d.setDraftBody("Dear Ms. Sen,\n\nThank you for considering our estate for your annual leadership offsite. Our conference pavilion features AV projection, high-speed WiFi, and panoramic plantation views, paired with guided cupping sessions.\n\nOur corporate specialist Meera Nair will contact you today with comprehensive proposal options.\n\nWarm regards,\nCorporate Events Team");
+            d.setDraftBody("Dear Ms. Sen,\n\nThank you for considering our estate for your annual leadership offsite. Regarding meeting space, accommodation, and group activities for your team, our corporate specialist will confirm available facilities, room allotments, and event options with you directly.\n\nOur corporate specialist will review your requirements and follow up regarding suitable options.\n\nWarm regards,\nCorporate Events Team");
             d.setCreatedAt(LocalDateTime.now().minusHours(2));
             enquiryDraftRepository.save(d);
         }
