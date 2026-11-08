@@ -78,7 +78,7 @@ A dedicated GM financial analytics dashboard is listed as a future roadmap item 
 
 ## Verification run
 
-The local frontend suite passed **25/25** tests, the production frontend build succeeded, and `npm audit --audit-level=moderate` reported zero known vulnerabilities. The backend unit/mock suite passed **238 tests** with no reported failures, errors, or skips; MySQL-backed tests were not run because `TEST_DB_URL` was not configured. `git diff --check` passed. These are local candidate results, not production test results. Detailed commands and scope are in `deployment.md` Section 7.
+The local frontend suite passed **25/25** tests, the production frontend build succeeded, and `npm audit --audit-level=moderate` reported zero known vulnerabilities. The backend unit/mock suite passed **238 tests** with no reported failures, errors, or skips; MySQL-backed tests were not run because `TEST_DB_URL` was not configured. `git diff --check` passed. PR #11 is open and its two Vercel-related checks succeeded, but that is not proof of a production release [7]. Detailed commands and scope are in `deployment.md` Section 7.
 
 ## Completion estimate and next release gates
 
