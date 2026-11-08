@@ -14,7 +14,7 @@ This evidence describes the public package metadata and advisory at the time rev
 ## Live and repository snapshot checked 2026-11-08
 
 - Current public repository `main`: commit `2c7dc65ee040a1b1e110a4387e2bdb7a0d25e91b`, `Merge pull request #10 from PrakashMannam/docs/submission-tdd-and-brief-alignment`. Source: `https://api.github.com/repos/PrakashMannam/chikkamagaluru-resort-booking/commits/main` (fresh fetch); independently matched `git ls-remote origin refs/heads/main`.
-- Latest owner-supplied Railway deployment report in `/home/ubuntu/upload/pasted_content_22.txt` records Railway deployment commit `3ea853896f05649082b73714948c51591f7bb3cf`, deployment status `SUCCESS`, and Flyway migrations V7 and V8 applied, schema v8. This predates current `main`.
+- The latest owner-supplied Railway deployment report (provided separately to this audit and not included in this bundle) records deployment commit `3ea853896f05649082b73714948c51591f7bb3cf`, deployment status `SUCCESS`, and Flyway migrations V7 and V8 applied, schema v8. This predates current `main`.
 - Read-only backend health check: `GET https://resort-backend-production.up.railway.app/health` returned `{"status":"ok"}`. This endpoint does not disclose or prove the currently deployed source commit.
 - Read-only public frontend check: `https://chikkamagaluru-resort-booking.vercel.app/` loaded. `https://chikkamagaluru-resort-booking.vercel.app/stay` rendered a default 14–16 Nov 2026 stay range, showing production does not yet match the local date-first remediation; no form was submitted.
 - These checks did not create or alter any production booking, enquiry, payment, inventory, or database record. Production release alignment remains **NOT VERIFIED**.
