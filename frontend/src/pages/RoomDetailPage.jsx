@@ -186,17 +186,22 @@ export function RoomDetailPage() {
             <h1 className="room-detail__title">{category.name}</h1>
 
             <div className="room-detail__stay-strip">
-              <span className="room-detail__stay-item">
-                {formatDisplayDate(checkIn)} &ndash; {formatDisplayDate(checkOut)}
-              </span>
-              <span className="room-detail__stay-divider" aria-hidden="true">&bull;</span>
-              <span className="room-detail__stay-item">
-                {nights} {nights === 1 ? 'Night' : 'Nights'}
-              </span>
-              <span className="room-detail__stay-divider" aria-hidden="true">&bull;</span>
-              <span className="room-detail__stay-item">
-                {adults} {adults === 1 ? 'Adult' : 'Adults'}{children > 0 ? `, ${children} Children` : ''} &bull; {rooms} {rooms === 1 ? 'Room' : 'Rooms'}
-              </span>
+              <div className="room-detail__stay-criteria">
+                <span className="room-detail__stay-item">
+                  {formatDisplayDate(checkIn)} &ndash; {formatDisplayDate(checkOut)}
+                </span>
+                <span className="room-detail__stay-divider" aria-hidden="true">&bull;</span>
+                <span className="room-detail__stay-item">
+                  {nights} {nights === 1 ? 'Night' : 'Nights'}
+                </span>
+                <span className="room-detail__stay-divider" aria-hidden="true">&bull;</span>
+                <span className="room-detail__stay-item">
+                  {adults} {adults === 1 ? 'Adult' : 'Adults'}{children > 0 ? `, ${children} Children` : ''} &bull; {rooms} {rooms === 1 ? 'Room' : 'Rooms'}
+                </span>
+              </div>
+              <Link to={backUrl} className="room-detail__change-dates-btn" aria-label="Change stay dates and return to availability search">
+                Change dates
+              </Link>
             </div>
           </header>
 
