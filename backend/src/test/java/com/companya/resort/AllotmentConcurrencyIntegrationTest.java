@@ -839,4 +839,123 @@ class AllotmentConcurrencyIntegrationTest {
             }
         }
     }
+
+    @Test
+    void concurrentRequestsCompetingForLastAvailableRoom_onlyOneReceivesSuccessfulHoldAndOtherFails() throws Exception {
+        Long roomCategoryId = 1L; // Coffee Cottage
+        Long ratePlanId = 1L;     // Cottage EP Plan
+        LocalDate d1 = LocalDate.of(2026, 12, 1);
+        LocalDate d2 = LocalDate.of(2026, 12, 2);
+
+        // 1. Explicitly prepare test inventory in disposable DB: 1 night with website_allotment_total = 1, booked_count = 0 (exactly 1 room available)
+        try (Connection conn = getConnection()) {
+            try (PreparedStatement cleanPayments = conn.prepareStatement(
+                    "DELETE FROM payments WHERE booking_id IN (SELECT id FROM bookings WHERE idempotency_key LIKE 'last-room-test-%')")) {
+                cleanPayments.executeUpdate();
+            }
+            try (PreparedStatement cleanBookings = conn.prepareStatement(
+                    "DELETE FROM bookings WHERE idempotency_key LIKE 'last-room-test-%'")) {
+                cleanBookings.executeUpdate();
+            }
+            try (PreparedStatement deleteStmt = conn.prepareStatement(
+                    "DELETE FROM daily_inventory_rates WHERE room_category_id = ? AND stay_date = ?")) {
+                deleteStmt.setLong(1, roomCategoryId);
+                deleteStmt.setDate(2, Date.valueOf(d1));
+                deleteStmt.executeUpdate();
+            }
+            try (PreparedStatement insertStmt = conn.prepareStatement(
+                    "INSERT INTO daily_inventory_rates (room_category_id, stay_date, base_rate_inr, website_allotment_total, booked_count, version) VALUES (?, ?, ?, ?, ?, ?)")) {
+                insertStmt.setLong(1, roomCategoryId);
+                insertStmt.setDate(2, Date.valueOf(d1));
+                insertStmt.setBigDecimal(3, new BigDecimal("9500.00"));
+                insertStmt.setInt(4, 1); // EXACTLY 1 room allotted
+                insertStmt.setInt(5, 0); // 0 booked
+                insertStmt.setLong(6, 0L);
+                insertStmt.executeUpdate();
+            }
+            conn.commit();
+        }
+
+        // 2. Prepare 2 competing requests with different idempotency keys and guest emails
+        int concurrentGuests = 2;
+        ExecutorService pool = Executors.newFixedThreadPool(concurrentGuests);
+        CountDownLatch readyLatch = new CountDownLatch(concurrentGuests);
+        CountDownLatch startGun = new CountDownLatch(1);
+
+        AtomicInteger successfulHolds = new AtomicInteger(0);
+        AtomicInteger rejectedAllotmentFails = new AtomicInteger(0);
+        List<BookingResponseDto> holds = new CopyOnWriteArrayList<>();
+        List<Exception> exceptions = new CopyOnWriteArrayList<>();
+
+        Callable<Void> task1 = () -> {
+            readyLatch.countDown();
+            startGun.await();
+            try {
+                CreateBookingRequest req1 = new CreateBookingRequest(
+                        "last-room-test-alpha", roomCategoryId, ratePlanId, d1, d2, 1, 2, 0,
+                        "Guest Alpha", "alpha.concurrency@test.com", "+919876543211", null, true
+                );
+                BookingResponseDto dto = bookingService.createBookingAndLockAllotment(req1, "last-room-test-alpha");
+                holds.add(dto);
+                successfulHolds.incrementAndGet();
+            } catch (InsufficientAllotmentException ex) {
+                rejectedAllotmentFails.incrementAndGet();
+                exceptions.add(ex);
+            }
+            return null;
+        };
+
+        Callable<Void> task2 = () -> {
+            readyLatch.countDown();
+            startGun.await();
+            try {
+                CreateBookingRequest req2 = new CreateBookingRequest(
+                        "last-room-test-beta", roomCategoryId, ratePlanId, d1, d2, 1, 2, 0,
+                        "Guest Beta", "beta.concurrency@test.com", "+919876543212", null, true
+                );
+                BookingResponseDto dto = bookingService.createBookingAndLockAllotment(req2, "last-room-test-beta");
+                holds.add(dto);
+                successfulHolds.incrementAndGet();
+            } catch (InsufficientAllotmentException ex) {
+                rejectedAllotmentFails.incrementAndGet();
+                exceptions.add(ex);
+            }
+            return null;
+        };
+
+        Future<Void> f1 = pool.submit(task1);
+        Future<Void> f2 = pool.submit(task2);
+
+        readyLatch.await(5, TimeUnit.SECONDS);
+        startGun.countDown();
+
+        f1.get(10, TimeUnit.SECONDS);
+        f2.get(10, TimeUnit.SECONDS);
+        pool.shutdown();
+
+        // 3. Assertions: EXACTLY ONE succeeds with hold, and the other fails with InsufficientAllotmentException
+        assertEquals(1, successfulHolds.get(), "Exactly 1 concurrent request must receive a successful hold on the last room");
+        assertEquals(1, rejectedAllotmentFails.get(), "The competing concurrent request must be rejected with InsufficientAllotmentException");
+
+        BookingResponseDto winningHold = holds.get(0);
+        assertNotNull(winningHold.getBookingRef());
+        assertNotNull(winningHold.getOneTimePaymentToken());
+        assertNotNull(winningHold.getExpiresAt());
+        assertEquals("PENDING_PAYMENT", winningHold.getStatus());
+
+        // 4. Verify database state: booked_count must be exactly 1, never exceeding website_allotment_total (1)
+        try (Connection conn = getConnection();
+             PreparedStatement checkStmt = conn.prepareStatement(
+                     "SELECT website_allotment_total, booked_count FROM daily_inventory_rates WHERE room_category_id = ? AND stay_date = ?")) {
+            checkStmt.setLong(1, roomCategoryId);
+            checkStmt.setDate(2, Date.valueOf(d1));
+            try (ResultSet rs = checkStmt.executeQuery()) {
+                assertTrue(rs.next());
+                int allotment = rs.getInt("website_allotment_total");
+                int booked = rs.getInt("booked_count");
+                assertEquals(1, allotment, "Website allotment must be 1");
+                assertEquals(1, booked, "Booked count must be 1 (never greater than allotment)");
+            }
+        }
+    }
 }
