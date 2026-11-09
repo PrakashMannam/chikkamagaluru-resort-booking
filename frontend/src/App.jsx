@@ -13,6 +13,8 @@ const GuestCheckoutPage = lazy(() => import('./pages/GuestCheckoutPage'));
 const GuestPaymentPage = lazy(() => import('./pages/GuestPaymentPage'));
 const BookingConfirmationPage = lazy(() => import('./pages/BookingConfirmationPage'));
 const PublicEnquiryPage = lazy(() => import('./pages/PublicEnquiryPage'));
+const WeddingsPage = lazy(() => import('./pages/WeddingsPage'));
+const OffsitesPage = lazy(() => import('./pages/OffsitesPage'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const TermsPage = lazy(() => import('./pages/TermsPage'));
 const StaffLoginPage = lazy(() => import('./pages/StaffLoginPage').then(m => ({ default: m.StaffLoginPage })));
@@ -47,6 +49,8 @@ export function App() {
               <Route path="/checkout" element={<GuestCheckoutPage />} />
               <Route path="/payment/:ref" element={<GuestPaymentPage />} />
               <Route path="/bookings/:ref" element={<BookingConfirmationPage />} />
+              <Route path="/weddings" element={<WeddingsPage />} />
+              <Route path="/offsites" element={<OffsitesPage />} />
               <Route path="/enquire" element={<PublicEnquiryPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/terms" element={<TermsPage />} />

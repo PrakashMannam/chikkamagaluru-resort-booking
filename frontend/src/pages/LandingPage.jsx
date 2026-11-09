@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { BedIcon, RingsIcon, BriefcaseIcon, MountainIcon, BellIcon, CoffeeLeafIcon } from '../components/common/Icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { BOOKING_WINDOW, parseLocalDate, formatLocalDate } from '../utils/dateUtils';
 import './LandingPage.css';
@@ -52,23 +53,9 @@ function KeyIcon() {
   );
 }
 
-function RingsIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="9" cy="12" r="6" />
-      <circle cx="15" cy="12" r="6" />
-    </svg>
-  );
-}
 
-function BriefcaseIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-    </svg>
-  );
-}
+
+
 
 function LocationIcon() {
   return (
@@ -314,50 +301,145 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 3. 4-Item Estate Highlights Strip */}
-      <section className="lp-highlights-strip">
-        <div className="lp-highlights-grid">
-          {/* Item 1 */}
-          <div className="lp-highlight-item">
-            <div className="lp-highlight-icon">
-              <KeyIcon />
+      {/* 3. Choose Your Experience (Matches Panel 1 of Reference Mockup) */}
+      <section className="lp-section lp-experience-section" aria-labelledby="lp-exp-heading">
+        <div className="lp-experience-header">
+          <h2 id="lp-exp-heading" className="lp-experience-title">Choose Your Experience</h2>
+          <p className="lp-experience-sub">
+            Select the experience that best matches your visit. Each option takes you to a dedicated page with tailored details and booking options.
+          </p>
+        </div>
+
+        <div className="lp-experience-grid">
+          {/* Card 1: Stay */}
+          <article
+            className="lp-exp-card"
+            onClick={() => navigate('/stay')}
+            tabIndex={0}
+            role="region"
+            aria-label="Stay experience: 64 estate rooms and 12 private villas"
+            onKeyDown={(e) => { if (e.key === 'Enter') navigate('/stay'); }}
+          >
+            <div className="lp-exp-card__media">
+              <img
+                src="/images/coffee-villa.jpg"
+                alt="Estate veranda and private villa in coffee plantation"
+                className="lp-exp-card__img"
+                loading="lazy"
+                width="480"
+                height="300"
+              />
             </div>
-            <div className="lp-highlight-text">
-              <span className="lp-highlight-title">76 Keys</span>
-              <span className="lp-highlight-desc">64 Rooms • 12 Villas</span>
+            <div className="lp-exp-card__body">
+              <div className="lp-exp-card__icon-header">
+                <BedIcon size={24} color="#1E3A2F" />
+                <h3 className="lp-exp-card__title">Stay</h3>
+              </div>
+              <p className="lp-exp-card__desc">
+                64 estate rooms and 12 private villas amidst tranquil coffee gardens.
+              </p>
+              <Link to="/stay" className="lp-exp-card__btn" onClick={(e) => e.stopPropagation()}>
+                Explore Stays &rarr;
+              </Link>
+            </div>
+          </article>
+
+          {/* Card 2: Weddings */}
+          <article
+            className="lp-exp-card"
+            onClick={() => navigate('/weddings')}
+            tabIndex={0}
+            role="region"
+            aria-label="Weddings experience: scenic estate lawns with 76 keys for guests"
+            onKeyDown={(e) => { if (e.key === 'Enter') navigate('/weddings'); }}
+          >
+            <div className="lp-exp-card__media">
+              <img
+                src="/images/wedding-lawn-estate.jpg"
+                alt="Outdoor floral mandap and estate lawn setup in Chikkamagaluru"
+                className="lp-exp-card__img"
+                loading="lazy"
+                width="480"
+                height="300"
+              />
+            </div>
+            <div className="lp-exp-card__body">
+              <div className="lp-exp-card__icon-header">
+                <RingsIcon size={24} color="#1E3A2F" />
+                <h3 className="lp-exp-card__title">Weddings &amp; Celebrations</h3>
+              </div>
+              <p className="lp-exp-card__desc">
+                Celebrate meaningful moments on our scenic estate lawns with 76 keys for guests.
+              </p>
+              <Link to="/weddings" className="lp-exp-card__btn" onClick={(e) => e.stopPropagation()}>
+                Plan a Wedding &rarr;
+              </Link>
+            </div>
+          </article>
+
+          {/* Card 3: Corporate Offsites */}
+          <article
+            className="lp-exp-card"
+            onClick={() => navigate('/offsites')}
+            tabIndex={0}
+            role="region"
+            aria-label="Corporate offsites experience: focused retreats and leadership meets"
+            onKeyDown={(e) => { if (e.key === 'Enter') navigate('/offsites'); }}
+          >
+            <div className="lp-exp-card__media">
+              <img
+                src="/images/corporate-offsite-estate.jpg"
+                alt="Executive retreat pavilion overlooking lush coffee hills"
+                className="lp-exp-card__img"
+                loading="lazy"
+                width="480"
+                height="300"
+              />
+            </div>
+            <div className="lp-exp-card__body">
+              <div className="lp-exp-card__icon-header">
+                <BriefcaseIcon size={24} color="#1E3A2F" />
+                <h3 className="lp-exp-card__title">Corporate Offsites</h3>
+              </div>
+              <p className="lp-exp-card__desc">
+                Bring your team together for focused retreats and leadership meets in nature.
+              </p>
+              <Link to="/offsites" className="lp-exp-card__btn" onClick={(e) => e.stopPropagation()}>
+                Plan an Offsite &rarr;
+              </Link>
+            </div>
+          </article>
+        </div>
+
+        {/* 3 Pillars Row below the cards (Panel 1) */}
+        <div className="lp-pillars-row">
+          <div className="lp-pillar-item">
+            <div className="lp-pillar-item__icon">
+              <CoffeeLeafIcon size={24} />
+            </div>
+            <div className="lp-pillar-item__text">
+              <h4 className="lp-pillar-item__title">Coffee Estate</h4>
+              <p className="lp-pillar-item__desc">Surrounded by plantations</p>
             </div>
           </div>
 
-          {/* Item 2 */}
-          <div className="lp-highlight-item">
-            <div className="lp-highlight-icon">
-              <RingsIcon />
+          <div className="lp-pillar-item">
+            <div className="lp-pillar-item__icon">
+              <MountainIcon size={24} color="#1E3A2F" />
             </div>
-            <div className="lp-highlight-text">
-              <span className="lp-highlight-title">Weddings</span>
-              <span className="lp-highlight-desc">Scenic venues</span>
-            </div>
-          </div>
-
-          {/* Item 3 */}
-          <div className="lp-highlight-item">
-            <div className="lp-highlight-icon">
-              <BriefcaseIcon />
-            </div>
-            <div className="lp-highlight-text">
-              <span className="lp-highlight-title">Corporate Offsites</span>
-              <span className="lp-highlight-desc">For teams &amp; leaders</span>
+            <div className="lp-pillar-item__text">
+              <h4 className="lp-pillar-item__title">Scenic Location</h4>
+              <p className="lp-pillar-item__desc">In the Western Ghats</p>
             </div>
           </div>
 
-          {/* Item 4 */}
-          <div className="lp-highlight-item">
-            <div className="lp-highlight-icon">
-              <LocationIcon />
+          <div className="lp-pillar-item">
+            <div className="lp-pillar-item__icon">
+              <BellIcon size={24} color="#1E3A2F" />
             </div>
-            <div className="lp-highlight-text">
-              <span className="lp-highlight-title">Western Ghats</span>
-              <span className="lp-highlight-desc">Chikkamagaluru, Karnataka</span>
+            <div className="lp-pillar-item__text">
+              <h4 className="lp-pillar-item__title">Curated Hospitality</h4>
+              <p className="lp-pillar-item__desc">Thoughtful, warm service</p>
             </div>
           </div>
         </div>
@@ -507,13 +589,13 @@ export default function LandingPage() {
               </div>
               <div className="lp-event-card__actions">
                 <Link
-                  to="/enquire?type=wedding"
+                  to="/weddings"
                   className="lp-event-card__link"
                 >
                   Plan a Wedding &rarr;
                 </Link>
                 <Link
-                  to="/enquire?type=wedding"
+                  to="/weddings"
                   className="lp-event-card__btn"
                   aria-label="Plan a destination wedding"
                 >
@@ -548,13 +630,13 @@ export default function LandingPage() {
               </div>
               <div className="lp-event-card__actions">
                 <Link
-                  to="/enquire?type=offsite"
+                  to="/offsites"
                   className="lp-event-card__link"
                 >
                   Plan an Offsite &rarr;
                 </Link>
                 <Link
-                  to="/enquire?type=offsite"
+                  to="/offsites"
                   className="lp-event-card__btn"
                   aria-label="Plan a corporate offsite"
                 >

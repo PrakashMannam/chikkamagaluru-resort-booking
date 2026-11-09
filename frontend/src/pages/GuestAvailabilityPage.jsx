@@ -12,18 +12,16 @@ import {
 } from '../utils/dateUtils';
 import { formatINR } from '../utils/formatUtils';
 import { Skeleton, ErrorBanner } from '../components/ui';
+import {
+  BedIcon,
+  CoffeeLeafIcon,
+  MountainIcon,
+  SparklesIcon,
+  KeyIcon,
+  UsersIcon,
+  CalendarIcon,
+} from '../components/common/Icons';
 import './GuestAvailabilityPage.css';
-
-function CalendarIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-      <line x1="16" y1="2" x2="16" y2="6" />
-      <line x1="8" y1="2" x2="8" y2="6" />
-      <line x1="3" y1="10" x2="21" y2="10" />
-    </svg>
-  );
-}
 
 function UserIcon() {
   return (
@@ -48,14 +46,6 @@ function CloseIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <line x1="18" y1="6" x2="6" y2="18" />
       <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  );
-}
-
-function SparklesIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
     </svg>
   );
 }
@@ -218,9 +208,41 @@ export function GuestAvailabilityPage() {
     };
   }
 
+  const focusSearchInput = () => {
+    const el = document.getElementById('stay-edit-checkin') || document.querySelector('.stay-search-strip');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.focus?.();
+      try { el.showPicker?.(); } catch (err) {}
+    }
+  };
+
   return (
     <div className="stay-page">
-      {/* 1. Compact Top Search Strip (Storyboard Screen 2) */}
+      {/* 1. Stay Hero Banner matching Panel 2 of Reference Mockup */}
+      <section className="stay-hero">
+        <div className="stay-hero__media">
+          <img
+            src="/images/coffee-villa.jpg"
+            alt="Coffee-estate villa and lush veranda in Chikkamagaluru"
+            className="stay-hero__img"
+            loading="eager"
+            fetchPriority="high"
+            width="1440"
+            height="420"
+          />
+          <div className="stay-hero__overlay" />
+        </div>
+        <div className="stay-hero__content">
+          <span className="stay-hero__eyebrow">STAY</span>
+          <h1 className="stay-hero__title">Rooms &amp; Villas at the Estate</h1>
+          <p className="stay-hero__sub">
+            Restful stays surrounded by coffee gardens, forest views and quiet luxury in Chikkamagaluru.
+          </p>
+        </div>
+      </section>
+
+      {/* 2. Overlapping Booking Search Card (Matches Panel 2) */}
       <section className="stay-search-strip" aria-label="Reservation Parameters">
         <div className="stay-search-strip__inner">
           {(datesSelected && !isModifying) ? (
@@ -318,9 +340,9 @@ export function GuestAvailabilityPage() {
                     onChange={(e) => setFormRooms(Number(e.target.value))}
                     className="stay-search-edit__select"
                   >
-                    <option value={1}>1 Suite / Villa</option>
-                    <option value={2}>2 Suites / Villas</option>
-                    <option value={3}>3 Suites / Villas</option>
+                    <option value={1}>1 Room</option>
+                    <option value={2}>2 Rooms</option>
+                    <option value={3}>3 Rooms</option>
                   </select>
                 </div>
 
@@ -387,227 +409,316 @@ export function GuestAvailabilityPage() {
         </div>
       </section>
 
-      {/* 2. Main Accommodations List Section */}
-      <section className="stay-content" aria-labelledby="stay-results-heading">
-        <div className="stay-content__inner">
-          {/* Section Heading matching Screen 2 */}
-          <div className="stay-heading-row">
-            <h1 id="stay-results-heading" className="stay-heading-row__title">
-              {!datesSelected
-                ? 'Select your stay dates to view availability'
-                : isLoading
-                ? 'Checking live availability...'
-                : hasAvailableRooms
-                ? `${availableCategories.length} ${availableCategories.length === 1 ? 'accommodation type' : 'accommodation types'} available`
-                : 'No accommodation types available'}
-            </h1>
-            {datesSelected && (
-            <span className="stay-heading-row__meta">
-              {formatCompactDate(checkIn)} &ndash; {formatCompactDate(checkOut)} ({nights} {nights === 1 ? 'night' : 'nights'})
-            </span>
-            )}
-          </div>
+      {/* 3. Explore Our Accommodation Discovery Section (Always visible, matches Panel 2) */}
+      <section className="stay-discovery-section" id="explore-accommodation" aria-labelledby="stay-explore-title">
+        <div className="stay-discovery-header">
+          <h2 id="stay-explore-title" className="stay-discovery-title">Explore Our Accommodation</h2>
+          <p className="stay-discovery-sub">
+            Choose from thoughtfully designed rooms and private villas, perfect for a peaceful estate escape.
+          </p>
+        </div>
 
-          {/* Date Selection Prompt: shown when guest arrives with no query parameters */}
-          {!datesSelected && !isLoading && (
-            <div className="stay-date-prompt" role="status" aria-live="polite">
-              <div className="stay-date-prompt__icon" aria-hidden="true">📅</div>
-              <h2 className="stay-date-prompt__heading">Select your stay dates</h2>
-              <p className="stay-date-prompt__body">
-                Choose your check-in and check-out dates above to see live room availability and pricing.
-              </p>
-            </div>
-          )}
-
-          {/* Loading Skeletons */}
-          {datesSelected && isLoading && (
-            <div className="stay-skeleton-list" aria-label="Loading available accommodations" aria-busy="true">
-              {[1, 2].map((idx) => (
-                <div key={idx} className="stay-skeleton-card">
-                  <Skeleton variant="rectangular" className="stay-skeleton-card__img" />
-                  <div className="stay-skeleton-card__body">
-                    <Skeleton variant="text" width="60%" height="2rem" />
-                    <Skeleton variant="text" width="40%" height="1.2rem" style={{ marginTop: '0.5rem' }} />
-                    <Skeleton variant="text" width="90%" height="1rem" style={{ marginTop: '1rem' }} />
-                    <Skeleton variant="text" width="75%" height="1rem" style={{ marginTop: '0.4rem' }} />
-                  </div>
-                  <div className="stay-skeleton-card__pricing">
-                    <Skeleton variant="text" width="80px" height="1.8rem" />
-                    <Skeleton variant="text" width="100px" height="0.9rem" style={{ marginTop: '0.5rem' }} />
-                    <Skeleton variant="rectangular" width="100%" height="44px" style={{ marginTop: '1.5rem' }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Error Banner */}
-          {datesSelected && !isLoading && error && (
-            <div className="stay-error-wrapper">
-              <ErrorBanner
-                variant="error"
-                title="Unable to refresh live availability"
-                message={error}
-                actionLabel="Retry Live Rates"
-                onAction={loadAvailability}
+        <div className="stay-discovery-grid">
+          {/* Card 1: Estate Rooms */}
+          <article className="stay-discovery-card">
+            <div className="stay-discovery-card__media">
+              <img
+                src="/images/room-canopy.webp"
+                alt="Estate Room with teakwood canopy bed and garden views"
+                className="stay-discovery-card__img"
+                loading="lazy"
+                width="420"
+                height="260"
               />
             </div>
-          )}
+            <div className="stay-discovery-card__content">
+              <h3 className="stay-discovery-card__title">Estate Rooms</h3>
+              <p className="stay-discovery-card__desc">
+                Comfortable, earthy rooms nestled within the coffee plantation canopy with serene garden views.
+              </p>
+              <div className="stay-discovery-card__pills">
+                <span className="stay-meta-pill">
+                  <KeyIcon size={16} color="#1E3A2F" />
+                  64 Keys at the Estate
+                </span>
+                <span className="stay-meta-pill">
+                  <UsersIcon size={16} color="#1E3A2F" />
+                  Up to 2 Adults &amp; 2 Children
+                </span>
+              </div>
+              <button
+                type="button"
+                className="stay-discovery-card__cta"
+                onClick={focusSearchInput}
+              >
+                Explore Rooms &rarr;
+              </button>
+            </div>
+          </article>
 
-          {/* Empty State */}
-          {!isLoading && !error && data && !hasAvailableRooms && (
-            <div className="stay-empty-state">
-              <div className="stay-empty-state__card">
-                <div className="stay-empty-state__icon-wrap">
-                  <CalendarIcon />
-                </div>
-                <h2 className="stay-empty-state__title">
-                  All accommodations are reserved for these dates
-                </h2>
-                <p className="stay-empty-state__desc">
-                  Our online allotment for {formatCompactDate(checkIn)} to {formatCompactDate(checkOut)} is fully booked or held for a private event. Try adjusting your dates or speak directly with our estate concierge.
-                </p>
-                <div className="stay-empty-state__actions">
-                  <button
-                    type="button"
-                    className="stay-empty-state__modify-btn"
-                    onClick={() => setIsModifying(true)}
-                  >
-                    Modify Travel Dates
-                  </button>
-                  <button
-                    type="button"
-                    className="stay-empty-state__enquire-btn"
-                    onClick={() => navigate('/enquire')}
-                  >
-                    Send Direct Enquiry
-                  </button>
+          {/* Card 2: Private Villas */}
+          <article className="stay-discovery-card">
+            <div className="stay-discovery-card__media">
+              <img
+                src="/images/villa-pool.webp"
+                alt="Private Villa with plunge pool and panoramic hill views"
+                className="stay-discovery-card__img"
+                loading="lazy"
+                width="420"
+                height="260"
+              />
+            </div>
+            <div className="stay-discovery-card__content">
+              <h3 className="stay-discovery-card__title">Private Villas</h3>
+              <p className="stay-discovery-card__desc">
+                Spacious private villas with secluded sit-outs and plunge pools, ideal for families and small groups.
+              </p>
+              <div className="stay-discovery-card__pills">
+                <span className="stay-meta-pill">
+                  <KeyIcon size={16} color="#1E3A2F" />
+                  12 Private Villas
+                </span>
+                <span className="stay-meta-pill">
+                  <UsersIcon size={16} color="#1E3A2F" />
+                  Up to 3 Adults &amp; 2 Children
+                </span>
+              </div>
+              <button
+                type="button"
+                className="stay-discovery-card__cta"
+                onClick={focusSearchInput}
+              >
+                Explore Villas &rarr;
+              </button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      {/* 4. Live Availability Results (Rendered When Dates Are Searched) */}
+      {datesSelected && (
+        <section className="stay-content" aria-labelledby="stay-results-heading">
+          <div className="stay-content__inner">
+            <div className="stay-heading-row">
+              <h2 id="stay-results-heading" className="stay-heading-row__title">
+                {isLoading
+                  ? 'Checking live availability...'
+                  : hasAvailableRooms
+                  ? `${availableCategories.length} ${availableCategories.length === 1 ? 'accommodation type' : 'accommodation types'} available`
+                  : 'No accommodation types available'}
+              </h2>
+              <span className="stay-heading-row__meta">
+                {formatCompactDate(checkIn)} &ndash; {formatCompactDate(checkOut)} ({nights} {nights === 1 ? 'night' : 'nights'})
+              </span>
+            </div>
+
+            {/* Loading Skeletons */}
+            {isLoading && (
+              <div className="stay-skeleton-list" aria-label="Loading available accommodations" aria-busy="true">
+                {[1, 2].map((idx) => (
+                  <div key={idx} className="stay-skeleton-card">
+                    <Skeleton variant="rectangular" className="stay-skeleton-card__img" />
+                    <div className="stay-skeleton-card__body">
+                      <Skeleton variant="text" width="60%" height="2rem" />
+                      <Skeleton variant="text" width="40%" height="1.2rem" style={{ marginTop: '0.5rem' }} />
+                      <Skeleton variant="text" width="90%" height="1rem" style={{ marginTop: '1rem' }} />
+                      <Skeleton variant="text" width="75%" height="1rem" style={{ marginTop: '0.4rem' }} />
+                    </div>
+                    <div className="stay-skeleton-card__pricing">
+                      <Skeleton variant="text" width="80px" height="1.8rem" />
+                      <Skeleton variant="text" width="100px" height="0.9rem" style={{ marginTop: '0.5rem' }} />
+                      <Skeleton variant="rectangular" width="100%" height="44px" style={{ marginTop: '1.5rem' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Error Banner */}
+            {!isLoading && error && (
+              <div className="stay-error-wrapper">
+                <ErrorBanner
+                  variant="error"
+                  title="Unable to refresh live availability"
+                  message={error}
+                  actionLabel="Retry Live Rates"
+                  onAction={loadAvailability}
+                />
+              </div>
+            )}
+
+            {/* Empty State when Sold Out or Blacked Out */}
+            {!isLoading && !error && data && !hasAvailableRooms && (
+              <div className="stay-empty-state">
+                <div className="stay-empty-state__card">
+                  <div className="stay-empty-state__icon-wrap">
+                    <CalendarIcon />
+                  </div>
+                  <h3 className="stay-empty-state__title">
+                    All accommodations are reserved for these dates
+                  </h3>
+                  <p className="stay-empty-state__desc">
+                    Our online allotment for {formatCompactDate(checkIn)} to {formatCompactDate(checkOut)} is fully reserved or held for a private event. Try adjusting your dates or speak directly with our estate concierge.
+                  </p>
+                  <div className="stay-empty-state__actions">
+                    <button
+                      type="button"
+                      className="stay-empty-state__modify-btn"
+                      onClick={() => setIsModifying(true)}
+                    >
+                      Modify Travel Dates
+                    </button>
+                    <button
+                      type="button"
+                      className="stay-empty-state__enquire-btn"
+                      onClick={() => navigate('/enquire?type=room')}
+                    >
+                      Send Direct Enquiry
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Real Accommodation Results (Screen 2 Layout) */}
-          {!isLoading && !error && hasAvailableRooms && (
-            <div className="stay-card-list">
-              {categories.map((cat) => {
-                const img = getRoomImage(cat);
-                const specs = getRoomSpecs(cat);
-                const detailUrl = `/rooms/${cat.code}?checkIn=${encodeURIComponent(checkIn)}&checkOut=${encodeURIComponent(checkOut)}&rooms=${rooms}&adults=${adults}&children=${children}`;
+            {/* Real Accommodation Results */}
+            {!isLoading && !error && hasAvailableRooms && (
+              <div className="stay-card-list">
+                {categories.map((cat) => {
+                  const img = getRoomImage(cat);
+                  const specs = getRoomSpecs(cat);
+                  const detailUrl = `/rooms/${cat.code}?checkIn=${encodeURIComponent(checkIn)}&checkOut=${encodeURIComponent(checkOut)}&rooms=${rooms}&adults=${adults}&children=${children}`;
 
-                // Backend dynamic pricing & GST data
-                const firstPlan = cat.ratePlans?.[0];
-                const gstPercent = firstPlan?.gstPercentageApplied ?? 18;
-                const totalWithGst = firstPlan?.totalPayableInr;
+                  const firstPlan = cat.ratePlans?.[0];
+                  const gstPercent = firstPlan?.gstPercentageApplied ?? 18;
+                  const totalWithGst = firstPlan?.totalPayableInr;
 
-                return (
-                  <article key={cat.id || cat.code} className="stay-room-card">
-                    {/* Left: Resort Photo */}
-                    <div className="stay-room-card__media">
-                      <img
-                        src={img.src}
-                        srcSet={img.srcSet}
-                        sizes={img.sizes}
-                        alt={img.alt}
-                        width="800"
-                        height="500"
-                        loading="lazy"
-                        className="stay-room-card__img"
-                      />
-                      {/* Availability status badge */}
-                      <div className="stay-room-card__badge-wrap">
-                        {cat.isBlackedOut ? (
-                          <span className="stay-badge stay-badge--danger">
-                            Blackout: {cat.blackoutReason || 'Reserved'}
-                          </span>
-                        ) : cat.remainingAllotment <= 3 && cat.remainingAllotment > 0 ? (
-                          <span className="stay-badge stay-badge--warning">
-                            Only {cat.remainingAllotment} left online
-                          </span>
-                        ) : (
-                          <span className="stay-badge stay-badge--success">
-                            {cat.remainingAllotment} available
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Middle: Content & Specs */}
-                    <div className="stay-room-card__content">
-                      <h2 className="stay-room-card__title">
-                        {cat.name}
-                      </h2>
-
-                      {/* Specs Row */}
-                      <div className="stay-room-card__specs">
-                        <span className="stay-spec-item">
-                          <UserIcon />
-                          <span>{specs.capacity}</span>
-                        </span>
-                        <span className="stay-spec-divider">&bull;</span>
-                        <span className="stay-spec-item">
-                          <span>{specs.view}</span>
-                        </span>
-                        <span className="stay-spec-divider">&bull;</span>
-                        <span className="stay-spec-item">
-                          <span>{specs.area}</span>
-                        </span>
+                  return (
+                    <article key={cat.id || cat.code} className="stay-room-card">
+                      {/* Left: Resort Photo */}
+                      <div className="stay-room-card__media">
+                        <img
+                          src={img.src}
+                          srcSet={img.srcSet}
+                          sizes={img.sizes}
+                          alt={img.alt}
+                          width="800"
+                          height="500"
+                          loading="lazy"
+                          className="stay-room-card__img"
+                        />
+                        <div className="stay-room-card__badge-wrap">
+                          {cat.isBlackedOut ? (
+                            <span className="stay-badge stay-badge--danger">
+                              Unavailable
+                            </span>
+                          ) : cat.availableRooms <= 3 ? (
+                            <span className="stay-badge stay-badge--warning">
+                              Only {cat.availableRooms} {cat.availableRooms === 1 ? 'room' : 'rooms'} left
+                            </span>
+                          ) : (
+                            <span className="stay-badge stay-badge--success">
+                              Available
+                            </span>
+                          )}
+                        </div>
                       </div>
 
-                      {/* Description */}
-                      <p className="stay-room-card__desc">
-                        {cat.baseDescription}
-                      </p>
+                      {/* Middle: Details */}
+                      <div className="stay-room-card__body">
+                        <div className="stay-room-card__header">
+                          <h3 className="stay-room-card__title">{cat.name}</h3>
+                          <p className="stay-room-card__subtitle">{cat.shortDescription}</p>
+                        </div>
 
-                      {/* Rate Plans List */}
-                      {cat.ratePlans && cat.ratePlans.length > 0 && (
-                        <div className="stay-room-card__plans">
-                          <span className="stay-plans-title">Available Meal Plans:</span>
-                          <div className="stay-plans-tags">
-                            {cat.ratePlans.map((plan) => (
-                              <span key={plan.code} className="stay-plan-tag" title={plan.name}>
-                                <SparklesIcon />
-                                <span>{plan.code}: {plan.name.replace(/\(.*?\)/g, '').trim()}</span>
-                              </span>
-                            ))}
+                        <div className="stay-room-card__meta">
+                          <span className="stay-meta-item">
+                            <UserIcon />
+                            <span>{specs.capacity}</span>
+                          </span>
+                          <span className="stay-meta-item">
+                            <span>{specs.area}</span>
+                          </span>
+                          <span className="stay-meta-item">
+                            <span>{specs.view}</span>
+                          </span>
+                        </div>
+
+                        <div className="stay-room-card__amenities">
+                          {(cat.amenities || ['Forest View', 'Sit-out Veranda', 'Plantation Walk Included', 'Artisanal Coffee Bar']).map((amenity, idx) => (
+                            <span key={idx} className="stay-amenity-tag">
+                              {amenity}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Right: Pricing Box & CTA */}
+                      <div className="stay-room-card__pricing">
+                        <div className="stay-room-card__price-box">
+                          <span className="stay-price-kicker">Starting from</span>
+                          <div className="stay-price-amount">
+                            <span className="stay-price-amount__value">
+                              {formatINR(cat.startingRatePerNight)}
+                            </span>
+                            <span className="stay-price-amount__unit">/ night</span>
                           </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Right: Pricing & CTA Column */}
-                    <div className="stay-room-card__pricing">
-                      <div className="stay-room-card__price-box">
-                        <span className="stay-price-kicker">Starting from</span>
-                        <div className="stay-price-amount">
-                          <span className="stay-price-amount__value">
-                            {formatINR(cat.startingRatePerNight)}
-                          </span>
-                          <span className="stay-price-amount__unit">/ night</span>
-                        </div>
-                        <div className="stay-price-taxes">
-                          + {gstPercent}% GST as applicable
-                        </div>
-                        {totalWithGst && (
-                          <div className="stay-price-total">
-                            {formatINR(totalWithGst)} total for {nights} {nights === 1 ? 'night' : 'nights'} (incl. GST)
+                          <div className="stay-price-taxes">
+                            + {gstPercent}% GST as applicable
                           </div>
-                        )}
-                      </div>
+                          {totalWithGst && (
+                            <div className="stay-price-total">
+                              {formatINR(totalWithGst)} total for {nights} {nights === 1 ? 'night' : 'nights'} (incl. GST)
+                            </div>
+                          )}
+                        </div>
 
-                      <button
-                        type="button"
-                        className="stay-room-card__cta"
-                        onClick={() => navigate(detailUrl)}
-                      >
-                        View Details
-                      </button>
-                    </div>
-                  </article>
-                );
-              })}
+                        <button
+                          type="button"
+                          className="stay-room-card__cta"
+                          onClick={() => navigate(detailUrl)}
+                        >
+                          View Details
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* 5. Bottom "Why Stay With Us?" Banner matching Panel 2 of Reference Mockup */}
+      <section className="stay-why-section">
+        <div className="stay-why-banner">
+          <h2 className="stay-why-banner__title">Why Stay With Us?</h2>
+          <div className="stay-why-banner__grid">
+            <div className="stay-why-item">
+              <div className="stay-why-item__icon">
+                <BedIcon size={26} color="#FFFFFF" />
+              </div>
+              <span className="stay-why-item__label">Thoughtful Stays</span>
             </div>
-          )}
+            <div className="stay-why-item">
+              <div className="stay-why-item__icon">
+                <CoffeeLeafIcon size={26} />
+              </div>
+              <span className="stay-why-item__label">Coffee Estate Setting</span>
+            </div>
+            <div className="stay-why-item">
+              <div className="stay-why-item__icon">
+                <MountainIcon size={26} color="#FFFFFF" />
+              </div>
+              <span className="stay-why-item__label">Scenic Western Ghats</span>
+            </div>
+            <div className="stay-why-item">
+              <div className="stay-why-item__icon">
+                <SparklesIcon size={26} color="#FFFFFF" />
+              </div>
+              <span className="stay-why-item__label">Direct Booking Value</span>
+            </div>
+          </div>
         </div>
       </section>
     </div>

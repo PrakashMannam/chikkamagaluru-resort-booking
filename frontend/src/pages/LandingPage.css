@@ -856,3 +856,207 @@
 .lp-cta-banner__btn:hover {
   background-color: #F7F4EE;
 }
+
+/* ==========================================================================
+   Choose Your Experience Section (Matches Panel 1 of Reference Mockup)
+   ========================================================================== */
+.lp-experience-section {
+  padding-top: 3.5rem;
+  padding-bottom: 2rem;
+}
+
+.lp-experience-header {
+  text-align: center;
+  max-width: 44rem;
+  margin: 0 auto 2.5rem;
+}
+
+.lp-experience-title {
+  font-family: var(--font-heading);
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: #1C1917;
+  letter-spacing: -0.015em;
+  margin-bottom: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .lp-experience-title {
+    font-size: 2.75rem;
+  }
+}
+
+.lp-experience-sub {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #5C5852;
+}
+
+.lp-experience-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  max-width: 68rem;
+  margin: 0 auto;
+}
+
+.lp-exp-card {
+  display: flex;
+  flex-direction: column;
+  background-color: #FFFFFF;
+  border: 1px solid #E5E0D8;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(28, 25, 23, 0.04);
+  cursor: pointer;
+  transition: transform var(--motion-fast) ease, box-shadow var(--motion-fast) ease, border-color var(--motion-fast) ease;
+}
+
+.lp-exp-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(28, 25, 23, 0.08);
+  border-color: #1E3A2F;
+}
+
+@media (min-width: 768px) {
+  .lp-exp-card {
+    flex-direction: row;
+    align-items: stretch;
+    min-height: 14rem;
+  }
+}
+
+.lp-exp-card__media {
+  width: 100%;
+  height: 13rem;
+  overflow: hidden;
+  background-color: #EFECE6;
+  flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+  .lp-exp-card__media {
+    width: 20rem;
+    height: auto;
+  }
+}
+
+.lp-exp-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+}
+
+.lp-exp-card:hover .lp-exp-card__img {
+  transform: scale(1.03);
+}
+
+.lp-exp-card__body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  flex: 1;
+}
+
+@media (min-width: 640px) {
+  .lp-exp-card__body {
+    padding: 2rem 2.5rem;
+  }
+}
+
+.lp-exp-card__icon-header {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-bottom: 0.5rem;
+}
+
+.lp-exp-card__title {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1C1917;
+  letter-spacing: -0.01em;
+}
+
+.lp-exp-card__desc {
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: #5C5852;
+  margin-bottom: 1.5rem;
+  max-width: 34rem;
+}
+
+.lp-exp-card__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.5rem;
+  background-color: #1E3A2F;
+  color: #FFFFFF;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  min-height: var(--tap-min, 44px);
+  transition: background-color var(--motion-fast) ease;
+}
+
+.lp-exp-card__btn:hover {
+  background-color: #152921;
+}
+
+/* 3 Pillars Row below the cards (Panel 1) */
+.lp-pillars-row {
+  max-width: 68rem;
+  margin: 3.5rem auto 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  padding: 2rem var(--space-4);
+  background-color: #F7F4EE;
+  border-radius: 1rem;
+  border: 1px solid #E5E0D8;
+}
+
+@media (min-width: 640px) {
+  .lp-pillars-row {
+    grid-template-columns: repeat(3, 1fr);
+    padding: 2.5rem;
+  }
+}
+
+.lp-pillar-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.lp-pillar-item__icon {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 9999px;
+  background-color: #EFECE6;
+  border: 1px solid #E5E0D8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lp-pillar-item__title {
+  font-family: var(--font-heading);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1C1917;
+  margin-bottom: 0.25rem;
+}
+
+.lp-pillar-item__desc {
+  font-size: 0.8125rem;
+  color: #5C5852;
+}
