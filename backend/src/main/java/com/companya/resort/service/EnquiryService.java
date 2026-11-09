@@ -26,6 +26,7 @@ import com.companya.resort.repository.UserRepository;
 import jakarta.persistence.criteria.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -91,12 +92,13 @@ public class EnquiryService {
             EnquiryRoutingService enquiryRoutingService,
             QuoteInjectorService quoteInjectorService,
             SimulatedDeliveryAdapter simulatedDeliveryAdapter,
-            @Value("${enquiry.ai.confidence-threshold:0.80}") BigDecimal confidenceThreshold
+            BigDecimal confidenceThreshold
     ) {
         this(enquiryRepository, enquiryDraftRepository, userRepository, geminiAiService, ruleFallbackService,
                 enquiryRoutingService, quoteInjectorService, simulatedDeliveryAdapter, confidenceThreshold, DEFAULT_MAX_EVENT_GUESTS);
     }
 
+    @Autowired
     public EnquiryService(
             EnquiryRepository enquiryRepository,
             EnquiryDraftRepository enquiryDraftRepository,
@@ -106,7 +108,7 @@ public class EnquiryService {
             EnquiryRoutingService enquiryRoutingService,
             QuoteInjectorService quoteInjectorService,
             SimulatedDeliveryAdapter simulatedDeliveryAdapter,
-            BigDecimal confidenceThreshold,
+            @Value("${enquiry.ai.confidence-threshold:0.80}") BigDecimal confidenceThreshold,
             @Value("${app.enquiry.validation.max-event-guests:1000}") int maxEventGuests
     ) {
         this.enquiryRepository = enquiryRepository;
