@@ -31,7 +31,10 @@ export function Modal({
         }
       }, 0);
 
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        document.body.style.overflow = '';
+      };
     } else {
       document.body.style.overflow = '';
       if (previouslyFocusedElementRef.current && typeof previouslyFocusedElementRef.current.focus === 'function') {
@@ -39,6 +42,12 @@ export function Modal({
       }
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;

@@ -1,5 +1,5 @@
-import React, { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { Suspense, lazy, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { GuestLayout } from './components/layout/GuestLayout';
 import { StaffLayout } from './components/staff/StaffLayout';
 import { ProtectedRoute } from './components/staff/ProtectedRoute';
@@ -24,6 +24,19 @@ const StaffInventoryPage = lazy(() => import('./pages/staff/StaffInventoryPage')
 const Styleguide = lazy(() => import('./styleguide/Styleguide'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
+
+function ScrollToTop() {
+  const { pathname, hash } = useLocation();
+
+  useEffect(() => {
+    if (!hash) {
+      window.scrollTo(0, 0);
+    }
+  }, [pathname, hash]);
+
+  return null;
+}
+
 function PageFallback() {
   return (
     <div style={{ maxWidth: '72rem', margin: '0 auto', padding: 'var(--space-6) var(--space-4)' }}>
@@ -37,6 +50,7 @@ function PageFallback() {
 export function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <StaffAuthProvider>
         <ErrorBoundary>
         <Suspense fallback={<PageFallback />}>
