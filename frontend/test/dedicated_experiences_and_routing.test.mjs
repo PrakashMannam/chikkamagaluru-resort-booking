@@ -19,7 +19,7 @@ test('Dedicated Experiences: GuestLayout header provides dedicated experience na
   assert.ok(layoutSrc.includes('to="/stay"'), 'Header must contain link to /stay');
   assert.ok(layoutSrc.includes('to="/weddings"'), 'Header must contain link to /weddings');
   assert.ok(layoutSrc.includes('to="/offsites"'), 'Header must contain link to /offsites');
-  assert.ok(layoutSrc.includes('to="/#about"'), 'Header must contain link to about');
+  assert.ok(layoutSrc.includes('to="/#estate"') || layoutSrc.includes('to="/#about"'), 'Header must contain link to about/estate');
 });
 
 test('Dedicated Experiences: GuestLayout footer links directly to /weddings and /offsites and provides DPDP & Form C info', () => {

@@ -92,7 +92,7 @@ export function GuestLayout() {
             <NavLink to="/stay" className="guest-header__link">Stay</NavLink>
             <NavLink to="/weddings" className="guest-header__link">Weddings</NavLink>
             <NavLink to="/offsites" className="guest-header__link">Offsites</NavLink>
-            <Link to="/#about" className="guest-header__link" onClick={(e) => { setMobileMenuOpen(false); handleAboutClick(e); }}>About</Link>
+            <Link to="/#estate" className="guest-header__link" onClick={(e) => { setMobileMenuOpen(false); handleAboutClick(e); }}>About</Link>
           </nav>
 
           {/* Right CTA: contextually omitted on /stay, /rooms/:code, and booking funnel */}
@@ -154,7 +154,7 @@ export function GuestLayout() {
           {/* Col 4: About */}
           <div className="guest-footer__col">
             <p className="guest-footer__heading">About</p>
-            <Link to="/#about" className="guest-footer__link" onClick={handleAboutClick}>The Estate</Link>
+            <Link to="/#estate" className="guest-footer__link" onClick={handleAboutClick}>The Estate</Link>
             <span className="guest-footer__location">Western Ghats, Karnataka</span>
           </div>
         </div>
