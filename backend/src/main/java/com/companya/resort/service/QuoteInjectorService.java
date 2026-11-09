@@ -164,7 +164,7 @@ public class QuoteInjectorService {
             AccommodationRequirement req = EventAccommodationDetector.detect(enquiry.getRawMessage());
             String finalBody = sanitizedDraft;
             if (req == AccommodationRequirement.REQUIRED) {
-                String quoteBlock = "Our weddings and reservations team will review your accommodation requirements and confirm room availability and applicable rates from our tariff schedule, along with venue options for your event.";
+                String quoteBlock = "Our weddings and reservations team will review your accommodation requirements, verify venue and facility availability, and confirm room availability and applicable rates from our tariff schedule to prepare a tailored proposal.";
                 if (finalBody.contains(DraftPriceSanitizer.QUOTE_BLOCK_PLACEHOLDER)) {
                     finalBody = finalBody.replace(DraftPriceSanitizer.QUOTE_BLOCK_PLACEHOLDER, quoteBlock);
                 }
@@ -180,7 +180,7 @@ public class QuoteInjectorService {
             AccommodationRequirement req = EventAccommodationDetector.detect(enquiry.getRawMessage());
             String finalBody = sanitizedDraft;
             if (req == AccommodationRequirement.REQUIRED) {
-                String quoteBlock = "Our corporate events and reservations team will review your stay requirements, conference space needs, and confirm room availability and applicable rates from our tariff schedule.";
+                String quoteBlock = "Our corporate events and reservations team will review your stay requirements, verify facility availability, and confirm room availability and applicable rates from our tariff schedule to prepare a tailored proposal.";
                 if (finalBody.contains(DraftPriceSanitizer.QUOTE_BLOCK_PLACEHOLDER)) {
                     finalBody = finalBody.replace(DraftPriceSanitizer.QUOTE_BLOCK_PLACEHOLDER, quoteBlock);
                 }

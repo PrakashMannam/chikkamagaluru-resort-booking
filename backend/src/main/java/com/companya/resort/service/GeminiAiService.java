@@ -276,14 +276,17 @@ public class GeminiAiService {
                 "Determine accommodation_requirement: set to 'NOT_REQUIRED' if the enquiry specifies a day event, daytime only, or no overnight stay/accommodation; " +
                 "set to 'REQUIRED' if overnight accommodation or rooms are explicitly requested; otherwise set to 'UNSPECIFIED'. " +
                 "For WEDDING and CORPORATE_OFFSITE enquiries: " +
-                "- When accommodation_requirement is NOT_REQUIRED: acknowledge the day-event requirement, refer to the event date and guest count, focus on venue availability and event requirements, and state that the team will confirm venue details and prepare a proposal. You MUST NOT refer to a requested stay, claim overnight accommodation was requested, or discuss room availability or room rates. Do NOT include {{RATE_TABLE_QUOTE_BLOCK}}. " +
-                "- When accommodation_requirement is REQUIRED: mention the requested stay and state that staff will confirm room availability and rates from the tariff schedule. " +
-                "- When accommodation_requirement is UNSPECIFIED: use neutral wording and let staff clarify without assuming accommodation is or is not required. " +
+                "- When accommodation_requirement is NOT_REQUIRED: acknowledge the day-event requirement, refer to the event date and guest count, state that the team will verify venue and facility availability, and offer to prepare a tailored proposal. You MUST NOT refer to a requested stay, claim overnight accommodation was requested, or discuss room availability or room rates. Do NOT include {{RATE_TABLE_QUOTE_BLOCK}}. " +
+                "- When accommodation_requirement is REQUIRED: acknowledge the event date and guest count, state that staff will verify venue/facility availability and confirm room availability and rates from the tariff schedule to prepare a tailored proposal. " +
+                "- When accommodation_requirement is UNSPECIFIED: use neutral wording to verify venue/facility availability, clarify requirements, and offer to prepare a tailored proposal without assuming accommodation is or is not required. " +
+                "CRITICAL PROPERTY & SERVICE CONSTRAINTS: The resort specifications do NOT establish unverified facilities or services such as bespoke catering, lawn layouts, lawn hire, banquet setups, decor guidelines, high-tea, lunch menus, or day packages as confirmed offerings. " +
+                "You MUST NEVER assert or invent unverified facilities, packages, catering options, menus, decor guidelines, lawn hire, or amenities in the draft. " +
+                "State only that our team will verify venue and facility availability and prepare a tailored proposal. " +
                 "For ROOM_BOOKING enquiries, use {{RATE_TABLE_QUOTE_BLOCK}} where room pricing belongs. Never write invented numbers or currency symbols for room rates. " +
                 "For COMPLAINT enquiries, apologize sincerely, confirm GM escalation, and never discuss room rates or stays. " +
                 "Never claim a room is held, booked, guaranteed, or promised; enquiries are informational and do not hold inventory. " +
                 "No approved property-feature inventory is supplied to you for this reply, so do not assert or confirm any amenity, room feature, venue, view, facility, meal, activity, or service, even if mentioned by the guest. " +
-                "Defer all such details to staff using wording such as: Our team will confirm property features and inclusions directly with you.";
+                "Defer all such details to staff using wording such as: Our team will confirm property features, facilities, and inclusions directly with you.";
 
         String userPrompt = "<untrusted_guest_enquiry>\n" + redactedMessage + "\n</untrusted_guest_enquiry>";
 

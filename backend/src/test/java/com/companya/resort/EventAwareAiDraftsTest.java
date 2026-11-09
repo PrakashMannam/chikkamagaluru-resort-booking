@@ -152,7 +152,17 @@ public class EventAwareAiDraftsTest {
 
         assertTrue(draft.toLowerCase().contains("day event"), "Must acknowledge day-event requirement");
         assertTrue(draft.toLowerCase().contains("150 guests"), "Must use supplied guest count");
-        assertTrue(draft.toLowerCase().contains("venue availability") || draft.toLowerCase().contains("proposal"), "Must focus on venue availability and proposal");
+        assertTrue(draft.toLowerCase().contains("facility availability"), "Must state team will verify venue/facility availability");
+        assertTrue(draft.toLowerCase().contains("tailored proposal"), "Must offer to prepare a tailored proposal");
+
+        // Regression: Never assert unverified facilities, catering, lawn hire, decor or menus
+        assertFalse(draft.toLowerCase().contains("catering"), "Must not assert unverified catering");
+        assertFalse(draft.toLowerCase().contains("lawn layout"), "Must not assert unverified lawn layouts");
+        assertFalse(draft.toLowerCase().contains("lawn hire"), "Must not assert unverified lawn hire");
+        assertFalse(draft.toLowerCase().contains("banquet"), "Must not assert unverified banquet lawns or setups");
+        assertFalse(draft.toLowerCase().contains("decor"), "Must not assert unverified decor guidelines");
+        assertFalse(draft.toLowerCase().contains("menu"), "Must not assert unverified menus");
+        assertFalse(draft.toLowerCase().contains("package"), "Must not assert unverified packages");
     }
 
     @Test
@@ -229,7 +239,10 @@ public class EventAwareAiDraftsTest {
         assertFalse(draft.toLowerCase().contains("room availability"));
 
         assertTrue(draft.toLowerCase().contains("day event"));
-        assertTrue(draft.toLowerCase().contains("meeting space") || draft.toLowerCase().contains("day package proposal"));
+        assertTrue(draft.toLowerCase().contains("facility availability"), "Must state team will verify facility availability");
+        assertTrue(draft.toLowerCase().contains("tailored proposal"), "Must offer to prepare a tailored proposal");
+        assertFalse(draft.toLowerCase().contains("package"), "Must not assert unverified day packages");
+        assertFalse(draft.toLowerCase().contains("catering"), "Must not assert unverified catering");
     }
 
     @Test
@@ -247,7 +260,7 @@ public class EventAwareAiDraftsTest {
         String draft = extraction.getSuggestedReply();
         assertFalse(draft.toLowerCase().contains("requested stay"), "Must not invent stay for unspecified offsite");
         assertTrue(draft.toLowerCase().contains("team of 45"));
-        assertTrue(draft.toLowerCase().contains("clarify any accommodation") || draft.toLowerCase().contains("conference space"));
+        assertTrue(draft.toLowerCase().contains("tailored proposal"), "Must offer to prepare a tailored proposal");
     }
 
     @Test
@@ -340,5 +353,35 @@ public class EventAwareAiDraftsTest {
         assertFalse(draft.getDraftBody().toLowerCase().contains("room availability"));
         assertTrue(draft.getDraftBody().toLowerCase().contains("day event"));
         assertTrue(draft.getDraftBody().toLowerCase().contains("proposal"));
+    }
+
+    @Test
+    @DisplayName("11. Regression: Event-aware drafts never assert unverified facilities, catering, decor, or menus")
+    void testRegressionUnsupportedPropertyClaimsNeverAssertedInAnyEventDraft() {
+        String[] enquiries = {
+                "Planning a wedding for 100 guests on 2027-03-20. Day event only (no overnight accommodation required).",
+                "Wedding with 200 guests and 2 nights accommodation in April 2027.",
+                "Corporate offsite for team of 25. Day event only.",
+                "Corporate leadership offsite for 30 people with 1 night stay."
+        };
+
+        for (String enq : enquiries) {
+            GeminiEnquiryExtraction extraction = ruleFallbackService.classifyFallback(enq);
+            String draft = extraction.getSuggestedReply();
+            assertNotNull(draft);
+
+            // Verify positive requirements
+            assertTrue(draft.toLowerCase().contains("tailored proposal"), "Must offer tailored proposal");
+            assertTrue(draft.toLowerCase().contains("facility availability"), "Must verify facility/venue availability");
+
+            // Verify strict negative constraints (no unverified facilities/services)
+            assertFalse(draft.toLowerCase().contains("catering"), "Must not claim catering for: " + enq);
+            assertFalse(draft.toLowerCase().contains("lawn layout"), "Must not claim lawn layouts for: " + enq);
+            assertFalse(draft.toLowerCase().contains("lawn hire"), "Must not claim lawn hire for: " + enq);
+            assertFalse(draft.toLowerCase().contains("banquet"), "Must not claim banquet setups for: " + enq);
+            assertFalse(draft.toLowerCase().contains("decor"), "Must not claim decor guidelines for: " + enq);
+            assertFalse(draft.toLowerCase().contains("menu"), "Must not claim menus for: " + enq);
+            assertFalse(draft.toLowerCase().contains("package"), "Must not claim packages for: " + enq);
+        }
     }
 }

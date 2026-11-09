@@ -28,7 +28,7 @@ public class DraftPriceSanitizer {
             "(?i)\\b(?:features?\\s+(?:AV\\s+projection|projector|high-speed\\s+wi-?fi|panoramic\\s+plantation\\s+views?)|paired\\s+with\\s+guided\\s+cupping|guided\\s+cupping\\s+sessions?|complimentary\\s+(?:airport\\s+transit|spa|shuttle)|free\\s+(?:airport\\s+transit|spa|shuttle))\\b[^.!?\\n]*[.!?]?"
     );
     private static final Pattern UNSUPPORTED_PROPERTY_CLAIM_PATTERN = Pattern.compile(
-            "(?i)[^.!?\\n]*\\b(?:wi-?fi|wireless internet|audiovisual|\\bAV\\b|projector|screen|conference (?:hall|room|space)|meeting (?:hall|room|space)|restaurant|bar|spa|shuttle|airport transfer|parking|gym|air conditioning|laundry|plunge pool|swimming pool|balcony|panoramic? views?|estate views?|coffee tasting|plantation walk|guided walk|bonfire)\\b[^.!?\\n]*[.!?]?"
+            "(?i)[^.!?\\n]*\\b(?:wi-?fi|wireless internet|audiovisual|\\bAV\\b|projector|screen|conference (?:hall|room|space)|meeting (?:hall|room|space)|restaurant|bar|spa|shuttle|airport transfer|parking|gym|air conditioning|laundry|plunge pool|swimming pool|balcony|panoramic? views?|estate views?|coffee tasting|plantation walk|guided walk|bonfire|bespoke catering|in-house catering|catering|lawn hire|lawn layouts?|banquet lawns?|banquet setups?|decor(?: guidelines)?|high-tea|lunch menus?|dinner menus?|day packages?)\\b[^.!?\\n]*[.!?]?"
     );
 
     public static String sanitize(String rawDraft) {

@@ -137,7 +137,7 @@ public class RuleFallbackService {
                 if (dateHint != null) {
                     sb.append(" for your requested date (").append(dateHint).append(")");
                 }
-                sb.append(".\n\nOur wedding specialist will review venue availability for our banquet lawns and event spaces, discuss your event requirements, and prepare a customized proposal for your celebration.\n\nWarm regards,\nWeddings Team");
+                sb.append(".\n\nOur team will verify venue and facility availability for your requested date and get in touch to prepare a tailored proposal for your celebration.\n\nWarm regards,\nWeddings Team");
                 extraction.setSuggestedReply(sb.toString());
             } else if (req == AccommodationRequirement.REQUIRED) {
                 extraction.setSummary("Wedding celebration with overnight accommodation");
@@ -153,7 +153,7 @@ public class RuleFallbackService {
                 if (dateHint != null) {
                     sb.append(" in ").append(dateHint);
                 }
-                sb.append(".\n\nOur weddings and reservations team will review your accommodation requirements and confirm room availability and applicable rates from our tariff schedule, along with venue options for your event.\n\nWarm regards,\nWeddings Team");
+                sb.append(".\n\nOur weddings and reservations team will review your accommodation requirements, verify venue and facility availability, and confirm room availability and applicable rates from our tariff schedule to prepare a tailored proposal.\n\nWarm regards,\nWeddings Team");
                 extraction.setSuggestedReply(sb.toString());
             } else {
                 extraction.setSummary("Wedding celebration enquiry");
@@ -166,7 +166,7 @@ public class RuleFallbackService {
                 if (dateHint != null) {
                     sb.append(" for ").append(dateHint);
                 }
-                sb.append(".\n\nOur wedding specialist will connect with you shortly to discuss your celebration plans, venue availability, and clarify any accommodation or event requirements to prepare a detailed proposal.\n\nWarm regards,\nWeddings Team");
+                sb.append(".\n\nOur team will connect with you shortly to verify venue and facility availability, clarify any accommodation or event requirements, and prepare a tailored proposal.\n\nWarm regards,\nWeddings Team");
                 extraction.setSuggestedReply(sb.toString());
             }
             return extraction;
@@ -191,7 +191,7 @@ public class RuleFallbackService {
                 if (dateHint != null) {
                     sb.append(" in ").append(dateHint);
                 }
-                sb.append(".\n\nOur corporate events team will review meeting space availability, discuss your conference and event requirements, and prepare a customized day package proposal.\n\nWarm regards,\nCorporate Events Team");
+                sb.append(".\n\nOur team will verify facility availability for your requested date and get in touch to prepare a tailored proposal for your offsite.\n\nWarm regards,\nCorporate Events Team");
                 extraction.setSuggestedReply(sb.toString());
             } else if (req == AccommodationRequirement.REQUIRED) {
                 extraction.setSummary("Corporate offsite with overnight accommodation");
@@ -207,7 +207,7 @@ public class RuleFallbackService {
                 if (dateHint != null) {
                     sb.append(" in ").append(dateHint);
                 }
-                sb.append(".\n\nOur corporate events and reservations team will review your stay requirements, conference space needs, and confirm room availability and applicable rates from our tariff schedule.\n\nWarm regards,\nCorporate Events Team");
+                sb.append(".\n\nOur corporate events and reservations team will review your stay requirements, verify facility availability, and confirm room availability and applicable rates from our tariff schedule to prepare a tailored proposal.\n\nWarm regards,\nCorporate Events Team");
                 extraction.setSuggestedReply(sb.toString());
             } else {
                 extraction.setSummary("Corporate offsite enquiry");
@@ -220,7 +220,7 @@ public class RuleFallbackService {
                 if (dateHint != null) {
                     sb.append(" in ").append(dateHint);
                 }
-                sb.append(".\n\nOur corporate events specialist will get in touch with you shortly to understand your team's schedule, conference space requirements, and clarify any accommodation needs to put together a tailored proposal.\n\nWarm regards,\nCorporate Events Team");
+                sb.append(".\n\nOur corporate events specialist will get in touch with you shortly to verify facility availability, understand your team's schedule and offsite requirements, and prepare a tailored proposal.\n\nWarm regards,\nCorporate Events Team");
                 extraction.setSuggestedReply(sb.toString());
             }
             return extraction;

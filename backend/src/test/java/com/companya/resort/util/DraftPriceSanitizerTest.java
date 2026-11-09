@@ -73,4 +73,19 @@ public class DraftPriceSanitizerTest {
         assertFalse(result.contains("{{RATE_TABLE_QUOTE_BLOCK}} {{RATE_TABLE_QUOTE_BLOCK}}"));
         assertFalse(result.contains("{{RATE_TABLE_QUOTE_BLOCK}}{{RATE_TABLE_QUOTE_BLOCK}}"));
     }
+
+    @Test
+    @DisplayName("Unsupported wedding and event claims (catering, lawn hire, decor, menus) are sanitized")
+    void testUnsupportedWeddingAndEventClaimsSanitized() {
+        String input = "Our weddings coordinator will share lawn layouts, banquet setups, and bespoke catering options. We also offer lawn hire, decor guidelines, and high-tea/lunch menus.";
+        String result = DraftPriceSanitizer.sanitize(input);
+
+        assertFalse(result.toLowerCase().contains("bespoke catering"));
+        assertFalse(result.toLowerCase().contains("lawn layouts"));
+        assertFalse(result.toLowerCase().contains("banquet setups"));
+        assertFalse(result.toLowerCase().contains("lawn hire"));
+        assertFalse(result.toLowerCase().contains("decor guidelines"));
+        assertFalse(result.toLowerCase().contains("lunch menus"));
+        assertTrue(result.contains("Our team will confirm property features, facilities, meals, and inclusions directly with you."));
+    }
 }
