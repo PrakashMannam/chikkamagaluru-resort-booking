@@ -366,7 +366,7 @@ export function GuestPaymentPage() {
                     onClick={() => handleSimulate('SUCCESS')}
                     className="payment-btn payment-btn--success"
                   >
-                    Simulate Successful Payment ({formatINR(bookingData.totalPayableInr)})
+                    Simulate Secure Payment ({formatINR(bookingData.totalPayableInr)})
                   </Button>
 
                   <Button

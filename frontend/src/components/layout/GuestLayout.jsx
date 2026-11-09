@@ -161,7 +161,9 @@ export function GuestLayout() {
 
         {/* Bottom Sub-bar */}
         <div className="guest-footer__bottom">
-          <p>&copy; 2026 Chikkamagaluru Estate. All rights reserved.</p>
+          <p className="guest-footer__compliance">
+            DPDP Act 2023 Compliant &bull; Form C at Check-in &bull; &copy; 2026 Chikkamagaluru Estate
+          </p>
           <div className="guest-footer__bottom-links">
             <Link to="/privacy" className="guest-footer__bottom-link">Privacy</Link>
             <span>•</span>

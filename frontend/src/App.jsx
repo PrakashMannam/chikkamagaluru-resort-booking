@@ -62,8 +62,11 @@ export function App() {
               <Route path="/rooms" element={<Navigate to="/stay" replace />} />
               <Route path="/rooms/:code" element={<RoomDetailPage />} />
               <Route path="/checkout" element={<GuestCheckoutPage />} />
+              <Route path="/stay/checkout" element={<GuestCheckoutPage />} />
               <Route path="/payment/:ref" element={<GuestPaymentPage />} />
+              <Route path="/stay/payment/:ref" element={<GuestPaymentPage />} />
               <Route path="/bookings/:ref" element={<BookingConfirmationPage />} />
+              <Route path="/stay/bookings/:ref" element={<BookingConfirmationPage />} />
               <Route path="/weddings" element={<WeddingsPage />} />
               <Route path="/offsites" element={<OffsitesPage />} />
               <Route path="/enquire" element={<PublicEnquiryPage />} />

@@ -207,12 +207,15 @@ export function GuestAvailabilityPage() {
   }
 
   const focusSearchInput = () => {
-    const el = document.getElementById('stay-edit-checkin') || document.querySelector('.stay-search-strip');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.focus?.();
-      try { el.showPicker?.(); } catch (err) {}
-    }
+    setIsModifying(true);
+    setTimeout(() => {
+      const el = document.getElementById('stay-edit-checkin') || document.querySelector('.stay-search-strip');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.focus?.();
+        try { el.showPicker?.(); } catch (err) {}
+      }
+    }, 60);
   };
 
   return (
