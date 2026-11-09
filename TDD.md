@@ -40,7 +40,7 @@ The tracked brief in `docs/isocode-assignment-brief.md` is the requirements base
 | Requirement Category | Brief Requirement | Evidence-Based Status (8 Nov 2026) | Evidence and Limit |
 | :--- | :--- | :--- | :--- |
 | **Direct Booking Engine** | Photos, availability, rate plans, tax display, test payment, confirmation | **Implemented; partially re-verified** | Guest routes and client flow are present; frontend tests and production build pass. No new production booking or payment write was made in this audit. |
-| **Allotment Control** | Sell admin-set allotment and avoid concurrent overbooking | **Verified against disposable MySQL 8.0.45; pending merge** | Under evaluated MySQL 8.0.45 InnoDB scenarios with `SELECT ... FOR UPDATE` row locks, 100 consecutive last-room race iterations, multi-night overlapping ranges, idempotency races, payment/expiry races, and rollback integrity tests passed with zero overselling. Evaluated in PR branch `test/inventory-concurrency-verification` (260 total backend tests passed); not yet merged into `main` or deployed to production. |
+| **Allotment Control** | Sell admin-set allotment and avoid concurrent overbooking | **Verified against disposable MySQL 8.0.45; pending merge** | Under evaluated MySQL 8.0.45 InnoDB scenarios with `SELECT ... FOR UPDATE` row locks, 100 consecutive last-room race iterations, multi-night overlapping ranges, idempotency races, payment/expiry races, and rollback integrity tests passed with zero overselling. Evaluated in PR branch `test/inventory-concurrency-verification` (298 total backend tests passed); not yet merged into `main` or deployed to production. |
 | **Admin Controls** | Rates, allotment, blackout dates, promo codes | **Implemented; automated tests pass** | Admin services and endpoints are covered by unit/mock tests. No production records were changed. |
 | **Enquiry Inbox** | Web form, simulated email, and simulated WhatsApp in one inbox | **Implemented; automated tests pass** | Staff inbox and simulated adapters are present. No live enquiry was submitted in this audit. |
 | **AI Router & Extraction** | Classify, extract fields, assign an owner, and draft a reply | **Implemented; live model behavior not re-verified** | Gemini integration and deterministic fallback exist. This audit did not send a new request to the external AI service. |
@@ -288,14 +288,24 @@ The repository `main` baseline inspected for this audit is `e5a7aec`. The latest
 ### Concurrency Verification on Disposable MySQL 8.0.45 (9 November 2026)
 - **Branch**: `test/inventory-concurrency-verification` (review-ready PR; **NOT MERGED** into `main` and **NOT DEPLOYED** to production).
 - **Environment**: Local MySQL Server 8.0.45 on Win64 (disposable test database `disposable_concurrency_repeat_test_db`).
-- **Safety Guard**: Compile-time and runtime check in all DB integration tests strictly aborts if `TEST_DB_URL` contains `prod` or fails to contain `test`, preventing accidental execution against shared/production databases.
-- **Suite Result**: All **260 tests across 28 test classes passed** (0 failures, 0 errors, 0 skipped):
+- **Hardened Disposable Database Guard (`DisposableDatabaseGuard`)**:
+  - *What the guard does*:
+    1. Parses the JDBC connection URL to isolate scheme, host authority, database name, and parameters.
+    2. Enforces an explicit host policy: only local loopback targets (`localhost`, `127.0.0.1`, `::1`, `[::1]`) are allowed. All remote, shared, or production hostnames/IPs (e.g. `production.railway.internal`, `aws-rds`, `shared-staging.internal`, `192.168.x.x`) are rejected by default, even if the database name contains `test` or `disposable`.
+    3. Enforces an explicit database naming policy: requires names matching `disposable_*`, `test_*`, `*_test`, or `*_test_db`, while rejecting system databases (`mysql`, `information_schema`, `performance_schema`, `sys`) and any database name containing `prod`, `live`, `main`, or `shared`.
+    4. Enforces zero credential or connection-string leakage: exception messages are strictly static and generic; no connection string, host, database name, or credentials appear in messages or logs.
+    5. Covered by 38 automated test cases in `DisposableDatabaseGuardTest` verifying allowed disposable configurations, host rejection, database name rejection, malformed URLs, and zero leakage.
+  - *What the guard does NOT guarantee*:
+    1. It cannot detect OS-level network remapping or port redirection, such as SSH local port tunnels (e.g. `ssh -L 3306:remote-prod:3306`) or malicious `/etc/hosts` / `hosts` file aliasing mapping `localhost` to an external host IP.
+    2. It does not inspect the contents of a local database; if production data were dumped into a local database named `disposable_test_db`, the guard would not detect data provenance.
+- **Full Backend Suite Result**: All **298 tests across 29 test classes passed** (0 failures, 0 errors, 0 skipped):
   - `AllotmentConcurrencyIntegrationTest`: 9 tests passed, including 100 consecutive repeated runs of competing requests for the last available room (100 passed, 0 failures), multi-night overlapping ranges (10 threads 14–16 Nov vs 10 threads 15–17 Nov), idempotency races, payment vs expiry races, and rollback integrity tests asserting `booked_count` remains strictly unchanged after rejected/failed transactions.
   - `BlackoutConcurrencyIntegrationTest`: 4 tests passed.
   - `DatabaseMigrationIntegrationTest`: 5 tests passed (all 12 tables, reference data, GST slabs, DB check constraints, AI fields).
   - `DraftApprovalConcurrencyIntegrationTest`: 2 tests passed.
   - `V8MigrationIntegrationTest`: 1 test passed.
   - `DemoDataSeederIntegrationTest`: 1 test passed.
+  - `DisposableDatabaseGuardTest`: 38 tests passed.
   - Remaining unit/mock suites: 238 tests passed.
 - **Teardown Proof**: Disposable database `disposable_concurrency_repeat_test_db` dropped and confirmed absent from `SHOW DATABASES` and `INFORMATION_SCHEMA.SCHEMATA`.
 - **Scope Limit**: Under evaluated MySQL 8.0.45 InnoDB scenarios with `SELECT ... FOR UPDATE` in ascending date order, no overselling occurred; this demonstrates row-level isolation in the evaluated test environment and does not guarantee behavior under network partitions or connection pool exhaustion.

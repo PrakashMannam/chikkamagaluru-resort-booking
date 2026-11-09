@@ -1,5 +1,7 @@
 package com.companya.resort;
 
+import com.companya.resort.util.DisposableDatabaseGuard;
+
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
@@ -37,14 +39,8 @@ class DatabaseMigrationIntegrationTest {
             "Skipping migration test: TEST_DB_URL environment variable is not set."
         );
 
-        // Explicit safety guard: strictly refuse to execute against production or shared non-test databases
-        String lowerUrl = testDbUrl.toLowerCase();
-        if (lowerUrl.contains("prod") || !lowerUrl.contains("test")) {
-            throw new IllegalStateException(
-                    "Refusing to execute integration test: TEST_DB_URL must target an explicit test/disposable database (must contain 'test' and must not contain 'prod'). Provided: " + testDbUrl
-            );
-        }
-
+                // Explicit safety guard: parse JDBC URL and validate host & database against disposable policy
+        DisposableDatabaseGuard.validateDisposableDatabase(testDbUrl);
 
         if (testDbUser == null) {
             testDbUser = "root";

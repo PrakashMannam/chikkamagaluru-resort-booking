@@ -1,5 +1,7 @@
 package com.companya.resort;
 
+import com.companya.resort.util.DisposableDatabaseGuard;
+
 import com.companya.resort.dto.BookingResponseDto;
 import com.companya.resort.dto.CreateBookingRequest;
 import com.companya.resort.entity.*;
@@ -56,14 +58,8 @@ class AllotmentConcurrencyIntegrationTest {
                 "Skipping concurrency integration test: TEST_DB_URL environment variable is not set."
         );
 
-        // Explicit safety guard: strictly refuse to execute against production or shared non-test databases
-        String lowerUrl = testDbUrl.toLowerCase();
-        if (lowerUrl.contains("prod") || !lowerUrl.contains("test")) {
-            throw new IllegalStateException(
-                    "Refusing to execute integration test: TEST_DB_URL must target an explicit test/disposable database (must contain 'test' and must not contain 'prod'). Provided: " + testDbUrl
-            );
-        }
-
+                // Explicit safety guard: parse JDBC URL and validate host & database against disposable policy
+        DisposableDatabaseGuard.validateDisposableDatabase(testDbUrl);
 
         if (testDbUser == null) {
             testDbUser = "root";
