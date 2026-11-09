@@ -187,7 +187,7 @@
   position: relative;
   z-index: 20;
   max-width: 74rem;
-  margin: -4rem auto 1.5rem;
+  margin: 1.25rem auto 1.5rem; /* On mobile: clean positive margin below hero so photograph is 100% visible */
   padding: 0 var(--space-4);
 }
 
