@@ -7,11 +7,11 @@ import {
   DEFAULT_ACCOMMODATION_CHOICE,
 } from '../src/utils/enquiryMessageBuilder.js';
 
-test('Event Enquiry: DEFAULT_ACCOMMODATION_CHOICE is "not_sure"', () => {
+test('Event Enquiry: DEFAULT_ACCOMMODATION_CHOICE is empty string initially', () => {
   assert.equal(
     DEFAULT_ACCOMMODATION_CHOICE,
-    'not_sure',
-    'Default accommodation choice for events must be "not_sure"'
+    '',
+    'Initial accommodation choice must be empty so user explicitly chooses without prefilled defaults'
   );
 });
 
@@ -213,5 +213,45 @@ test('Source Contract: PublicEnquiryPage cleans stale values on accommodation ch
   assert.ok(
     pageSrc.includes("delete next.nights") && pageSrc.includes("delete next.roomsCount"),
     'handleAccommodationChoiceChange must clear stale validation errors'
+  );
+});
+
+test('Source Contract: Form fields start empty without prefilled default numbers', () => {
+  const pageSrc = fs.readFileSync('frontend/src/pages/PublicEnquiryPage.jsx', 'utf8');
+
+  // Verify state initialization is completely empty
+  assert.ok(
+    pageSrc.includes("const [nights, setNights] = useState('');"),
+    'nights state must initialize empty'
+  );
+  assert.ok(
+    pageSrc.includes("const [guestsCount, setGuestsCount] = useState('');"),
+    'guestsCount state must initialize empty'
+  );
+  assert.ok(
+    pageSrc.includes("const [roomsCount, setRoomsCount] = useState('');"),
+    'roomsCount state must initialize empty'
+  );
+
+  // Verify handleTypeChange resets counts to empty
+  assert.ok(
+    pageSrc.includes("setGuestsCount('');") && pageSrc.includes("setNights('');") && pageSrc.includes("setRoomsCount('');"),
+    'handleTypeChange must reset counts to empty strings'
+  );
+
+  // Verify handleAccommodationChoiceChange does not inject prefilled numbers on "yes"
+  assert.ok(
+    !pageSrc.includes("setNights('2')"),
+    'handleAccommodationChoiceChange must not prefill nights with 2'
+  );
+  assert.ok(
+    !pageSrc.includes("setRoomsCount('30')") && !pageSrc.includes("setRoomsCount('20')"),
+    'handleAccommodationChoiceChange must not prefill rooms count'
+  );
+
+  // Verify accommodation selection validation
+  assert.ok(
+    pageSrc.includes("newErrors.accommodationChoice = 'Please select whether your guests will require overnight accommodation"),
+    'validateForm must require explicit accommodation choice on events'
   );
 });

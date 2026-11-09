@@ -110,11 +110,9 @@ export function PublicEnquiryPage() {
   const [accommodationChoice, setAccommodationChoice] = useState(
     initialType === 'ROOM_BOOKING' ? 'yes' : DEFAULT_ACCOMMODATION_CHOICE
   );
-  const [nights, setNights] = useState(initialType === 'ROOM_BOOKING' ? '2' : '');
-  const [guestsCount, setGuestsCount] = useState(
-    initialType === 'WEDDING' ? '200' : initialType === 'CORPORATE_OFFSITE' ? '45' : '4'
-  );
-  const [roomsCount, setRoomsCount] = useState(initialType === 'ROOM_BOOKING' ? '2' : '');
+  const [nights, setNights] = useState('');
+  const [guestsCount, setGuestsCount] = useState('');
+  const [roomsCount, setRoomsCount] = useState('');
   const [budget, setBudget] = useState('');
 
   // Type specific details
@@ -132,28 +130,17 @@ export function PublicEnquiryPage() {
 
   const pageContent = getPageContent(enquiryType, rawTypeParam);
 
-  // Switch type and set sensible default counts
+  // Switch type and reset form counts
   const handleTypeChange = (typeId) => {
     setEnquiryType(typeId);
     setErrors({});
     setSubmitError(null);
-
-    if (typeId === 'WEDDING') {
-      setGuestsCount('200');
-      setAccommodationChoice('not_sure');
-      setNights('');
-      setRoomsCount('');
-    } else if (typeId === 'CORPORATE_OFFSITE') {
-      setGuestsCount('45');
-      setAccommodationChoice('not_sure');
-      setNights('');
-      setRoomsCount('');
+    setGuestsCount('');
+    setNights('');
+    setRoomsCount('');
+    setAccommodationChoice(typeId === 'ROOM_BOOKING' ? 'yes' : DEFAULT_ACCOMMODATION_CHOICE);
+    if (typeId === 'CORPORATE_OFFSITE') {
       setNeedsConferenceHall(DEFAULT_OFFSITE_CONFERENCE_HALL_SELECTION);
-    } else {
-      setGuestsCount('4');
-      setAccommodationChoice('yes');
-      setNights('2');
-      setRoomsCount('2');
     }
   };
 
@@ -167,11 +154,15 @@ export function PublicEnquiryPage() {
         const next = { ...prev };
         delete next.nights;
         delete next.roomsCount;
+        delete next.accommodationChoice;
         return next;
       });
-    } else if (choice === 'yes') {
-      if (!nights) setNights('2');
-      if (!roomsCount) setRoomsCount(enquiryType === 'WEDDING' ? '30' : '20');
+    } else {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.accommodationChoice;
+        return next;
+      });
     }
   };
 
@@ -212,6 +203,10 @@ export function PublicEnquiryPage() {
     const parsedGuests = parseInt(guestsCount, 10);
     if (!guestsCount || isNaN(parsedGuests) || parsedGuests < 1) {
       newErrors.guestsCount = enquiryType === 'ROOM_BOOKING' ? 'Please specify number of guests.' : 'Please specify expected number of attendees.';
+    }
+
+    if (!isRoomBooking && !accommodationChoice) {
+      newErrors.accommodationChoice = 'Please select whether your guests will require overnight accommodation (Yes, No, or Not sure yet).';
     }
 
     const requiresAccommodation = enquiryType === 'ROOM_BOOKING' || accommodationChoice === 'yes';
@@ -281,8 +276,9 @@ export function PublicEnquiryPage() {
     setFullName('');
     setContact('');
     setEventDate('');
-    setNights(enquiryType === 'ROOM_BOOKING' ? '2' : '');
-    setRoomsCount(enquiryType === 'ROOM_BOOKING' ? '2' : '');
+    setNights('');
+    setGuestsCount('');
+    setRoomsCount('');
     setAccommodationChoice(enquiryType === 'ROOM_BOOKING' ? 'yes' : DEFAULT_ACCOMMODATION_CHOICE);
     setBudget('');
     setAdditionalMessage('');
@@ -563,6 +559,11 @@ export function PublicEnquiryPage() {
                       );
                     })}
                   </div>
+                  {errors.accommodationChoice && (
+                    <span className="input__error" role="alert" style={{ display: 'block', marginTop: 'var(--space-2)' }}>
+                      {errors.accommodationChoice}
+                    </span>
+                  )}
                 </div>
               )}
 
@@ -587,7 +588,7 @@ export function PublicEnquiryPage() {
                     type="number"
                     min="1"
                     max="30"
-                    placeholder="2"
+                    placeholder="e.g. 2"
                     value={nights}
                     disabled={isSubmitting}
                     error={errors.nights}
@@ -607,7 +608,7 @@ export function PublicEnquiryPage() {
                   type="number"
                   min="1"
                   max="1000"
-                  placeholder={enquiryType === 'WEDDING' ? '200' : enquiryType === 'CORPORATE_OFFSITE' ? '45' : '4'}
+                  placeholder={enquiryType === 'WEDDING' ? 'e.g. 150' : enquiryType === 'CORPORATE_OFFSITE' ? 'e.g. 45' : 'e.g. 2'}
                   value={guestsCount}
                   disabled={isSubmitting}
                   error={errors.guestsCount}
@@ -624,7 +625,7 @@ export function PublicEnquiryPage() {
                     type="number"
                     min="1"
                     max="76"
-                    placeholder={enquiryType === 'WEDDING' ? '30' : enquiryType === 'CORPORATE_OFFSITE' ? '20' : '2'}
+                    placeholder={enquiryType === 'WEDDING' ? 'e.g. 30' : enquiryType === 'CORPORATE_OFFSITE' ? 'e.g. 20' : 'e.g. 1'}
                     value={roomsCount}
                     disabled={isSubmitting}
                     helperText="Approximate room count needed across cottages and villas."

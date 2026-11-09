@@ -4,7 +4,7 @@
  */
 
 export const DEFAULT_OFFSITE_CONFERENCE_HALL_SELECTION = 'unspecified';
-export const DEFAULT_ACCOMMODATION_CHOICE = 'not_sure';
+export const DEFAULT_ACCOMMODATION_CHOICE = '';
 
 /**
  * Builds the composite raw message string submitted to the concierge/enquiry API.
@@ -20,7 +20,7 @@ export const DEFAULT_ACCOMMODATION_CHOICE = 'not_sure';
  * @param {string} [params.organization] - Company or organizing body name
  * @param {string} [params.needsConferenceHall] - 'unspecified' | 'no' | 'yes'
  * @param {string} [params.stayPreference] - 'VILLA' | 'ROOM'
- * @param {string} [params.accommodationChoice] - 'yes' | 'no' | 'not_sure'
+ * @param {string} [params.accommodationChoice] - 'yes' | 'no' | 'not_sure' | ''
  * @returns {string} Sanitized formatted message
  */
 export function buildRawEnquiryMessage({
@@ -34,11 +34,11 @@ export function buildRawEnquiryMessage({
   organization,
   needsConferenceHall = DEFAULT_OFFSITE_CONFERENCE_HALL_SELECTION,
   stayPreference = 'VILLA',
-  accommodationChoice = 'yes',
+  accommodationChoice = '',
 } = {}) {
-  const requiresStay = enquiryType === 'ROOM_BOOKING' || accommodationChoice === 'yes';
   const isNoStay = accommodationChoice === 'no';
   const isUndecidedStay = accommodationChoice === 'not_sure';
+  const requiresStay = !isNoStay && !isUndecidedStay && (enquiryType === 'ROOM_BOOKING' || accommodationChoice === 'yes' || Boolean(nights));
 
   if (enquiryType === 'WEDDING') {
     const parts = [
