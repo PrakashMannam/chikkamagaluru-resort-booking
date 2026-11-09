@@ -649,3 +649,110 @@
   line-height: 1.35;
   margin-top: var(--space-1);
 }
+
+/* --------------------------------------------------------------------------
+   Group-Stay Enquiry Redesign Styling (Boutique Resort Visual Language)
+   -------------------------------------------------------------------------- */
+.enquiry-card--group {
+  background-color: #FFFFFF;
+  border-radius: 1rem;
+  box-shadow: 0 4px 20px rgba(28, 25, 23, 0.05);
+  border: 1px solid #E5E0D8;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+@media (min-width: 640px) {
+  .enquiry-card--group {
+    padding: 2.5rem;
+  }
+}
+
+.enquiry-card--group .enquiry-card__header {
+  border-bottom: 1px solid #EDE8E0;
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.enquiry-card--group .enquiry-card__title {
+  font-family: var(--font-heading, serif);
+  font-size: 1.5rem;
+  color: #1C1917;
+}
+
+.enquiry-card--group .enquiry-card__description {
+  font-size: 0.875rem;
+  color: #5C5852;
+  line-height: 1.5;
+}
+
+/* The group handoff is a focused continuation of the stay search. Keep the
+   return link close to the hero instead of leaving a desktop-sized void above it. */
+.enquiry-page--group {
+  gap: 0;
+}
+
+.enquiry-page--group .enquiry-top-nav {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.enquiry-page--group .enquiry-hero {
+  padding: 2rem var(--space-4) 2.25rem;
+}
+
+.enquiry-page--group .enquiry-container {
+  margin-top: 2rem;
+}
+
+@media (min-width: 768px) {
+  .enquiry-page--group .enquiry-hero {
+    padding: 2.75rem var(--space-4) 3rem;
+  }
+
+  .enquiry-page--group .enquiry-container {
+    margin-top: 2.5rem;
+  }
+}
+
+.enquiry-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #78736A;
+  text-decoration: none;
+  transition: color 0.15s ease;
+  min-height: 44px;
+}
+
+.enquiry-back-link:hover {
+  color: #1C1917;
+}
+
+.enquiry-card--group .input__field {
+  background-color: #FAFAF8;
+  border: 1px solid #D1CBD0;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: #1C1917;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.enquiry-card--group .input__field:focus {
+  border-color: #1B3B2B;
+  background-color: #FFFFFF;
+  outline: none;
+  box-shadow: 0 0 0 1px #1B3B2B;
+}
+
+@media (max-width: 639px) {
+  .enquiry-form__footer .enquiry-submit-btn {
+    width: 100%;
+    min-height: 48px;
+  }
+}

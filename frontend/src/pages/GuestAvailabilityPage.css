@@ -203,6 +203,9 @@
    Group Concierge Banner & Capacity Badges
    -------------------------------------------------------------------------- */
 .stay-group-banner {
+  /* The banner is rendered inside the six-column search grid.  It must own a
+     full row; otherwise it is squeezed into the remaining sixth column. */
+  grid-column: 1 / -1;
   margin-top: 1.25rem;
   padding: 1.25rem 1.5rem;
   background-color: #F4EFE6;
@@ -230,6 +233,8 @@
 
 .stay-group-banner__content {
   display: flex;
+  flex: 1 1 0;
+  min-width: 0;
   align-items: flex-start;
   gap: 1rem;
 }
@@ -270,6 +275,7 @@
 }
 
 .stay-group-banner__cta {
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1613,4 +1619,19 @@
   font-size: 0.875rem;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.92);
+}
+
+.stay-party-adjustment-notice {
+  grid-column: 1 / -1;
+  background-color: #FEF3C7;
+  border: 1px solid #FCD34D;
+  color: #92400E;
+  padding: 0.5rem 0.875rem;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
 }
