@@ -213,11 +213,15 @@ npm run dev
 
 ---
 
-## 7. Automated Test Evidence (8 November 2026)
+## 7. Automated Test Evidence (8–9 November 2026)
 
-The following results are from the local `audit/final-hardening` worktree based on repository `main` commit `2c7dc65`. They are not production test results.
+The following results are from repository `main` commit `296100f`, which incorporates both PR #12 (hardened concurrency verification) and PR #13 (AI tax-grounding on unverified GST). Both PRs are merged and deployed.
 
-**Backend:** `cd backend && bash ./mvnw -q test` completed with 238 tests, 0 failures, 0 errors, and 0 skipped, as counted from Surefire XML reports. On 9 November 2026, the MySQL-backed integration test suite was executed against disposable MySQL 8.0.45 (`disposable_concurrency_repeat_test_db`) on review branch `test/inventory-concurrency-verification`. With `TEST_DB_URL` configured, all 260 tests passed (including 100 repeated runs of competing holds for the last room, multi-night overlapping ranges, idempotency races, payment vs expiry races, and rollback assertions). The disposable database was then dropped. This PR branch is not yet merged or deployed.
+**Backend:**
+- Baseline test suite (`cd backend && ./mvnw -q test` without database): **282 tests passed**, 0 failures, 0 errors, 0 skipped across 26 test classes.
+- MySQL-backed integration test suite executed against disposable MySQL 8.0.45 (`disposable_concurrency_repeat_test_db`): **298 tests passed**, 0 failures, 0 errors, 0 skipped across 29 test classes with `TEST_DB_URL` configured. This includes 16 database integration tests: `AllotmentConcurrencyIntegrationTest` (9 tests, including 100 repeated runs of competing holds for the last room with zero overselling, multi-night overlapping ranges, idempotency races, payment vs expiry races, and rollback assertions), `BlackoutConcurrencyIntegrationTest` (4 tests), and `DatabaseMigrationIntegrationTest` (5 tests, Flyway V1–V8).
+- Hardened database guard: `DisposableDatabaseGuardTest` (38 unit tests passed), enforcing loopback hosts and disposable database naming conventions, rejecting production, shared, or malformed URLs without credential leakage.
+- Teardown: The disposable test database was dropped and confirmed absent from MySQL after execution. Both PR #12 and PR #13 are merged into `main` at commit `296100f` and deployed.
 
 **Frontend:** `node --test frontend/test/*.test.mjs` passed 25 tests with 0 failures. `npm run build` completed successfully. `npm audit --audit-level=moderate` reported 0 known vulnerabilities. `git diff --check` reported no whitespace errors.
 
@@ -306,11 +310,14 @@ The application uses the following managed-provider topology; availability guara
 
 | Component | Provider | Live URL | Observed Status |
 | :--- | :--- | :--- | :--- |
-| **Frontend** | Vercel | `https://chikkamagaluru-resort-booking.vercel.app` | Public page loaded on 8 Nov 2026; exact deployed commit is **NOT VERIFIED**. `/stay` displayed default 14–16 Nov dates without query parameters. |
-| **Backend** | Railway | `https://resort-backend-production.up.railway.app` | Read-only `GET /health` returned `{"status":"ok"}`; exact deployed commit is **NOT VERIFIED**. |
-| **Database** | Railway MySQL 8 | `mysql.railway.internal:3306/railway` | Not directly accessed in this audit. Latest supplied deployment report records Flyway schema v8; current connectivity and persistence settings were not independently verified. |
+| **Frontend** | Vercel | `https://chikkamagaluru-resort-booking.vercel.app` | Verified live; deployed from commit `296100f` (`context=Vercel state=success`). Public routes (`/`, `/stay`, `/enquire`, `/staff/login`) return HTTP 200. |
+| **Backend** | Railway | `https://resort-backend-production.up.railway.app` | Verified live; running deployment `62741d27-4271-43d2-bc95-0145165c1bd0` built from commit `296100f` (startup verified in container logs at 2026-11-09T04:48:40.424Z / 10:18:40 AM IST, Flyway schema v8 validated, Tomcat port 8080). `GET /health` returns `{"status":"ok"}`. |
+| **Database** | Railway MySQL 8 | `mysql.railway.internal:3306/railway` | Persistent Railway volume, schema version v8. Houses confirmed production booking `FE9JZC9DN7PM`. |
 
-> **Release status (8 November 2026)**: The current public repository `main` is commit `2c7dc65`. The latest supplied Railway deployment report records commit `3ea8538` with V7 and V8 applied; that is not the current `main` head. Public endpoints respond, but they do not identify the live source revision. Local remediation changes in this audit are not production-deployed. No production booking, enquiry, payment, inventory, migration, or other data write was performed. See [TDD.md](TDD.md) for requirement and audit caveats.
+> **Release status (9 November 2026)**: The repository `main` is at commit `296100f`. Both PR #12 and PR #13 are merged and deployed.
+> - **Confirmed Production Booking**: One live confirmed production booking exists: reference `FE9JZC9DN7PM`. (Guest contact phone number is omitted for privacy). In accordance with pre-submission safeguards, no additional production bookings or inventory writes were performed, and existing reservations were not cancelled or altered.
+> - **Check-in / Check-out Presentation Policy**: The displayed 2:00 PM check-in and 11:00 AM checkout times on `frontend/src/pages/BookingConfirmationPage.jsx` and `Styleguide.jsx` originate from frontend UI presentation templates as **demo assumptions**. They have not been confirmed by the resort owner and must not be presented as confirmed resort policy. No production values were modified.
+> - **Concurrency & Overbooking Caveat**: Under evaluated MySQL 8.0.45 InnoDB scenarios with `SELECT ... FOR UPDATE` pessimistic row locking, 100 consecutive last-room race iterations, multi-night overlapping ranges, idempotency races, payment/expiry races, and rollback integrity tests passed with zero overselling across the reported 298-test disposable-MySQL run. This demonstrates transaction isolation under tested scenarios, but does not claim an absolute 100% guarantee under unmodeled production failures (e.g. cross-region network partitions or connection pool exhaustion). See [TDD.md](TDD.md) for requirement and audit caveats.
 
 ---
 
@@ -386,7 +393,7 @@ curl -s -i -X OPTIONS "https://resort-backend-production.up.railway.app/health" 
   -H "Access-Control-Request-Method: GET"
 
 # 3. Verify public room inventory query
-curl -s "https://resort-backend-production.up.railway.app/api/v1/public/rooms"
+curl -s "https://resort-backend-production.up.railway.app/api/v1/public/rooms/availability?checkIn=2026-11-20&checkOut=2026-11-22"
 
 # 4. Verify public pricing calculation (use a future range within the configured booking window)
 : "${CHECK_IN:?Export CHECK_IN as a future YYYY-MM-DD date within the configured window}"
