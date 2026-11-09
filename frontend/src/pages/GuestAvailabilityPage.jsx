@@ -666,9 +666,9 @@ export function GuestAvailabilityPage() {
               <div className="stay-highlight-card__icon">
                 <CoffeeLeafIcon size={26} color="#1E3A2F" />
               </div>
-              <h3 className="stay-highlight-card__title">Estate Inclusions</h3>
+              <h3 className="stay-highlight-card__title">Transparent Direct Booking</h3>
               <p className="stay-highlight-card__desc">
-                Complimentary plantation nature trails, curated bean-to-cup coffee tastings, and daily breakfast.
+                Live website allotment across EP, CP, and MAP rate plans with automatic GST slab calculation.
               </p>
             </div>
           </div>

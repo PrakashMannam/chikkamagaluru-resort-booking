@@ -119,66 +119,48 @@ export function GuestLayout() {
         <Outlet />
       </main>
 
-      {/* Footer (Matches reference design light warm cream) */}
+      {/* 2. Sleek Compact Boutique Footer */}
       <footer className="guest-footer" aria-label="Resort Information & Directory">
-        <div className="guest-footer__inner">
-          {/* Col 1: Brand Info */}
-          <div className="guest-footer__brand-col">
-            <div className="guest-footer__brand-header">
-              <CoffeeLeafIcon size={26} />
-              <div>
-                <span className="guest-footer__brand-title">Chikkamagaluru</span>
-                <span className="guest-footer__brand-sub">Estate</span>
-              </div>
-            </div>
+        <div className="guest-footer__top">
+          {/* Left: Brand */}
+          <div className="guest-footer__brand-wrap">
+            <Link to="/" className="guest-footer__brand-link" aria-label="Chikkamagaluru Estate Home">
+              <CoffeeLeafIcon size={22} />
+              <span className="guest-footer__brand-title">Chikkamagaluru Estate</span>
+            </Link>
             <p className="guest-footer__tagline">
-              A coffee-estate resort in the Western Ghats, Karnataka.
+              A 76-key coffee-estate sanctuary in the Western Ghats, Karnataka.
             </p>
           </div>
 
-          {/* Col 2: Stay */}
-          <div className="guest-footer__col">
-            <p className="guest-footer__heading">Stay</p>
-            <Link to="/stay" className="guest-footer__link">Estate Rooms</Link>
-            <Link to="/stay" className="guest-footer__link">Villas</Link>
-            <Link to="/stay" className="guest-footer__link">Check Availability</Link>
-          </div>
-
-          {/* Col 3: Events & Enquiries */}
-          <div className="guest-footer__col">
-            <p className="guest-footer__heading">Events</p>
+          {/* Right: Horizontal Nav Links */}
+          <nav className="guest-footer__nav-row" aria-label="Footer Navigation">
+            <Link to="/stay" className="guest-footer__link">Stay</Link>
             <Link to="/weddings" className="guest-footer__link">Weddings</Link>
             <Link to="/offsites" className="guest-footer__link">Corporate Offsites</Link>
-          </div>
-
-          {/* Col 4: About */}
-          <div className="guest-footer__col">
-            <p className="guest-footer__heading">About</p>
             <Link to="/#estate" className="guest-footer__link" onClick={handleAboutClick}>The Estate</Link>
-            <span className="guest-footer__location">Western Ghats, Karnataka</span>
-          </div>
+            <Link to="/staff/login" className="guest-footer__link">Staff Portal</Link>
+          </nav>
         </div>
 
-        {/* Bottom Sub-bar */}
+        {/* Bottom Legal Bar */}
         <div className="guest-footer__bottom">
           <p className="guest-footer__compliance">
-            DPDP Act 2023 Compliant &bull; Form C at Check-in &bull; &copy; 2026 Chikkamagaluru Estate
+            &copy; 2026 Chikkamagaluru Estate. DPDP Act 2023 Compliant &bull; Foreign Guest Form C at Check-in.
           </p>
           <div className="guest-footer__bottom-links">
             <Link to="/privacy" className="guest-footer__bottom-link">Privacy</Link>
-            <span>•</span>
+            <span>&bull;</span>
             <Link to="/terms" className="guest-footer__bottom-link">Terms</Link>
-            <span>•</span>
+            <span>&bull;</span>
             <button
               type="button"
               className="guest-footer__dpdp-btn"
-              onClick={() => setDpdpModalOpen(true)}
+              onClick={(e) => { e.preventDefault(); setDpdpModalOpen(true); }}
               aria-label="View DPDP Act 2023 & Check-in compliance details"
             >
               DPDP 2023 &amp; Form C
             </button>
-            <span>•</span>
-            <Link to="/staff/login" className="guest-footer__staff-link">Staff Login</Link>
           </div>
         </div>
       </footer>
