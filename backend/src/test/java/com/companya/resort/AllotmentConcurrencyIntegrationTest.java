@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class AllotmentConcurrencyIntegrationTest {
 
@@ -955,6 +956,291 @@ class AllotmentConcurrencyIntegrationTest {
                 int booked = rs.getInt("booked_count");
                 assertEquals(1, allotment, "Website allotment must be 1");
                 assertEquals(1, booked, "Booked count must be 1 (never greater than allotment)");
+            }
+        }
+    }
+
+    @Test
+    void concurrentRequestsCompetingForLastAvailableRoom_repeated100Runs_allIterationsSucceedAndInventoryNeverExceeded() throws Exception {
+        Long roomCategoryId = 1L; // Coffee Cottage
+        Long ratePlanId = 1L;     // Cottage EP Plan
+        LocalDate d1 = LocalDate.of(2026, 12, 1);
+        LocalDate d2 = LocalDate.of(2026, 12, 2);
+
+        int totalIterations = 100;
+        int passedIterations = 0;
+        int failedIterations = 0;
+
+        ExecutorService pool = Executors.newFixedThreadPool(4);
+
+        try {
+            for (int run = 1; run <= totalIterations; run++) {
+                // 1. Reset disposable test data for this iteration: website_allotment_total = 1, booked_count = 0
+                try (Connection conn = getConnection()) {
+                    try (PreparedStatement cleanPayments = conn.prepareStatement(
+                            "DELETE FROM payments WHERE booking_id IN (SELECT id FROM bookings WHERE idempotency_key LIKE 'repeat100-run-%')")) {
+                        cleanPayments.executeUpdate();
+                    }
+                    try (PreparedStatement cleanBookings = conn.prepareStatement(
+                            "DELETE FROM bookings WHERE idempotency_key LIKE 'repeat100-run-%'")) {
+                        cleanBookings.executeUpdate();
+                    }
+                    try (PreparedStatement deleteStmt = conn.prepareStatement(
+                            "DELETE FROM daily_inventory_rates WHERE room_category_id = ? AND stay_date = ?")) {
+                        deleteStmt.setLong(1, roomCategoryId);
+                        deleteStmt.setDate(2, Date.valueOf(d1));
+                        deleteStmt.executeUpdate();
+                    }
+                    try (PreparedStatement insertStmt = conn.prepareStatement(
+                            "INSERT INTO daily_inventory_rates (room_category_id, stay_date, base_rate_inr, website_allotment_total, booked_count, version) VALUES (?, ?, ?, ?, ?, ?)")) {
+                        insertStmt.setLong(1, roomCategoryId);
+                        insertStmt.setDate(2, Date.valueOf(d1));
+                        insertStmt.setBigDecimal(3, new BigDecimal("9500.00"));
+                        insertStmt.setInt(4, 1); // Exactly 1 room allotted
+                        insertStmt.setInt(5, 0); // 0 booked
+                        insertStmt.setLong(6, 0L);
+                        insertStmt.executeUpdate();
+                    }
+                    conn.commit();
+                }
+
+                // 2. Compete with 2 concurrent requests with distinct idempotency keys
+                CountDownLatch readyLatch = new CountDownLatch(2);
+                CountDownLatch startGun = new CountDownLatch(1);
+
+                AtomicInteger successfulHolds = new AtomicInteger(0);
+                AtomicInteger rejectedAllotmentFails = new AtomicInteger(0);
+                List<BookingResponseDto> holds = new CopyOnWriteArrayList<>();
+                List<Exception> unexpectedExceptions = new CopyOnWriteArrayList<>();
+
+                String keyA = "repeat100-run-" + run + "-alpha";
+                String keyB = "repeat100-run-" + run + "-beta";
+                int currentRun = run;
+
+                Callable<Void> task1 = () -> {
+                    readyLatch.countDown();
+                    startGun.await();
+                    try {
+                        CreateBookingRequest req = new CreateBookingRequest(
+                                keyA, roomCategoryId, ratePlanId, d1, d2, 1, 2, 0,
+                                "Guest A " + currentRun, "guesta" + currentRun + "@repeat100.test", "+9198765" + String.format("%05d", currentRun), null, true
+                        );
+                        BookingResponseDto dto = bookingService.createBookingAndLockAllotment(req, keyA);
+                        holds.add(dto);
+                        successfulHolds.incrementAndGet();
+                    } catch (InsufficientAllotmentException ex) {
+                        rejectedAllotmentFails.incrementAndGet();
+                    } catch (Exception ex) {
+                        unexpectedExceptions.add(ex);
+                    }
+                    return null;
+                };
+
+                Callable<Void> task2 = () -> {
+                    readyLatch.countDown();
+                    startGun.await();
+                    try {
+                        CreateBookingRequest req = new CreateBookingRequest(
+                                keyB, roomCategoryId, ratePlanId, d1, d2, 1, 2, 0,
+                                "Guest B " + currentRun, "guestb" + currentRun + "@repeat100.test", "+9198766" + String.format("%05d", currentRun), null, true
+                        );
+                        BookingResponseDto dto = bookingService.createBookingAndLockAllotment(req, keyB);
+                        holds.add(dto);
+                        successfulHolds.incrementAndGet();
+                    } catch (InsufficientAllotmentException ex) {
+                        rejectedAllotmentFails.incrementAndGet();
+                    } catch (Exception ex) {
+                        unexpectedExceptions.add(ex);
+                    }
+                    return null;
+                };
+
+                Future<Void> f1 = pool.submit(task1);
+                Future<Void> f2 = pool.submit(task2);
+
+                readyLatch.await(5, TimeUnit.SECONDS);
+                startGun.countDown();
+
+                f1.get(10, TimeUnit.SECONDS);
+                f2.get(10, TimeUnit.SECONDS);
+
+                // 3. Invariants verification for iteration
+                boolean iterationPassed = true;
+                if (!unexpectedExceptions.isEmpty()) {
+                    iterationPassed = false;
+                }
+                if (successfulHolds.get() != 1 || rejectedAllotmentFails.get() != 1) {
+                    iterationPassed = false;
+                }
+                if (holds.size() != 1) {
+                    iterationPassed = false;
+                } else {
+                    BookingResponseDto win = holds.get(0);
+                    if (win.getBookingRef() == null || win.getOneTimePaymentToken() == null || !"PENDING_PAYMENT".equals(win.getStatus())) {
+                        iterationPassed = false;
+                    }
+                }
+
+                // Verify DB booked_count == 1 and <= allotment
+                try (Connection conn = getConnection();
+                     PreparedStatement checkStmt = conn.prepareStatement(
+                             "SELECT website_allotment_total, booked_count FROM daily_inventory_rates WHERE room_category_id = ? AND stay_date = ?")) {
+                    checkStmt.setLong(1, roomCategoryId);
+                    checkStmt.setDate(2, Date.valueOf(d1));
+                    try (ResultSet rs = checkStmt.executeQuery()) {
+                        if (rs.next()) {
+                            int allotment = rs.getInt("website_allotment_total");
+                            int booked = rs.getInt("booked_count");
+                            if (allotment != 1 || booked != 1) {
+                                iterationPassed = false;
+                            }
+                        } else {
+                            iterationPassed = false;
+                        }
+                    }
+                }
+
+                if (iterationPassed) {
+                    passedIterations++;
+                } else {
+                    failedIterations++;
+                }
+            }
+        } finally {
+            pool.shutdown();
+        }
+
+        System.out.printf("[REPEAT-100-VERIFICATION] Total Runs: %d, Passed: %d, Failures: %d%n",
+                totalIterations, passedIterations, failedIterations);
+
+        assertEquals(0, failedIterations, "Expected 0 failures across 100 repeated concurrency runs");
+        assertEquals(totalIterations, passedIterations, "Expected all 100 runs to pass");
+    }
+
+    @Test
+    void rejectedOrFailedTransactionLeavesInventoryCountsUnchanged_databaseIntegrationTest() throws Exception {
+        Long roomCategoryId = 1L; // Coffee Cottage
+        Long ratePlanId = 1L;     // Cottage EP Plan
+        LocalDate d1 = LocalDate.of(2026, 12, 15);
+        LocalDate d2 = LocalDate.of(2026, 12, 16);
+
+        // 1. Seed inventory: website_allotment_total = 3, booked_count = 2 (remaining = 1)
+        try (Connection conn = getConnection()) {
+            try (PreparedStatement cleanBookings = conn.prepareStatement(
+                    "DELETE FROM bookings WHERE idempotency_key LIKE 'rollback-test-%'")) {
+                cleanBookings.executeUpdate();
+            }
+            try (PreparedStatement deleteStmt = conn.prepareStatement(
+                    "DELETE FROM daily_inventory_rates WHERE room_category_id = ? AND stay_date = ?")) {
+                deleteStmt.setLong(1, roomCategoryId);
+                deleteStmt.setDate(2, Date.valueOf(d1));
+                deleteStmt.executeUpdate();
+            }
+            try (PreparedStatement insertStmt = conn.prepareStatement(
+                    "INSERT INTO daily_inventory_rates (room_category_id, stay_date, base_rate_inr, website_allotment_total, booked_count, version) VALUES (?, ?, ?, ?, ?, ?)")) {
+                insertStmt.setLong(1, roomCategoryId);
+                insertStmt.setDate(2, Date.valueOf(d1));
+                insertStmt.setBigDecimal(3, new BigDecimal("9500.00"));
+                insertStmt.setInt(4, 3);
+                insertStmt.setInt(5, 2); // Initial booked count = 2
+                insertStmt.setLong(6, 10L);
+                insertStmt.executeUpdate();
+            }
+            conn.commit();
+        }
+
+        // Verify initial state in DB
+        int initialBooked;
+        long initialVersion;
+        try (Connection conn = getConnection();
+             PreparedStatement checkStmt = conn.prepareStatement(
+                     "SELECT booked_count, version FROM daily_inventory_rates WHERE room_category_id = ? AND stay_date = ?")) {
+            checkStmt.setLong(1, roomCategoryId);
+            checkStmt.setDate(2, Date.valueOf(d1));
+            try (ResultSet rs = checkStmt.executeQuery()) {
+                assertTrue(rs.next());
+                initialBooked = rs.getInt("booked_count");
+                initialVersion = rs.getLong("version");
+                assertEquals(2, initialBooked);
+            }
+        }
+
+        // 2. Case A: Request asking for 2 rooms when only 1 is available (2 + 2 > 3 -> InsufficientAllotmentException)
+        String rejectedKeyA = "rollback-test-over-request";
+        CreateBookingRequest overRequest = new CreateBookingRequest(
+                rejectedKeyA, roomCategoryId, ratePlanId, d1, d2, 2, 4, 0,
+                "Over Request Guest", "over@test.com", "+919876543210", null, true
+        );
+
+        assertThrows(InsufficientAllotmentException.class, () ->
+                bookingService.createBookingAndLockAllotment(overRequest, rejectedKeyA)
+        );
+
+        // Verify that inventory counts and versions are completely unchanged after rejection
+        try (Connection conn = getConnection();
+             PreparedStatement checkStmt = conn.prepareStatement(
+                     "SELECT booked_count, version FROM daily_inventory_rates WHERE room_category_id = ? AND stay_date = ?")) {
+            checkStmt.setLong(1, roomCategoryId);
+            checkStmt.setDate(2, Date.valueOf(d1));
+            try (ResultSet rs = checkStmt.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals(initialBooked, rs.getInt("booked_count"), "Booked count must remain unchanged after InsufficientAllotmentException");
+                assertEquals(initialVersion, rs.getLong("version"), "Row version must remain unchanged after rollback");
+            }
+        }
+
+        // 3. Case B: Request on a blackout date -> BlackoutDateConflictException
+        LocalDate blackoutDate = LocalDate.of(2026, 12, 20);
+        LocalDate blackoutDateNext = LocalDate.of(2026, 12, 21);
+        try (Connection conn = getConnection()) {
+            try (PreparedStatement delBlackout = conn.prepareStatement("DELETE FROM blackout_dates WHERE reason LIKE 'Rollback-Blackout-%'")) {
+                delBlackout.executeUpdate();
+            }
+            try (PreparedStatement insertBlackout = conn.prepareStatement(
+                    "INSERT INTO blackout_dates (room_category_id, blackout_date, reason) VALUES (?, ?, ?)")) {
+                insertBlackout.setLong(1, roomCategoryId);
+                insertBlackout.setDate(2, Date.valueOf(blackoutDate));
+                insertBlackout.setString(3, "Rollback-Blackout-Test");
+                insertBlackout.executeUpdate();
+            }
+            try (PreparedStatement deleteStmt = conn.prepareStatement(
+                    "DELETE FROM daily_inventory_rates WHERE room_category_id = ? AND stay_date = ?")) {
+                deleteStmt.setLong(1, roomCategoryId);
+                deleteStmt.setDate(2, Date.valueOf(blackoutDate));
+                deleteStmt.executeUpdate();
+            }
+            try (PreparedStatement insertStmt = conn.prepareStatement(
+                    "INSERT INTO daily_inventory_rates (room_category_id, stay_date, base_rate_inr, website_allotment_total, booked_count, version) VALUES (?, ?, ?, ?, ?, ?)")) {
+                insertStmt.setLong(1, roomCategoryId);
+                insertStmt.setDate(2, Date.valueOf(blackoutDate));
+                insertStmt.setBigDecimal(3, new BigDecimal("9500.00"));
+                insertStmt.setInt(4, 5);
+                insertStmt.setInt(5, 1);
+                insertStmt.setLong(6, 1L);
+                insertStmt.executeUpdate();
+            }
+            conn.commit();
+        }
+
+        String rejectedKeyB = "rollback-test-blackout";
+        CreateBookingRequest blackoutRequest = new CreateBookingRequest(
+                rejectedKeyB, roomCategoryId, ratePlanId, blackoutDate, blackoutDateNext, 1, 2, 0,
+                "Blackout Guest", "blackout@test.com", "+919876543219", null, true
+        );
+
+        assertThrows(com.companya.resort.exception.BlackoutDateConflictException.class, () ->
+                bookingService.createBookingAndLockAllotment(blackoutRequest, rejectedKeyB)
+        );
+
+        // Verify inventory count for blackout date is still exactly 1
+        try (Connection conn = getConnection();
+             PreparedStatement checkStmt = conn.prepareStatement(
+                     "SELECT booked_count FROM daily_inventory_rates WHERE room_category_id = ? AND stay_date = ?")) {
+            checkStmt.setLong(1, roomCategoryId);
+            checkStmt.setDate(2, Date.valueOf(blackoutDate));
+            try (ResultSet rs = checkStmt.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt("booked_count"), "Booked count must remain unchanged after blackout rejection");
             }
         }
     }
