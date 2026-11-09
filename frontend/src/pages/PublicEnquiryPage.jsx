@@ -6,6 +6,8 @@ import {
   buildRawEnquiryMessage,
   DEFAULT_OFFSITE_CONFERENCE_HALL_SELECTION,
   DEFAULT_ACCOMMODATION_CHOICE,
+  TOTAL_ESTATE_INVENTORY_KEYS,
+  TEMPORARY_TECHNICAL_MAX_EVENT_GUESTS,
 } from '../utils/enquiryMessageBuilder';
 import './PublicEnquiryPage.css';
 
@@ -200,9 +202,19 @@ export function PublicEnquiryPage() {
       newErrors.eventDate = enquiryType === 'ROOM_BOOKING' ? 'Please select your preferred check-in date.' : 'Please select your preferred event date.';
     }
 
-    const parsedGuests = parseInt(guestsCount, 10);
-    if (!guestsCount || isNaN(parsedGuests) || parsedGuests < 1) {
+    // Guest count validation (positive whole number within technical ceiling)
+    const trimmedGuests = String(guestsCount).trim();
+    if (!trimmedGuests) {
       newErrors.guestsCount = enquiryType === 'ROOM_BOOKING' ? 'Please specify number of guests.' : 'Please specify expected number of attendees.';
+    } else if (trimmedGuests.includes('.') || !/^\d+$/.test(trimmedGuests)) {
+      newErrors.guestsCount = 'Guest count must be a positive whole number.';
+    } else {
+      const parsedGuests = parseInt(trimmedGuests, 10);
+      if (parsedGuests < 1) {
+        newErrors.guestsCount = 'Expected guest count must be at least 1.';
+      } else if (parsedGuests > TEMPORARY_TECHNICAL_MAX_EVENT_GUESTS) {
+        newErrors.guestsCount = `Expected guest count cannot exceed technical limit of ${TEMPORARY_TECHNICAL_MAX_EVENT_GUESTS}.`;
+      }
     }
 
     if (!isRoomBooking && !accommodationChoice) {
@@ -212,8 +224,37 @@ export function PublicEnquiryPage() {
     const requiresAccommodation = enquiryType === 'ROOM_BOOKING' || accommodationChoice === 'yes';
     if (requiresAccommodation) {
       const parsedNights = parseInt(nights, 10);
-      if (!nights || isNaN(parsedNights) || parsedNights < 1) {
+      if (!nights || isNaN(parsedNights) || parsedNights < 1 || String(nights).includes('.')) {
         newErrors.nights = 'Number of nights must be at least 1.';
+      }
+
+      // Rooms count validation: required if accommodationChoice is 'yes'
+      if (accommodationChoice === 'yes') {
+        const trimmedRooms = String(roomsCount).trim();
+        if (!trimmedRooms) {
+          newErrors.roomsCount = 'Please specify the number of rooms needed (up to 76 keys).';
+        } else if (trimmedRooms.includes('.') || !/^\d+$/.test(trimmedRooms)) {
+          newErrors.roomsCount = 'Number of rooms must be a positive whole number.';
+        } else {
+          const parsedRooms = parseInt(trimmedRooms, 10);
+          if (parsedRooms < 1) {
+            newErrors.roomsCount = 'Number of rooms must be at least 1.';
+          } else if (parsedRooms > TOTAL_ESTATE_INVENTORY_KEYS) {
+            newErrors.roomsCount = `Requested rooms cannot exceed total estate inventory of ${TOTAL_ESTATE_INVENTORY_KEYS} keys.`;
+          }
+        }
+      } else if (isRoomBooking && roomsCount) {
+        const trimmedRooms = String(roomsCount).trim();
+        if (trimmedRooms.includes('.') || !/^\d+$/.test(trimmedRooms)) {
+          newErrors.roomsCount = 'Number of rooms must be a positive whole number.';
+        } else {
+          const parsedRooms = parseInt(trimmedRooms, 10);
+          if (parsedRooms < 1) {
+            newErrors.roomsCount = 'Number of rooms must be at least 1.';
+          } else if (parsedRooms > TOTAL_ESTATE_INVENTORY_KEYS) {
+            newErrors.roomsCount = `Requested rooms cannot exceed total estate inventory of ${TOTAL_ESTATE_INVENTORY_KEYS} keys.`;
+          }
+        }
       }
     }
 
@@ -245,10 +286,15 @@ export function PublicEnquiryPage() {
 
     setIsSubmitting(true);
 
+    const parsedGuests = parseInt(guestsCount, 10);
+    const parsedRooms = showAccommodationInputs && roomsCount ? parseInt(roomsCount, 10) : null;
     const payload = {
       sender_name: fullName.trim(),
       sender_contact: contact.trim(),
       raw_message: buildRawMessage(),
+      expected_guests: Number.isFinite(parsedGuests) ? parsedGuests : null,
+      rooms_count: Number.isFinite(parsedRooms) ? parsedRooms : null,
+      accommodation_choice: !isRoomBooking ? accommodationChoice : 'yes',
     };
 
     try {
@@ -607,11 +653,14 @@ export function PublicEnquiryPage() {
                   label={isRoomBooking ? 'Number of Guests *' : 'Expected Guests Count *'}
                   type="number"
                   min="1"
-                  max="1000"
+                  max={TEMPORARY_TECHNICAL_MAX_EVENT_GUESTS}
                   placeholder={enquiryType === 'WEDDING' ? 'e.g. 150' : enquiryType === 'CORPORATE_OFFSITE' ? 'e.g. 45' : 'e.g. 2'}
                   value={guestsCount}
                   disabled={isSubmitting}
                   error={errors.guestsCount}
+                  onKeyDown={(e) => {
+                    if (['e', 'E', '+', '-', '.'].includes(e.key)) e.preventDefault();
+                  }}
                   onChange={(e) => {
                     setGuestsCount(e.target.value);
                     if (errors.guestsCount) setErrors({ ...errors, guestsCount: null });
@@ -624,12 +673,19 @@ export function PublicEnquiryPage() {
                     label="Estimated Rooms / Keys Needed"
                     type="number"
                     min="1"
-                    max="76"
+                    max={TOTAL_ESTATE_INVENTORY_KEYS}
                     placeholder={enquiryType === 'WEDDING' ? 'e.g. 30' : enquiryType === 'CORPORATE_OFFSITE' ? 'e.g. 20' : 'e.g. 1'}
                     value={roomsCount}
                     disabled={isSubmitting}
-                    helperText="Approximate room count needed across cottages and villas."
-                    onChange={(e) => setRoomsCount(e.target.value)}
+                    error={errors.roomsCount}
+                    helperText="Total estate inventory is 76 keys across 64 rooms and 12 villas. (Allocation and availability for your dates will be confirmed by your coordinator.)"
+                    onKeyDown={(e) => {
+                      if (['e', 'E', '+', '-', '.'].includes(e.key)) e.preventDefault();
+                    }}
+                    onChange={(e) => {
+                      setRoomsCount(e.target.value);
+                      if (errors.roomsCount) setErrors({ ...errors, roomsCount: null });
+                    }}
                   />
                 )}
               </div>

@@ -7,6 +7,19 @@ export const DEFAULT_OFFSITE_CONFERENCE_HALL_SELECTION = 'unspecified';
 export const DEFAULT_ACCOMMODATION_CHOICE = '';
 
 /**
+ * Total estate physical key count across all estate cottages/rooms and villas (64 + 12 = 76 keys).
+ * Treated as estate inventory limit, not venue attendee capacity or live availability guarantee.
+ */
+export const TOTAL_ESTATE_INVENTORY_KEYS = 76;
+
+/**
+ * Configurable temporary technical validation limit for expected event guest counts.
+ * Note: This is an internal technical validation ceiling to protect against arithmetic overflow and
+ * bad input; it is NOT a verified venue capacity claim.
+ */
+export const TEMPORARY_TECHNICAL_MAX_EVENT_GUESTS = 1000;
+
+/**
  * Builds the composite raw message string submitted to the concierge/enquiry API.
  *
  * @param {Object} params

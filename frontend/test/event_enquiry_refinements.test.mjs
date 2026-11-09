@@ -5,6 +5,8 @@ import {
   buildRawEnquiryMessage,
   DEFAULT_OFFSITE_CONFERENCE_HALL_SELECTION,
   DEFAULT_ACCOMMODATION_CHOICE,
+  TOTAL_ESTATE_INVENTORY_KEYS,
+  TEMPORARY_TECHNICAL_MAX_EVENT_GUESTS,
 } from '../src/utils/enquiryMessageBuilder.js';
 
 test('Event Enquiry: DEFAULT_ACCOMMODATION_CHOICE is empty string initially', () => {
@@ -253,5 +255,69 @@ test('Source Contract: Form fields start empty without prefilled default numbers
   assert.ok(
     pageSrc.includes("newErrors.accommodationChoice = 'Please select whether your guests will require overnight accommodation"),
     'validateForm must require explicit accommodation choice on events'
+  );
+});
+
+
+test('Event Enquiry: Constants define inventory keys (76) and technical guest ceiling (1000)', () => {
+  assert.equal(TOTAL_ESTATE_INVENTORY_KEYS, 76, 'Total estate inventory must be 76 keys (64 rooms + 12 pool villas)');
+  assert.equal(TEMPORARY_TECHNICAL_MAX_EVENT_GUESTS, 1000, 'Temporary technical validation ceiling for guests must be 1000');
+});
+
+test('Source Contract: Bounded guest count and room count inputs with inventory wording', () => {
+  const pageSrc = fs.readFileSync('frontend/src/pages/PublicEnquiryPage.jsx', 'utf8');
+
+  // Verify guest count validation logic
+  assert.ok(
+    pageSrc.includes("trimmedGuests.includes('.')") && pageSrc.includes("'Guest count must be a positive whole number.'"),
+    'Guests count validation must reject decimals and non-numeric characters'
+  );
+  assert.ok(
+    pageSrc.includes('parsedGuests < 1'),
+    'Guests count validation must require at least 1'
+  );
+  assert.ok(
+    pageSrc.includes('parsedGuests > TEMPORARY_TECHNICAL_MAX_EVENT_GUESTS'),
+    'Guests count validation must enforce TEMPORARY_TECHNICAL_MAX_EVENT_GUESTS ceiling'
+  );
+  assert.ok(
+    pageSrc.includes('technical limit of'),
+    'Guest count error must refer to technical limit, NOT venue capacity'
+  );
+
+  // Verify rooms count validation logic
+  assert.ok(
+    pageSrc.includes('parsedRooms > TOTAL_ESTATE_INVENTORY_KEYS'),
+    'Rooms count validation must enforce TOTAL_ESTATE_INVENTORY_KEYS cap'
+  );
+  assert.ok(
+    pageSrc.includes('total estate inventory of ${TOTAL_ESTATE_INVENTORY_KEYS} keys'),
+    'Rooms count error must refer to total estate inventory, not availability or venue capacity'
+  );
+
+  // Verify helper text treats 76 as estate inventory across 64 rooms and 12 villas
+  assert.ok(
+    pageSrc.includes('Total estate inventory is 76 keys across 64 rooms and 12 villas.'),
+    'Must display accurate inventory helper text'
+  );
+  assert.ok(
+    pageSrc.includes('Allocation and availability for your dates will be confirmed by your coordinator'),
+    'Helper text must clarify allocation/availability is confirmed by coordinator'
+  );
+
+  // Verify no publication of unsubstantiated "maximum venue capacity"
+  assert.ok(
+    !pageSrc.toLowerCase().includes('maximum venue capacity'),
+    'Must NOT publish unverified maximum venue capacity claim'
+  );
+  assert.ok(
+    !pageSrc.toLowerCase().includes('maximum event capacity'),
+    'Must NOT publish unverified maximum event capacity claim'
+  );
+
+  // Verify keypress blocking of invalid characters
+  assert.ok(
+    pageSrc.includes("['e', 'E', '+', '-', '.'].includes(e.key)"),
+    'Numeric inputs must block exponential, sign, and decimal characters on keydown'
   );
 });

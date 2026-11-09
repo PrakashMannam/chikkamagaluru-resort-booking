@@ -38,6 +38,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,6 +48,27 @@ public class EnquiryService {
     private static final Logger log = LoggerFactory.getLogger(EnquiryService.class);
     private static final String ENQ_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private final SecureRandom secureRandom = new SecureRandom();
+
+    /**
+     * Total physical estate inventory across cottages and villas (64 rooms + 12 pool villas = 76 keys).
+     * NOTE: This represents the physical inventory capacity from the brief, NOT live availability or venue attendee capacity.
+     */
+    public static final int TOTAL_ESTATE_INVENTORY_KEYS = 76;
+
+    /**
+     * Default temporary technical validation ceiling for event enquiries.
+     * NOTE: This is strictly an internal technical input validation limit to prevent arithmetic overflow
+     * and abusive inputs; it is NOT a verified resort venue capacity claim.
+     */
+    public static final int DEFAULT_MAX_EVENT_GUESTS = 1000;
+
+    private static final Pattern RAW_GUEST_PATTERN = Pattern.compile(
+            "(?i)(?:(-?\\d+(?:\\.\\d+)?)\\s*(?:guests?|pax|attendees?|people)|team\\s+of\\s+(-?\\d+(?:\\.\\d+)?))"
+    );
+
+    private static final Pattern RAW_ROOM_PATTERN = Pattern.compile(
+            "(?i)(-?\\d+(?:\\.\\d+)?)\\s*(?:rooms?|villas?|keys?)"
+    );
 
     private final EnquiryRepository enquiryRepository;
     private final EnquiryDraftRepository enquiryDraftRepository;
@@ -57,6 +80,7 @@ public class EnquiryService {
     private final SimulatedDeliveryAdapter simulatedDeliveryAdapter;
 
     private final BigDecimal confidenceThreshold;
+    private final int maxEventGuests;
 
     public EnquiryService(
             EnquiryRepository enquiryRepository,
@@ -69,6 +93,22 @@ public class EnquiryService {
             SimulatedDeliveryAdapter simulatedDeliveryAdapter,
             @Value("${enquiry.ai.confidence-threshold:0.80}") BigDecimal confidenceThreshold
     ) {
+        this(enquiryRepository, enquiryDraftRepository, userRepository, geminiAiService, ruleFallbackService,
+                enquiryRoutingService, quoteInjectorService, simulatedDeliveryAdapter, confidenceThreshold, DEFAULT_MAX_EVENT_GUESTS);
+    }
+
+    public EnquiryService(
+            EnquiryRepository enquiryRepository,
+            EnquiryDraftRepository enquiryDraftRepository,
+            UserRepository userRepository,
+            GeminiAiService geminiAiService,
+            RuleFallbackService ruleFallbackService,
+            EnquiryRoutingService enquiryRoutingService,
+            QuoteInjectorService quoteInjectorService,
+            SimulatedDeliveryAdapter simulatedDeliveryAdapter,
+            BigDecimal confidenceThreshold,
+            @Value("${app.enquiry.validation.max-event-guests:1000}") int maxEventGuests
+    ) {
         this.enquiryRepository = enquiryRepository;
         this.enquiryDraftRepository = enquiryDraftRepository;
         this.userRepository = userRepository;
@@ -78,16 +118,106 @@ public class EnquiryService {
         this.quoteInjectorService = quoteInjectorService;
         this.simulatedDeliveryAdapter = simulatedDeliveryAdapter;
         this.confidenceThreshold = confidenceThreshold != null ? confidenceThreshold : new BigDecimal("0.80");
+        this.maxEventGuests = maxEventGuests > 0 ? maxEventGuests : DEFAULT_MAX_EVENT_GUESTS;
+    }
+
+    public int getMaxEventGuests() {
+        return maxEventGuests;
+    }
+
+    /**
+     * Rejects out-of-range, decimal, negative, or overflow values for guest count and requested rooms.
+     * Enforces the configurable technical ceiling for guests and the 76-key inventory cap for rooms.
+     */
+    public void validateEnquiryBounds(CreateEnquiryRequest request) {
+        if (request == null) return;
+
+        // 1. Structured expectedGuests check
+        if (request.getExpectedGuests() != null) {
+            int g = request.getExpectedGuests();
+            if (g < 1) {
+                throw new IllegalArgumentException("Expected guest count must be a positive whole number (minimum 1).");
+            }
+            if (g > maxEventGuests) {
+                throw new IllegalArgumentException("Expected guest count exceeds technical validation limit of " + maxEventGuests + ".");
+            }
+        }
+
+        // 2. Structured roomsCount check
+        if (request.getRoomsCount() != null) {
+            int r = request.getRoomsCount();
+            if (r < 1) {
+                throw new IllegalArgumentException("Requested rooms must be a positive whole number (minimum 1).");
+            }
+            if (r > TOTAL_ESTATE_INVENTORY_KEYS) {
+                throw new IllegalArgumentException("Requested rooms cannot exceed total estate inventory of " + TOTAL_ESTATE_INVENTORY_KEYS + " keys.");
+            }
+        }
+
+        // 3. Inspect rawMessage for bounds violations (protects against raw message injection or API bypass)
+        String raw = request.getRawMessage();
+        if (raw != null && !raw.isBlank()) {
+            Matcher gMatcher = RAW_GUEST_PATTERN.matcher(raw);
+            while (gMatcher.find()) {
+                String valStr = gMatcher.group(1) != null ? gMatcher.group(1) : gMatcher.group(2);
+                if (valStr != null) {
+                    if (valStr.contains(".")) {
+                        throw new IllegalArgumentException("Expected guest count must be a positive whole number (decimals not allowed).");
+                    }
+                    try {
+                        long val = Long.parseLong(valStr);
+                        if (val < 1) {
+                            throw new IllegalArgumentException("Expected guest count must be a positive whole number (minimum 1).");
+                        }
+                        if (val > maxEventGuests) {
+                            throw new IllegalArgumentException("Expected guest count exceeds technical validation limit of " + maxEventGuests + ".");
+                        }
+                    } catch (NumberFormatException e) {
+                        throw new IllegalArgumentException("Expected guest count exceeds technical validation limit of " + maxEventGuests + ".");
+                    }
+                }
+            }
+
+            Matcher rMatcher = RAW_ROOM_PATTERN.matcher(raw);
+            while (rMatcher.find()) {
+                String valStr = rMatcher.group(1);
+                if (valStr != null) {
+                    if (valStr.contains(".")) {
+                        throw new IllegalArgumentException("Requested rooms count must be a positive whole number (decimals not allowed).");
+                    }
+                    try {
+                        long val = Long.parseLong(valStr);
+                        if (val < 1) {
+                            throw new IllegalArgumentException("Requested rooms must be a positive whole number (minimum 1).");
+                        }
+                        if (val > TOTAL_ESTATE_INVENTORY_KEYS) {
+                            throw new IllegalArgumentException("Requested rooms cannot exceed total estate inventory of " + TOTAL_ESTATE_INVENTORY_KEYS + " keys.");
+                        }
+                    } catch (NumberFormatException e) {
+                        throw new IllegalArgumentException("Requested rooms cannot exceed total estate inventory of " + TOTAL_ESTATE_INVENTORY_KEYS + " keys.");
+                    }
+                }
+            }
+        }
     }
 
     @Transactional
     public PublicEnquiryResponse createPublicEnquiry(CreateEnquiryRequest request) {
+        // Enforce input bounds on guest count and room inventory
+        validateEnquiryBounds(request);
+
         Enquiry enquiry = new Enquiry();
         enquiry.setEnquiryCode(generateUniqueEnquiryCode());
         enquiry.setSourceChannel(EnquiryChannel.WEB_FORM);
         enquiry.setSenderName(request.getSenderName());
         enquiry.setSenderContact(request.getSenderContact());
         enquiry.setRawMessage(request.getRawMessage());
+        if (request.getExpectedGuests() != null) {
+            enquiry.setExtractedGuests(request.getExpectedGuests());
+        }
+        if (request.getRoomsCount() != null) {
+            enquiry.setExtractedRooms(request.getRoomsCount());
+        }
         enquiry.setStatus(EnquiryStatus.OPEN);
         enquiry.setReceivedAt(LocalDateTime.now());
         enquiry.setCategory(EnquiryCategory.UNSORTED);

@@ -21,6 +21,15 @@ public class CreateEnquiryRequest {
     @JsonAlias({"raw_message", "message"})
     private String rawMessage;
 
+    @JsonAlias({"expected_guests", "guests_count", "guests"})
+    private Integer expectedGuests;
+
+    @JsonAlias({"rooms_count", "rooms", "keys"})
+    private Integer roomsCount;
+
+    @JsonAlias({"accommodation_choice", "accommodation"})
+    private String accommodationChoice;
+
     public CreateEnquiryRequest() {
     }
 
@@ -28,6 +37,15 @@ public class CreateEnquiryRequest {
         this.senderName = senderName;
         this.senderContact = senderContact;
         this.rawMessage = rawMessage;
+    }
+
+    public CreateEnquiryRequest(String senderName, String senderContact, String rawMessage, Integer expectedGuests, Integer roomsCount, String accommodationChoice) {
+        this.senderName = senderName;
+        this.senderContact = senderContact;
+        this.rawMessage = rawMessage;
+        this.expectedGuests = expectedGuests;
+        this.roomsCount = roomsCount;
+        this.accommodationChoice = accommodationChoice;
     }
 
     public String getSenderName() {
@@ -52,5 +70,29 @@ public class CreateEnquiryRequest {
 
     public void setRawMessage(String rawMessage) {
         this.rawMessage = rawMessage;
+    }
+
+    public Integer getExpectedGuests() {
+        return expectedGuests;
+    }
+
+    public void setExpectedGuests(Integer expectedGuests) {
+        this.expectedGuests = expectedGuests;
+    }
+
+    public Integer getRoomsCount() {
+        return roomsCount;
+    }
+
+    public void setRoomsCount(Integer roomsCount) {
+        this.roomsCount = roomsCount;
+    }
+
+    public String getAccommodationChoice() {
+        return accommodationChoice;
+    }
+
+    public void setAccommodationChoice(String accommodationChoice) {
+        this.accommodationChoice = accommodationChoice;
     }
 }

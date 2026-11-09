@@ -1,5 +1,15 @@
 package com.companya.resort;
 
+import com.companya.resort.dto.CreateEnquiryRequest;
+import com.companya.resort.service.EnquiryService;
+import com.companya.resort.repository.EnquiryRepository;
+import com.companya.resort.repository.EnquiryDraftRepository;
+import com.companya.resort.repository.UserRepository;
+import com.companya.resort.service.GeminiAiService;
+import com.companya.resort.service.RuleFallbackService;
+import com.companya.resort.service.EnquiryRoutingService;
+import com.companya.resort.service.SimulatedDeliveryAdapter;
+
 import com.companya.resort.dto.PriceCalculationResult;
 import com.companya.resort.entity.BlackoutDate;
 import com.companya.resort.entity.DailyInventoryRate;
@@ -51,6 +61,20 @@ public class EnquirySafetyAndParsingTest {
 
     @Mock
     private PricingService pricingService;
+    @Mock
+    private EnquiryRepository enquiryRepository;
+    @Mock
+    private EnquiryDraftRepository enquiryDraftRepository;
+    @Mock
+    private UserRepository userRepository;
+    @Mock
+    private GeminiAiService geminiAiService;
+    @Mock
+    private RuleFallbackService ruleFallbackService;
+    @Mock
+    private EnquiryRoutingService enquiryRoutingService;
+    @Mock
+    private SimulatedDeliveryAdapter simulatedDeliveryAdapter;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -389,5 +413,99 @@ public class EnquirySafetyAndParsingTest {
         var ext2 = fallbackService.classifyFallback(query2);
         assertEquals("UNSORTED", ext2.getCategory());
         assertNotEquals("COMPLAINT", ext2.getCategory());
+    }
+
+    @Test
+    @DisplayName("EnquiryService.validateEnquiryBounds accepts valid boundary inputs for guests and rooms")
+    void testValidateEnquiryBounds_ValidInputs() {
+        EnquiryService service = new EnquiryService(
+                enquiryRepository, enquiryDraftRepository, userRepository,
+                geminiAiService, ruleFallbackService, enquiryRoutingService,
+                null, simulatedDeliveryAdapter, new BigDecimal("0.80"), 1000
+        );
+
+        // Valid minimum bounds
+        CreateEnquiryRequest minReq = new CreateEnquiryRequest("Guest", "guest@example.com", "Venue for wedding, 1 guests, 1 rooms", 1, 1, "yes");
+        assertDoesNotThrow(() -> service.validateEnquiryBounds(minReq));
+
+        // Valid typical wedding (250 guests from brief)
+        CreateEnquiryRequest typicalWedding = new CreateEnquiryRequest("Guest", "guest@example.com", "Venue for wedding, about 250 guests, 50 rooms", 250, 50, "yes");
+        assertDoesNotThrow(() -> service.validateEnquiryBounds(typicalWedding));
+
+        // Valid boundary maximums: 1000 technical limit for guests, 76 estate keys
+        CreateEnquiryRequest maxReq = new CreateEnquiryRequest("Guest", "guest@example.com", "Venue for wedding, about 1000 guests, 76 rooms", 1000, 76, "yes");
+        assertDoesNotThrow(() -> service.validateEnquiryBounds(maxReq));
+
+        // Valid day event (no rooms)
+        CreateEnquiryRequest dayEvent = new CreateEnquiryRequest("Guest", "guest@example.com", "Day event only (no overnight accommodation required), about 150 guests", 150, null, "no");
+        assertDoesNotThrow(() -> service.validateEnquiryBounds(dayEvent));
+    }
+
+    @Test
+    @DisplayName("EnquiryService.validateEnquiryBounds rejects out-of-range, negative, and overflow guest counts")
+    void testValidateEnquiryBounds_RejectsInvalidGuestCounts() {
+        EnquiryService service = new EnquiryService(
+                enquiryRepository, enquiryDraftRepository, userRepository,
+                geminiAiService, ruleFallbackService, enquiryRoutingService,
+                null, simulatedDeliveryAdapter, new BigDecimal("0.80"), 1000
+        );
+
+        // Structured field violations: 0, negative, > 1000
+        CreateEnquiryRequest zeroGuests = new CreateEnquiryRequest("Guest", "guest@example.com", "msg", 0, 10, "yes");
+        Exception ex0 = assertThrows(IllegalArgumentException.class, () -> service.validateEnquiryBounds(zeroGuests));
+        assertTrue(ex0.getMessage().contains("positive whole number (minimum 1)"));
+
+        CreateEnquiryRequest negGuests = new CreateEnquiryRequest("Guest", "guest@example.com", "msg", -5, 10, "yes");
+        Exception exNeg = assertThrows(IllegalArgumentException.class, () -> service.validateEnquiryBounds(negGuests));
+        assertTrue(exNeg.getMessage().contains("positive whole number (minimum 1)"));
+
+        CreateEnquiryRequest overGuests = new CreateEnquiryRequest("Guest", "guest@example.com", "msg", 1001, 10, "yes");
+        Exception exOver = assertThrows(IllegalArgumentException.class, () -> service.validateEnquiryBounds(overGuests));
+        assertTrue(exOver.getMessage().contains("technical validation limit of 1000"));
+
+        // Raw message injection bypass violations: e.g. "about 5000 guests", "team of 1500"
+        CreateEnquiryRequest rawOverGuests = new CreateEnquiryRequest("Guest", "guest@example.com", "We need a venue for about 5000 guests");
+        Exception exRaw = assertThrows(IllegalArgumentException.class, () -> service.validateEnquiryBounds(rawOverGuests));
+        assertTrue(exRaw.getMessage().contains("technical validation limit of 1000"));
+
+        CreateEnquiryRequest rawDecimals = new CreateEnquiryRequest("Guest", "guest@example.com", "We expect 150.5 guests");
+        Exception exDec = assertThrows(IllegalArgumentException.class, () -> service.validateEnquiryBounds(rawDecimals));
+        assertTrue(exDec.getMessage().contains("decimals not allowed"));
+
+        CreateEnquiryRequest rawNegative = new CreateEnquiryRequest("Guest", "guest@example.com", "about -5 guests");
+        Exception exRawNeg = assertThrows(IllegalArgumentException.class, () -> service.validateEnquiryBounds(rawNegative));
+        assertTrue(exRawNeg.getMessage().contains("positive whole number (minimum 1)"));
+    }
+
+    @Test
+    @DisplayName("EnquiryService.validateEnquiryBounds rejects rooms exceeding 76-key inventory cap or non-positive")
+    void testValidateEnquiryBounds_RejectsInvalidRoomCounts() {
+        EnquiryService service = new EnquiryService(
+                enquiryRepository, enquiryDraftRepository, userRepository,
+                geminiAiService, ruleFallbackService, enquiryRoutingService,
+                null, simulatedDeliveryAdapter, new BigDecimal("0.80"), 1000
+        );
+
+        // Structured field violations: 0, negative, > 76
+        CreateEnquiryRequest zeroRooms = new CreateEnquiryRequest("Guest", "guest@example.com", "msg", 100, 0, "yes");
+        Exception ex0 = assertThrows(IllegalArgumentException.class, () -> service.validateEnquiryBounds(zeroRooms));
+        assertTrue(ex0.getMessage().contains("positive whole number (minimum 1)"));
+
+        CreateEnquiryRequest negRooms = new CreateEnquiryRequest("Guest", "guest@example.com", "msg", 100, -2, "yes");
+        Exception exNeg = assertThrows(IllegalArgumentException.class, () -> service.validateEnquiryBounds(negRooms));
+        assertTrue(exNeg.getMessage().contains("positive whole number (minimum 1)"));
+
+        CreateEnquiryRequest overRooms = new CreateEnquiryRequest("Guest", "guest@example.com", "msg", 100, 77, "yes");
+        Exception exOver = assertThrows(IllegalArgumentException.class, () -> service.validateEnquiryBounds(overRooms));
+        assertTrue(exOver.getMessage().contains("cannot exceed total estate inventory of 76 keys"));
+
+        // Raw message injection bypass violations: e.g. "80 rooms", "100 keys"
+        CreateEnquiryRequest rawOverRooms = new CreateEnquiryRequest("Guest", "guest@example.com", "Corporate retreat with 80 rooms requested");
+        Exception exRaw = assertThrows(IllegalArgumentException.class, () -> service.validateEnquiryBounds(rawOverRooms));
+        assertTrue(exRaw.getMessage().contains("cannot exceed total estate inventory of 76 keys"));
+
+        CreateEnquiryRequest rawRoomDecimals = new CreateEnquiryRequest("Guest", "guest@example.com", "We need 12.5 rooms");
+        Exception exDec = assertThrows(IllegalArgumentException.class, () -> service.validateEnquiryBounds(rawRoomDecimals));
+        assertTrue(exDec.getMessage().contains("decimals not allowed"));
     }
 }
