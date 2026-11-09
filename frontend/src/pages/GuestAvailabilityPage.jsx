@@ -60,27 +60,64 @@ export function GuestAvailabilityPage() {
   const datesSelected = isValidStayDateRange(queryCheckIn, queryCheckOut);
   const checkIn = datesSelected ? queryCheckIn : '';
   const checkOut = datesSelected ? queryCheckOut : '';
-  const rooms = Number(searchParams.get('rooms')) || 1;
-  const adults = Number(searchParams.get('adults')) || 2;
+  const rawRooms = searchParams.get('rooms');
+  const isGroupQuery = rawRooms === 'group' || Number(rawRooms) >= 6;
+  const rooms = isGroupQuery ? 6 : (Number(rawRooms) || 1);
+  const adults = Number(searchParams.get('adults')) || (isGroupQuery ? 12 : 2);
   const children = Number(searchParams.get('children')) || 0;
 
   // Search modifier state
   const [isModifying, setIsModifying] = useState(false);
   const [formCheckIn, setFormCheckIn] = useState(checkIn);
   const [formCheckOut, setFormCheckOut] = useState(checkOut);
-  const [formRooms, setFormRooms] = useState(rooms);
+  const [formRooms, setFormRooms] = useState(isGroupQuery ? 'group' : rooms);
   const [formAdults, setFormAdults] = useState(adults);
   const [formChildren, setFormChildren] = useState(children);
   const [formError, setFormError] = useState('');
+
+  // Dynamic capacity rules:
+  // 1–5 Rooms online: min adults = rooms, max adults = rooms * 3, max children = rooms * 2
+  // 6+ Rooms (Group / Buyout): triggers concierge handoff
+  const isGroupSelected = formRooms === 'group' || Number(formRooms) >= 6;
+  const numericFormRooms = isGroupSelected ? 6 : Math.max(1, Number(formRooms) || 1);
+  const minAdults = isGroupSelected ? 6 : numericFormRooms;
+  const maxAdults = isGroupSelected ? 30 : numericFormRooms * 3;
+  const maxChildren = isGroupSelected ? 12 : numericFormRooms * 2;
+
+  const handleRoomsChange = (val) => {
+    if (val === 'group') {
+      setFormRooms('group');
+      if (formAdults < 6) {
+        setFormAdults(12);
+      }
+      return;
+    }
+    const newRooms = Number(val);
+    setFormRooms(newRooms);
+    const minA = newRooms;
+    const maxA = newRooms * 3;
+    const maxC = newRooms * 2;
+
+    setFormAdults((prev) => {
+      if (prev < minA) return Math.min(newRooms * 2, maxA);
+      if (prev > maxA) return maxA;
+      return prev;
+    });
+
+    setFormChildren((prev) => {
+      if (prev > maxC) return maxC;
+      return prev;
+    });
+  };
 
   // Keep form inputs synced when query params change externally
   useEffect(() => {
     setFormCheckIn(checkIn);
     setFormCheckOut(checkOut);
-    setFormRooms(rooms);
+    setFormRooms(isGroupQuery ? 'group' : rooms);
     setFormAdults(adults);
     setFormChildren(children);
-  }, [checkIn, checkOut, rooms, adults, children]);
+  }, [checkIn, checkOut, rooms, adults, children, isGroupQuery]);
 
   // API State
   const [data, setData] = useState(null);
@@ -134,6 +171,14 @@ export function GuestAvailabilityPage() {
 
   function handleSearchSubmit(e) {
     e.preventDefault();
+    if (formRooms === 'group' || Number(formRooms) >= 6) {
+      const qCheckIn = formCheckIn || '';
+      const qCheckOut = formCheckOut || '';
+      const totalGuests = formAdults + formChildren;
+      navigate(`/enquire?type=room${qCheckIn ? `&checkIn=${encodeURIComponent(qCheckIn)}` : ''}${qCheckOut ? `&checkOut=${encodeURIComponent(qCheckOut)}` : ''}&guests=${totalGuests}&rooms=6`);
+      return;
+    }
+
     if (!formCheckIn) {
       setFormError('Please select an arrival date.');
       return;
@@ -346,12 +391,15 @@ export function GuestAvailabilityPage() {
                   <select
                     id="stay-edit-rooms"
                     value={formRooms}
-                    onChange={(e) => setFormRooms(Number(e.target.value))}
+                    onChange={(e) => handleRoomsChange(e.target.value === 'group' ? 'group' : Number(e.target.value))}
                     className="stay-search-edit__select"
                   >
                     <option value={1}>1 Room</option>
                     <option value={2}>2 Rooms</option>
                     <option value={3}>3 Rooms</option>
+                    <option value={4}>4 Rooms</option>
+                    <option value={5}>5 Rooms</option>
+                    <option value="group">6+ Rooms (Group / Buyout)</option>
                   </select>
                 </div>
 
@@ -363,10 +411,11 @@ export function GuestAvailabilityPage() {
                     onChange={(e) => setFormAdults(Number(e.target.value))}
                     className="stay-search-edit__select"
                   >
-                    <option value={1}>1 Adult</option>
-                    <option value={2}>2 Adults</option>
-                    <option value={3}>3 Adults</option>
-                    <option value={4}>4 Adults</option>
+                    {Array.from({ length: maxAdults - minAdults + 1 }, (_, i) => minAdults + i).map((count) => (
+                      <option key={count} value={count}>
+                        {count} {count === 1 ? 'Adult' : 'Adults'}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -378,11 +427,43 @@ export function GuestAvailabilityPage() {
                     onChange={(e) => setFormChildren(Number(e.target.value))}
                     className="stay-search-edit__select"
                   >
-                    <option value={0}>0 Children</option>
-                    <option value={1}>1 Child</option>
-                    <option value={2}>2 Children</option>
+                    {Array.from({ length: maxChildren + 1 }, (_, i) => i).map((count) => (
+                      <option key={count} value={count}>
+                        {count} {count === 1 ? 'Child' : 'Children'}
+                      </option>
+                    ))}
                   </select>
                 </div>
+
+              {isGroupSelected && (
+                <div className="stay-group-banner" role="region" aria-label="Group Stay Concierge">
+                  <div className="stay-group-banner__content">
+                    <div className="stay-group-banner__icon" aria-hidden="true">
+                      <UsersIcon size={24} />
+                    </div>
+                    <div className="stay-group-banner__text">
+                      <h4 className="stay-group-banner__title">
+                        Planning a Multi-Room Group Stay or Family Reunion?
+                      </h4>
+                      <p className="stay-group-banner__desc">
+                        For reservations of 6 or more rooms (or 12+ guests), our Estate Reservations Desk prepares custom group allocations across our 64 Estate Rooms and 12 Private Villas.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="stay-group-banner__cta"
+                    onClick={() => {
+                      const qCheckIn = formCheckIn || checkIn || '';
+                      const qCheckOut = formCheckOut || checkOut || '';
+                      const totalGuests = (formAdults || 12) + (formChildren || 0);
+                      navigate(`/enquire?type=room${qCheckIn ? `&checkIn=${encodeURIComponent(qCheckIn)}` : ''}${qCheckOut ? `&checkOut=${encodeURIComponent(qCheckOut)}` : ''}&guests=${totalGuests}&rooms=6`);
+                    }}
+                  >
+                    Request Group Stay Proposal &rarr;
+                  </button>
+                </div>
+              )}
 
                 <div className="stay-search-edit__actions">
                   <button type="submit" className="stay-search-edit__submit-btn">
@@ -503,6 +584,33 @@ export function GuestAvailabilityPage() {
               </div>
             )}
 
+            {(isGroupQuery || rooms >= 6 || adults > 12) && (
+              <div className="stay-group-banner stay-group-banner--standalone" role="region" aria-label="Group Stay Concierge">
+                <div className="stay-group-banner__content">
+                  <div className="stay-group-banner__icon" aria-hidden="true">
+                    <UsersIcon size={24} />
+                  </div>
+                  <div className="stay-group-banner__text">
+                    <h3 className="stay-group-banner__title">
+                      Planning a Multi-Room Group Stay or Family Reunion?
+                    </h3>
+                    <p className="stay-group-banner__desc">
+                      For reservations of 6 or more rooms (or 12+ guests), our Estate Reservations Desk prepares custom group allocations across our 64 Estate Rooms and 12 Private Villas.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="stay-group-banner__cta"
+                  onClick={() => {
+                    navigate(`/enquire?type=room${checkIn ? `&checkIn=${encodeURIComponent(checkIn)}` : ''}${checkOut ? `&checkOut=${encodeURIComponent(checkOut)}` : ''}&guests=${adults + children}&rooms=${rooms >= 6 ? rooms : 6}`);
+                  }}
+                >
+                  Request Group Stay Proposal &rarr;
+                </button>
+              </div>
+            )}
+
             {/* Real Accommodation Results */}
             {!isLoading && !error && hasAvailableRooms && (
               <div className="stay-card-list">
@@ -515,6 +623,9 @@ export function GuestAvailabilityPage() {
                   const gstPercent = firstPlan?.gstPercentageApplied ?? 18;
                   const totalWithGst = firstPlan?.totalPayableInr;
                   const availableCount = cat.remainingAllotment ?? cat.availableRooms ?? 0;
+                  const avgAdultsPerRoom = Math.ceil(adults / rooms);
+                  const exceedsAdultCapacity = avgAdultsPerRoom > cat.maxAdults;
+                  const insufficientAllotment = availableCount < rooms;
 
                   return (
                     <article key={cat.id || cat.code} className="stay-room-card">
@@ -573,6 +684,11 @@ export function GuestAvailabilityPage() {
                             </span>
                           </div>
                           <p className="stay-room-card__subtitle">{cat.shortDescription || cat.baseDescription}</p>
+                          {exceedsAdultCapacity && (
+                            <div className="stay-capacity-warning" role="note">
+                              Max {cat.maxAdults} adults per {cat.name} ({adults} adults across {rooms} {rooms === 1 ? 'room' : 'rooms'} averages {avgAdultsPerRoom}/room) — consider {cat.code === 'ROOM' ? 'Private Villas or ' : ''}additional rooms.
+                            </div>
+                          )}
                         </div>
 
                         <div className="stay-room-card__meta">
@@ -614,7 +730,7 @@ export function GuestAvailabilityPage() {
                           </div>
                           {totalWithGst && (
                             <div className="stay-price-total">
-                              {formatINR(totalWithGst)} total for {nights} {nights === 1 ? 'night' : 'nights'} (incl. GST)
+                              {formatINR(totalWithGst)} total for {rooms > 1 ? `${rooms} Rooms × ${nights} ${nights === 1 ? 'Night' : 'Nights'}` : `${nights} ${nights === 1 ? 'night' : 'nights'}`} (incl. GST)
                             </div>
                           )}
                         </div>
