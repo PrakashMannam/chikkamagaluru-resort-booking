@@ -37,6 +37,15 @@ class DatabaseMigrationIntegrationTest {
             "Skipping migration test: TEST_DB_URL environment variable is not set."
         );
 
+        // Explicit safety guard: strictly refuse to execute against production or shared non-test databases
+        String lowerUrl = testDbUrl.toLowerCase();
+        if (lowerUrl.contains("prod") || !lowerUrl.contains("test")) {
+            throw new IllegalStateException(
+                    "Refusing to execute integration test: TEST_DB_URL must target an explicit test/disposable database (must contain 'test' and must not contain 'prod'). Provided: " + testDbUrl
+            );
+        }
+
+
         if (testDbUser == null) {
             testDbUser = "root";
         }

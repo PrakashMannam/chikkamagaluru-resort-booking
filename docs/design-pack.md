@@ -123,7 +123,7 @@ This **v2** core-build blueprint covers the 6–8 screen slice for Company A's C
 ## 4. Allotment Control: Zero-Overbooking Algorithm & Concurrency Test
 
 ### The Algorithm (Idempotency + Hold Cap + Pessimistic Row-Level Locking in Ordered Sequence + Expiry Release)
-To guarantee zero website overbookings even when $N$ guests click "Book & Pay" at the exact same millisecond for overlapping dates, the system uses **database-level pessimistic write locks (`SELECT ... FOR UPDATE`) acquired in strict chronological order** inside a single `@Transactional` boundary:
+To prevent website overbookings in concurrent booking scenarios (such as $N$ guests attempting to book simultaneously for overlapping dates), the system uses **database-level pessimistic write locks (`SELECT ... FOR UPDATE`) acquired in strict chronological order** inside a single `@Transactional` boundary:
 
 1. **Idempotency & Active Hold Cap Check:**
    * Look up `bookings` by `idempotency_key`. If found, return the existing booking response immediately (no new hold).

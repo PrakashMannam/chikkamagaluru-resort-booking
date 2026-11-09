@@ -217,7 +217,7 @@ npm run dev
 
 The following results are from the local `audit/final-hardening` worktree based on repository `main` commit `2c7dc65`. They are not production test results.
 
-**Backend:** `cd backend && bash ./mvnw -q test` completed with 238 tests, 0 failures, 0 errors, and 0 skipped, as counted from Surefire XML reports. `TEST_DB_URL` was not configured, so the MySQL-backed migration and inventory-concurrency tests were not verified. A passing unit/mock suite does not prove zero overbooking under concurrent MySQL transactions.
+**Backend:** `cd backend && bash ./mvnw -q test` completed with 238 tests, 0 failures, 0 errors, and 0 skipped, as counted from Surefire XML reports. On 9 November 2026, the MySQL-backed integration test suite was executed against disposable MySQL 8.0.45 (`disposable_concurrency_repeat_test_db`) on review branch `test/inventory-concurrency-verification`. With `TEST_DB_URL` configured, all 260 tests passed (including 100 repeated runs of competing holds for the last room, multi-night overlapping ranges, idempotency races, payment vs expiry races, and rollback assertions). The disposable database was then dropped. This PR branch is not yet merged or deployed.
 
 **Frontend:** `node --test frontend/test/*.test.mjs` passed 25 tests with 0 failures. `npm run build` completed successfully. `npm audit --audit-level=moderate` reported 0 known vulnerabilities. `git diff --check` reported no whitespace errors.
 
