@@ -5,7 +5,7 @@
 .stay-page {
   background-color: var(--color-bg, #FAF8F5);
   min-height: calc(100vh - 4rem);
-  padding-bottom: 5rem;
+  padding-bottom: 3rem;
 }
 
 /* --------------------------------------------------------------------------
@@ -247,7 +247,7 @@
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
-  margin-bottom: 2rem;
+  margin-bottom: 1.25rem;
 }
 
 .stay-heading-row__title {
@@ -272,12 +272,12 @@
 .stay-card-list {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.25rem;
 }
 
 .stay-room-card {
   display: grid;
-  grid-template-columns: 360px 1fr 240px;
+  grid-template-columns: 320px 1fr 240px;
   background-color: #FFFFFF;
   border: 1px solid var(--color-border, #E7E2DA);
   border-radius: 8px;
@@ -296,7 +296,7 @@
   position: relative;
   width: 100%;
   height: 100%;
-  min-height: 250px;
+  min-height: 220px;
   overflow: hidden;
   background-color: #E7E2DA;
 }
@@ -351,6 +351,101 @@
 }
 
 /* Middle: Content & Specs */
+
+.stay-room-card__body {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.625rem;
+}
+
+.stay-room-card__title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.25rem;
+}
+
+.stay-avail-pill {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-body, system-ui);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+}
+
+.stay-avail-pill--available {
+  background-color: #E8F5E9;
+  color: #1E3A2F;
+  border: 1px solid #C8E6C9;
+}
+
+.stay-avail-pill--low {
+  background-color: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #FDE68A;
+}
+
+.stay-avail-pill--soldout {
+  background-color: #FEE2E2;
+  color: #991B1B;
+  border: 1px solid #FECACA;
+}
+
+.stay-room-card__subtitle {
+  font-family: var(--font-body, system-ui);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #57534E;
+  margin: 0;
+}
+
+.stay-room-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-family: var(--font-body, system-ui);
+  font-size: 0.8125rem;
+  color: #57534E;
+}
+
+.stay-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.stay-meta-divider {
+  color: #A8A29E;
+  font-size: 0.625rem;
+}
+
+.stay-room-card__amenities {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+.stay-amenity-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  background-color: #FAF8F5;
+  border: 1px solid #E7E2DA;
+  border-radius: 4px;
+  font-family: var(--font-body, system-ui);
+  font-size: 0.75rem;
+  color: #44403C;
+}
+
 .stay-room-card__content {
   padding: 1.75rem 1.75rem 1.75rem 1.75rem;
   display: flex;
@@ -528,23 +623,23 @@
 .stay-skeleton-list {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.25rem;
 }
 
 .stay-skeleton-card {
   display: grid;
-  grid-template-columns: 360px 1fr 240px;
+  grid-template-columns: 320px 1fr 240px;
   background-color: #FFFFFF;
   border: 1px solid #E7E2DA;
   border-radius: 8px;
   overflow: hidden;
-  min-height: 250px;
+  min-height: 220px;
 }
 
 .stay-skeleton-card__img {
   width: 100%;
   height: 100%;
-  min-height: 250px;
+  min-height: 220px;
 }
 
 .stay-skeleton-card__body {
@@ -644,7 +739,7 @@
 }
 
 .stay-error-wrapper {
-  margin-bottom: 2rem;
+  margin-bottom: 1.25rem;
 }
 
 /* --------------------------------------------------------------------------
@@ -658,7 +753,102 @@
     grid-template-columns: 280px 1fr 210px;
   }
 
-  .stay-room-card__content {
+  
+.stay-room-card__body {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.625rem;
+}
+
+.stay-room-card__title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.25rem;
+}
+
+.stay-avail-pill {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-body, system-ui);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+}
+
+.stay-avail-pill--available {
+  background-color: #E8F5E9;
+  color: #1E3A2F;
+  border: 1px solid #C8E6C9;
+}
+
+.stay-avail-pill--low {
+  background-color: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #FDE68A;
+}
+
+.stay-avail-pill--soldout {
+  background-color: #FEE2E2;
+  color: #991B1B;
+  border: 1px solid #FECACA;
+}
+
+.stay-room-card__subtitle {
+  font-family: var(--font-body, system-ui);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #57534E;
+  margin: 0;
+}
+
+.stay-room-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-family: var(--font-body, system-ui);
+  font-size: 0.8125rem;
+  color: #57534E;
+}
+
+.stay-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.stay-meta-divider {
+  color: #A8A29E;
+  font-size: 0.625rem;
+}
+
+.stay-room-card__amenities {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+.stay-amenity-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  background-color: #FAF8F5;
+  border: 1px solid #E7E2DA;
+  border-radius: 4px;
+  font-family: var(--font-body, system-ui);
+  font-size: 0.75rem;
+  color: #44403C;
+}
+
+.stay-room-card__content {
     padding: 1.5rem;
   }
 
@@ -721,7 +911,102 @@
     min-height: 240px;
   }
 
-  .stay-room-card__content {
+  
+.stay-room-card__body {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.625rem;
+}
+
+.stay-room-card__title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.25rem;
+}
+
+.stay-avail-pill {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-body, system-ui);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+}
+
+.stay-avail-pill--available {
+  background-color: #E8F5E9;
+  color: #1E3A2F;
+  border: 1px solid #C8E6C9;
+}
+
+.stay-avail-pill--low {
+  background-color: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #FDE68A;
+}
+
+.stay-avail-pill--soldout {
+  background-color: #FEE2E2;
+  color: #991B1B;
+  border: 1px solid #FECACA;
+}
+
+.stay-room-card__subtitle {
+  font-family: var(--font-body, system-ui);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #57534E;
+  margin: 0;
+}
+
+.stay-room-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-family: var(--font-body, system-ui);
+  font-size: 0.8125rem;
+  color: #57534E;
+}
+
+.stay-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.stay-meta-divider {
+  color: #A8A29E;
+  font-size: 0.625rem;
+}
+
+.stay-room-card__amenities {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+.stay-amenity-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  background-color: #FAF8F5;
+  border: 1px solid #E7E2DA;
+  border-radius: 4px;
+  font-family: var(--font-body, system-ui);
+  font-size: 0.75rem;
+  color: #44403C;
+}
+
+.stay-room-card__content {
     padding: 1.25rem;
   }
 
@@ -798,18 +1083,18 @@
    -------------------------------------------------------------------------- */
 .stay-hero {
   position: relative;
-  min-height: 20rem;
+  min-height: 17rem;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding: 3.5rem var(--space-4) 4.5rem;
+  padding: 2.5rem var(--space-4) 3.5rem;
   background-color: #1E3A2F;
 }
 
 @media (min-width: 640px) {
   .stay-hero {
-    min-height: 23rem;
-    padding: 4.5rem var(--space-6) 5.5rem;
+    min-height: 18rem;
+    padding: 3rem var(--space-6) 4rem;
   }
 }
 
@@ -900,7 +1185,7 @@
    -------------------------------------------------------------------------- */
 .stay-discovery-section {
   max-width: 72rem;
-  margin: 3.5rem auto 1rem;
+  margin: 2.5rem auto 0;
   padding: 0 var(--space-4);
 }
 
@@ -938,9 +1223,15 @@
 }
 
 .stay-discovery-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 1.75rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .stay-discovery-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .stay-discovery-card {
@@ -963,7 +1254,7 @@
 
 .stay-discovery-card__media {
   width: 100%;
-  height: 14rem;
+  aspect-ratio: 16 / 10; height: auto;
   overflow: hidden;
   background-color: #EFECE6;
   flex-shrink: 0;
@@ -971,7 +1262,7 @@
 
 @media (min-width: 768px) {
   .stay-discovery-card__media {
-    width: 20rem;
+    width: 100%;
     height: auto;
   }
 }
@@ -993,7 +1284,7 @@
 
 @media (min-width: 640px) {
   .stay-discovery-card__content {
-    padding: 2rem;
+    padding: 1.25rem 1.5rem;
   }
 }
 
@@ -1009,15 +1300,14 @@
   font-size: 0.875rem;
   line-height: 1.6;
   color: #5C5852;
-  margin-bottom: 1.25rem;
-  max-width: 40rem;
+  margin-bottom: 0.75rem;
 }
 
 .stay-discovery-card__pills {
   display: flex;
   flex-wrap: wrap;
   gap: 0.625rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .stay-meta-pill {
@@ -1057,7 +1347,7 @@
    -------------------------------------------------------------------------- */
 .stay-why-section {
   max-width: 72rem;
-  margin: 3.5rem auto 0;
+  margin: 2.5rem auto 0;
   padding: 0 var(--space-4);
 }
 

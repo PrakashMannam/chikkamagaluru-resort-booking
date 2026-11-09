@@ -174,6 +174,14 @@ export function GuestAvailabilityPage() {
   }, [categories]);
   const hasAvailableRooms = availableCategories.length > 0;
 
+  const estateRoomCat = useMemo(() => {
+    return categories.find((c) => c.code === 'ROOM');
+  }, [categories]);
+
+  const villaCat = useMemo(() => {
+    return categories.find((c) => c.code === 'VILLA');
+  }, [categories]);
+
   function getRoomImage(category) {
     if (category.code === 'VILLA') {
       return {
@@ -410,95 +418,7 @@ export function GuestAvailabilityPage() {
         </div>
       </section>
 
-      {/* 3. Explore Our Accommodation Discovery Section (Always visible, matches Panel 2) */}
-      <section className="stay-discovery-section" id="explore-accommodation" aria-labelledby="stay-explore-title">
-        <div className="stay-discovery-header">
-          <h2 id="stay-explore-title" className="stay-discovery-title">Explore Our Accommodation</h2>
-          <p className="stay-discovery-sub">
-            Choose from thoughtfully designed rooms and private villas, perfect for a peaceful estate escape.
-          </p>
-        </div>
-
-        <div className="stay-discovery-grid">
-          {/* Card 1: Estate Rooms */}
-          <article className="stay-discovery-card">
-            <div className="stay-discovery-card__media">
-              <img
-                src="/images/estate-room.jpg"
-                alt="Estate Room with teakwood canopy bed and garden views"
-                className="stay-discovery-card__img"
-                loading="lazy"
-                decoding="async"
-                width="600"
-                height="375"
-              />
-            </div>
-            <div className="stay-discovery-card__content">
-              <h3 className="stay-discovery-card__title">Estate Rooms</h3>
-              <p className="stay-discovery-card__desc">
-                Comfortable, earthy rooms nestled within the coffee plantation canopy with serene garden views.
-              </p>
-              <div className="stay-discovery-card__pills">
-                <span className="stay-meta-pill">
-                  <KeyIcon size={16} color="#1E3A2F" />
-                  64 Keys at the Estate
-                </span>
-                <span className="stay-meta-pill">
-                  <UsersIcon size={16} color="#1E3A2F" />
-                  Up to 2 Adults &amp; 2 Children
-                </span>
-              </div>
-              <button
-                type="button"
-                className="stay-discovery-card__cta"
-                onClick={focusSearchInput}
-              >
-                Explore Rooms &rarr;
-              </button>
-            </div>
-          </article>
-
-          {/* Card 2: Private Villas */}
-          <article className="stay-discovery-card">
-            <div className="stay-discovery-card__media">
-              <img
-                src="/images/coffee-villa.jpg"
-                alt="Private Villa with plunge pool and panoramic hill views"
-                className="stay-discovery-card__img"
-                loading="lazy"
-                decoding="async"
-                width="600"
-                height="375"
-              />
-            </div>
-            <div className="stay-discovery-card__content">
-              <h3 className="stay-discovery-card__title">Private Villas</h3>
-              <p className="stay-discovery-card__desc">
-                Spacious private villas with secluded sit-outs and plunge pools, ideal for families and small groups.
-              </p>
-              <div className="stay-discovery-card__pills">
-                <span className="stay-meta-pill">
-                  <KeyIcon size={16} color="#1E3A2F" />
-                  12 Private Villas
-                </span>
-                <span className="stay-meta-pill">
-                  <UsersIcon size={16} color="#1E3A2F" />
-                  Up to 3 Adults &amp; 2 Children
-                </span>
-              </div>
-              <button
-                type="button"
-                className="stay-discovery-card__cta"
-                onClick={focusSearchInput}
-              >
-                Explore Villas &rarr;
-              </button>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      {/* 4. Live Availability Results (Rendered When Dates Are Searched) */}
+      {/* 3. Live Availability Results (Rendered When Dates Are Searched) */}
       {datesSelected && (
         <section className="stay-content" aria-labelledby="stay-results-heading">
           <div className="stay-content__inner">
@@ -594,6 +514,7 @@ export function GuestAvailabilityPage() {
                   const firstPlan = cat.ratePlans?.[0];
                   const gstPercent = firstPlan?.gstPercentageApplied ?? 18;
                   const totalWithGst = firstPlan?.totalPayableInr;
+                  const availableCount = cat.remainingAllotment ?? cat.availableRooms ?? 0;
 
                   return (
                     <article key={cat.id || cat.code} className="stay-room-card">
@@ -612,15 +533,19 @@ export function GuestAvailabilityPage() {
                         <div className="stay-room-card__badge-wrap">
                           {cat.isBlackedOut ? (
                             <span className="stay-badge stay-badge--danger">
-                              Unavailable
+                              No availability
                             </span>
-                          ) : cat.availableRooms <= 3 ? (
+                          ) : !cat.hasAllotment || availableCount <= 0 ? (
+                            <span className="stay-badge stay-badge--danger">
+                              Sold out
+                            </span>
+                          ) : availableCount <= 3 ? (
                             <span className="stay-badge stay-badge--warning">
-                              Only {cat.availableRooms} {cat.availableRooms === 1 ? 'room' : 'rooms'} left
+                              Only {availableCount} {availableCount === 1 ? 'room' : 'rooms'} left
                             </span>
                           ) : (
                             <span className="stay-badge stay-badge--success">
-                              Available
+                              {availableCount} available
                             </span>
                           )}
                         </div>
@@ -629,8 +554,25 @@ export function GuestAvailabilityPage() {
                       {/* Middle: Details */}
                       <div className="stay-room-card__body">
                         <div className="stay-room-card__header">
-                          <h3 className="stay-room-card__title">{cat.name}</h3>
-                          <p className="stay-room-card__subtitle">{cat.shortDescription}</p>
+                          <div className="stay-room-card__title-row">
+                            <h3 className="stay-room-card__title">{cat.name}</h3>
+                            <span
+                              className={`stay-avail-pill stay-avail-pill--${
+                                cat.isBlackedOut || !cat.hasAllotment || availableCount <= 0
+                                  ? 'soldout'
+                                  : availableCount <= 3
+                                  ? 'low'
+                                  : 'available'
+                              }`}
+                            >
+                              {cat.isBlackedOut
+                                ? 'No availability'
+                                : !cat.hasAllotment || availableCount <= 0
+                                ? 'Sold out'
+                                : `${availableCount} available`}
+                            </span>
+                          </div>
+                          <p className="stay-room-card__subtitle">{cat.shortDescription || cat.baseDescription}</p>
                         </div>
 
                         <div className="stay-room-card__meta">
@@ -638,9 +580,11 @@ export function GuestAvailabilityPage() {
                             <UserIcon />
                             <span>{specs.capacity}</span>
                           </span>
+                          <span className="stay-meta-divider" aria-hidden="true">•</span>
                           <span className="stay-meta-item">
                             <span>{specs.area}</span>
                           </span>
+                          <span className="stay-meta-divider" aria-hidden="true">•</span>
                           <span className="stay-meta-item">
                             <span>{specs.view}</span>
                           </span>
@@ -680,7 +624,7 @@ export function GuestAvailabilityPage() {
                           className="stay-room-card__cta"
                           onClick={() => navigate(detailUrl)}
                         >
-                          View Details
+                          View Details &rarr;
                         </button>
                       </div>
                     </article>
@@ -692,7 +636,109 @@ export function GuestAvailabilityPage() {
         </section>
       )}
 
-      {/* 5. Bottom "Why Stay With Us?" Banner matching Panel 2 of Reference Mockup */}
+
+
+{/* 4. Explore Our Accommodation Discovery Section (Matches Panel 2) */}
+      <section className="stay-discovery-section" id="explore-accommodation" aria-labelledby="stay-explore-title">
+        <div className="stay-discovery-header">
+          <h2 id="stay-explore-title" className="stay-discovery-title">Explore Our Accommodation</h2>
+          <p className="stay-discovery-sub">
+            Choose from thoughtfully designed rooms and private villas, perfect for a peaceful estate escape.
+          </p>
+        </div>
+
+        <div className="stay-discovery-grid">
+          {/* Card 1: Estate Rooms */}
+          <article className="stay-discovery-card">
+            <div className="stay-discovery-card__media">
+              <img
+                src="/images/estate-room.jpg"
+                alt="Estate Room with teakwood canopy bed and garden views"
+                className="stay-discovery-card__img"
+                loading="lazy"
+                decoding="async"
+                width="600"
+                height="375"
+              />
+            </div>
+            <div className="stay-discovery-card__content">
+              <h3 className="stay-discovery-card__title">Estate Rooms</h3>
+              <p className="stay-discovery-card__desc">
+                Comfortable, earthy rooms nestled within the coffee plantation canopy with serene garden views.
+              </p>
+              <div className="stay-discovery-card__pills">
+                <span className="stay-meta-pill">
+                  <KeyIcon size={16} color="#1E3A2F" />
+                  {datesSelected && estateRoomCat != null
+                    ? estateRoomCat.isBlackedOut
+                      ? 'No availability for dates (64 total keys)'
+                      : (estateRoomCat.remainingAllotment ?? 0) <= 0
+                      ? 'Sold out for dates (64 total keys)'
+                      : `${estateRoomCat.remainingAllotment} available for dates (64 total keys)`
+                    : '64 Keys at the Estate'}
+                </span>
+                <span className="stay-meta-pill">
+                  <UsersIcon size={16} color="#1E3A2F" />
+                  Up to 2 Adults &amp; 2 Children
+                </span>
+              </div>
+              <button
+                type="button"
+                className="stay-discovery-card__cta"
+                onClick={focusSearchInput}
+              >
+                Explore Rooms &rarr;
+              </button>
+            </div>
+          </article>
+
+          {/* Card 2: Private Villas */}
+          <article className="stay-discovery-card">
+            <div className="stay-discovery-card__media">
+              <img
+                src="/images/coffee-villa.jpg"
+                alt="Private Villa with plunge pool and panoramic hill views"
+                className="stay-discovery-card__img"
+                loading="lazy"
+                decoding="async"
+                width="600"
+                height="375"
+              />
+            </div>
+            <div className="stay-discovery-card__content">
+              <h3 className="stay-discovery-card__title">Private Villas</h3>
+              <p className="stay-discovery-card__desc">
+                Spacious private villas with secluded sit-outs and plunge pools, ideal for families and small groups.
+              </p>
+              <div className="stay-discovery-card__pills">
+                <span className="stay-meta-pill">
+                  <KeyIcon size={16} color="#1E3A2F" />
+                  {datesSelected && villaCat != null
+                    ? villaCat.isBlackedOut
+                      ? 'No availability for dates (12 total keys)'
+                      : (villaCat.remainingAllotment ?? 0) <= 0
+                      ? 'Sold out for dates (12 total keys)'
+                      : `${villaCat.remainingAllotment} available for dates (12 total keys)`
+                    : '12 Private Villas'}
+                </span>
+                <span className="stay-meta-pill">
+                  <UsersIcon size={16} color="#1E3A2F" />
+                  Up to 3 Adults &amp; 2 Children
+                </span>
+              </div>
+              <button
+                type="button"
+                className="stay-discovery-card__cta"
+                onClick={focusSearchInput}
+              >
+                Explore Villas &rarr;
+              </button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+            {/* 5. Bottom "Why Stay With Us?" Banner matching Panel 2 of Reference Mockup */}
       <section className="stay-why-section">
         <div className="stay-why-banner">
           <h2 className="stay-why-banner__title">Why Stay With Us?</h2>
