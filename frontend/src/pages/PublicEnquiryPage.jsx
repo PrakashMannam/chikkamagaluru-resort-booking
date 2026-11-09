@@ -15,20 +15,20 @@ const ENQUIRY_TYPES = [
   {
     id: 'WEDDING',
     label: 'Weddings & Celebrations',
-    description: 'Destination celebrations, ceremonies, and private gatherings across scenic estate lawns.',
-    icon: '💍',
+    description: 'Sacred ceremonies, receptions, and gatherings across scenic estate lawns.',
+    image: '/images/wedding-lawn.jpg',
   },
   {
     id: 'CORPORATE_OFFSITE',
     label: 'Corporate Offsites',
-    description: 'Executive retreats, team gatherings, and offsite programs on the estate grounds.',
-    icon: '💼',
+    description: 'Executive retreats, strategy sessions, and team offsites amidst coffee gardens.',
+    image: '/images/corporate-dining.jpg',
   },
   {
     id: 'ROOM_BOOKING',
-    label: 'Room Booking',
-    description: 'Individual stays, family getaways, and private cottage or pool villa reservations.',
-    icon: '☕',
+    label: 'Estate Stays',
+    description: 'Private pool villas and heritage canopy rooms for restful coffee estate stays.',
+    image: '/images/coffee-villa.jpg',
   },
 ];
 
@@ -37,7 +37,7 @@ function mapQueryType(param) {
   const val = param.toLowerCase().trim();
   if (val === 'wedding' || val === 'weddings') return 'WEDDING';
   if (val === 'offsite' || val === 'offsites' || val === 'corporate' || val === 'corporate_offsite') return 'CORPORATE_OFFSITE';
-  if (val === 'room' || val === 'rooms' || val === 'room_booking' || val === 'stay' || val === 'general') return 'ROOM_BOOKING';
+  if (val === 'room' || val === 'rooms' || val === 'stay' || val === 'room_booking' || val === 'general') return 'ROOM_BOOKING';
   return null;
 }
 
@@ -108,12 +108,12 @@ function getPageContent(enquiryType, rawTypeParam) {
 }
 
 export function PublicEnquiryPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const rawTypeParam = searchParams.get('type');
   const mappedType = mapQueryType(rawTypeParam);
-  const initialType = mappedType || 'WEDDING';
 
-  const [enquiryType, setEnquiryType] = useState(initialType);
+  // When no category is specified, start with no selection and ask the guest to choose
+  const [enquiryType, setEnquiryType] = useState(mappedType);
 
   // Contact fields
   const [fullName, setFullName] = useState('');
@@ -146,6 +146,15 @@ export function PublicEnquiryPage() {
 
   // Switch type and reset form counts
   const handleTypeChange = (typeId) => {
+    const paramMap = {
+      'WEDDING': 'wedding',
+      'CORPORATE_OFFSITE': 'offsite',
+      'ROOM_BOOKING': 'room',
+    };
+    const newParam = paramMap[typeId];
+    if (newParam) {
+      setSearchParams({ type: newParam });
+    }
     setEnquiryType(typeId);
     setErrors({});
     setSubmitError(null);
@@ -180,17 +189,24 @@ export function PublicEnquiryPage() {
     }
   };
 
-  // Sync state if URL query params change dynamically
+  // Sync selection state if URL query params change dynamically (Back/Forward or direct navigation)
   useEffect(() => {
     const typeParam = searchParams.get('type');
     const mapped = mapQueryType(typeParam);
-    if (mapped) {
-      handleTypeChange(mapped);
+    setEnquiryType(mapped);
+    if (mapped === 'ROOM_BOOKING') {
+      setAccommodationChoice('yes');
+    } else if (mapped) {
+      setAccommodationChoice(DEFAULT_ACCOMMODATION_CHOICE);
     }
   }, [searchParams]);
 
   const validateForm = () => {
     const newErrors = {};
+
+    if (!enquiryType) {
+      newErrors.enquiryType = 'Please select your planned experience (Weddings, Corporate Offsites, or Estate Stays).';
+    }
 
     if (!fullName.trim()) {
       newErrors.fullName = 'Please enter your full name.';
@@ -462,15 +478,21 @@ export function PublicEnquiryPage() {
               />
             )}
 
-            {/* Step 1: Occasion Category Selector */}
+            {/* Occasion Category Selector */}
             <Card className="enquiry-card" padding="large">
               <div className="enquiry-card__header">
-                <span className="enquiry-card__step">Step 1 of 3</span>
-                <h2 className="enquiry-card__title">Select Your Occasion</h2>
+                <span className="enquiry-card__step">Select Experience</span>
+                <h2 className="enquiry-card__title">Choose Your Occasion</h2>
                 <p className="enquiry-card__description">
-                  Choose the category that best matches your planned visit so we route your request to the right estate specialist.
+                  Select the experience that best matches your visit to open your tailored enquiry or booking options.
                 </p>
               </div>
+
+              {errors.enquiryType && (
+                <div className="enquiry-card-error" role="alert" style={{ marginBottom: 'var(--space-3)', color: 'var(--color-error)' }}>
+                  {errors.enquiryType}
+                </div>
+              )}
 
               <div className="enquiry-type-grid" role="radiogroup" aria-label="Occasion Category">
                 {ENQUIRY_TYPES.map((type) => {
@@ -485,24 +507,63 @@ export function PublicEnquiryPage() {
                       className={`enquiry-type-card ${isSelected ? 'enquiry-type-card--active' : ''}`}
                       onClick={() => handleTypeChange(type.id)}
                     >
-                      <span className="enquiry-type-card__icon" aria-hidden="true">{type.icon}</span>
-                      <div className="enquiry-type-card__content">
-                        <strong className="enquiry-type-card__label">{type.label}</strong>
+                      <div className="enquiry-type-card__media">
+                        <img
+                          src={type.image}
+                          alt={type.label}
+                          className="enquiry-type-card__img"
+                          loading="eager"
+                          decoding="async"
+                          width="600"
+                          height="400"
+                        />
+                      </div>
+                      <div className="enquiry-type-card__body">
+                        <div className="enquiry-type-card__title-row">
+                          <h3 className="enquiry-type-card__label">{type.label}</h3>
+                          <span
+                            className={`enquiry-type-card__indicator ${isSelected ? 'enquiry-type-card__indicator--selected' : ''}`}
+                            aria-hidden="true"
+                          >
+                            {isSelected ? '✓' : ''}
+                          </span>
+                        </div>
                         <p className="enquiry-type-card__desc">{type.description}</p>
                       </div>
-                      <span className="enquiry-type-card__radio" aria-hidden="true">
-                        {isSelected ? '●' : '○'}
-                      </span>
                     </button>
                   );
                 })}
               </div>
             </Card>
 
-            {/* Step 2: Guest Contact Details */}
+            {/* Prompt when no category is selected yet */}
+            {!enquiryType && (
+              <div className="enquiry-unselected-prompt">
+                <p>Please select an occasion above to proceed with your enquiry.</p>
+              </div>
+            )}
+
+            {/* If Stay is selected, provide direct instant reservation portal link */}
+            {isRoomBooking && (
+              <div className="enquiry-stay-direct-banner">
+                <div>
+                  <h3 className="enquiry-stay-direct-banner__title">Looking for Immediate Room Bookings?</h3>
+                  <p className="enquiry-stay-direct-banner__desc">
+                    Explore live daily rates, view available dates, and confirm your villa or estate room booking immediately.
+                  </p>
+                </div>
+                <Link to="/stay" className="btn btn--secondary enquiry-stay-direct-btn">
+                  Explore Rooms &amp; Rates &rarr;
+                </Link>
+              </div>
+            )}
+
+            {enquiryType && (
+            <>
+              {/* Step 2: Guest Contact Details */}
             <Card className="enquiry-card" padding="large">
               <div className="enquiry-card__header">
-                <span className="enquiry-card__step">Step 2 of 3</span>
+                <span className="enquiry-card__step">Contact Details</span>
                 <h2 className="enquiry-card__title">Your Contact Information</h2>
                 <p className="enquiry-card__description">
                   {isRoomBooking
@@ -556,7 +617,7 @@ export function PublicEnquiryPage() {
             {/* Step 3: Event & Stay Specifications */}
             <Card className="enquiry-card" padding="large">
               <div className="enquiry-card__header">
-                <span className="enquiry-card__step">Step 3 of 3</span>
+                <span className="enquiry-card__step">Specifications</span>
                 <h2 className="enquiry-card__title">{pageContent.step3Title}</h2>
                 <p className="enquiry-card__description">{pageContent.step3Desc}</p>
               </div>
@@ -769,6 +830,8 @@ export function PublicEnquiryPage() {
                 </p>
               </div>
             </Card>
+            </>
+          )}
           </form>
         )}
       </div>
