@@ -98,17 +98,42 @@ public class QuoteInjectorService {
                             String nightsStr = requiredNights + " night" + (requiredNights > 1 ? "s" : "");
                             String roomsStr = rooms > 1 ? (", " + rooms + " rooms") : "";
 
-                            quoteBlock = "The standard rate for the " + roomCat.getName() + " under the " + ratePlan.getName() +
-                                    " plan for your dates (" + checkIn + " to " + checkOut + ", " + nightsStr + roomsStr +
-                                    ") is ₹" + priceResult.getTotalPayableInr().toPlainString() +
-                                    " inclusive of applicable taxes (₹" + priceResult.getSubtotalBeforeDiscountInr().toPlainString() +
-                                    " base tariff + ₹" + priceResult.getGstAmountInr().toPlainString() +
-                                    " GST at " + priceResult.getGstPercentageApplied().toPlainString() + "%).";
+                            BigDecimal subtotal = priceResult.getSubtotalBeforeDiscountInr() != null
+                                    ? priceResult.getSubtotalBeforeDiscountInr()
+                                    : BigDecimal.ZERO;
+                            BigDecimal gstAmount = priceResult.getGstAmountInr() != null
+                                    ? priceResult.getGstAmountInr()
+                                    : BigDecimal.ZERO;
+                            BigDecimal gstPercentage = priceResult.getGstPercentageApplied() != null
+                                    ? priceResult.getGstPercentageApplied()
+                                    : BigDecimal.ZERO;
+                            BigDecimal grandTotal = priceResult.getTotalPayableInr() != null
+                                    ? priceResult.getTotalPayableInr()
+                                    : subtotal.add(gstAmount);
+
+                            boolean isGstVerified = "VERIFIED".equalsIgnoreCase(priceResult.getGstVerificationStatus());
+
+                            if (isGstVerified) {
+                                quoteBlock = "The standard rate for the " + roomCat.getName() + " under the " + ratePlan.getName() +
+                                        " plan for your dates (" + checkIn + " to " + checkOut + ", " + nightsStr + roomsStr +
+                                        ") is ₹" + grandTotal.toPlainString() +
+                                        " inclusive of applicable taxes (₹" + subtotal.toPlainString() +
+                                        " base tariff + ₹" + gstAmount.toPlainString() +
+                                        " GST at " + gstPercentage.toPlainString() + "%).";
+                            } else {
+                                quoteBlock = "The standard rate for the " + roomCat.getName() + " under the " + ratePlan.getName() +
+                                        " plan for your dates (" + checkIn + " to " + checkOut + ", " + nightsStr + roomsStr +
+                                        ") is ₹" + subtotal.toPlainString() +
+                                        " base tariff (applicable GST of ₹" + gstAmount.toPlainString() +
+                                        " at " + gstPercentage.toPlainString() +
+                                        "% is provisional and pending property verification; provisional total: ₹" +
+                                        grandTotal.toPlainString() + ").";
+                            }
 
                             breakdownJson = createAvailableBreakdownJson(
                                     categoryCode, ratePlan.getCode(), checkIn, checkOut, (int) requiredNights, rooms,
-                                    priceResult.getSubtotalBeforeDiscountInr(), priceResult.getGstPercentageApplied(),
-                                    priceResult.getGstAmountInr(), priceResult.getTotalPayableInr(), priceResult.getGstVerificationStatus()
+                                    subtotal, gstPercentage,
+                                    gstAmount, grandTotal, priceResult.getGstVerificationStatus()
                             );
                         } else {
                             quoteBlock = "Our reservations team will confirm the current rates and availability for your requested stay.";

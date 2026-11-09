@@ -175,6 +175,145 @@ public class EnquirySafetyAndParsingTest {
         assertNotNull(result.quotedRateBreakdownJson());
         assertTrue(result.quotedRateBreakdownJson().contains("28320.00"));
         assertTrue(result.quotedRateBreakdownJson().contains("AVAILABLE"));
+        assertTrue(result.quotedRateBreakdownJson().contains("\"gst_status\":\"VERIFIED\""));
+    }
+
+    @Test
+    @DisplayName("QuoteInjectorService should not claim confirmed GST when pricing snapshot status is UNVERIFIED")
+    void testQuoteInjectorServiceWithUnverifiedGst() {
+        QuoteInjectorService service = new QuoteInjectorService(
+                roomCategoryRepository, dailyInventoryRateRepository, blackoutDateRepository,
+                ratePlanRepository, pricingService, objectMapper
+        );
+
+        RoomCategory cottage = new RoomCategory();
+        cottage.setId(1L);
+        cottage.setCode("ROOM");
+        cottage.setName("Coffee Cottage");
+
+        when(roomCategoryRepository.findByCode("ROOM")).thenReturn(Optional.of(cottage));
+        when(blackoutDateRepository.findConflictingBlackouts(eq(1L), any(), any())).thenReturn(Collections.emptyList());
+
+        DailyInventoryRate rate1 = new DailyInventoryRate();
+        rate1.setBaseRateInr(new BigDecimal("9500.00"));
+        DailyInventoryRate rate2 = new DailyInventoryRate();
+        rate2.setBaseRateInr(new BigDecimal("9500.00"));
+
+        LocalDate checkIn = LocalDate.of(2026, 11, 14);
+        LocalDate checkOut = LocalDate.of(2026, 11, 16);
+
+        when(dailyInventoryRateRepository.findByRoomCategoryIdAndStayDateRange(eq(1L), eq(checkIn), eq(checkOut)))
+                .thenReturn(List.of(rate1, rate2));
+
+        RatePlan epPlan = new RatePlan();
+        epPlan.setId(1L);
+        epPlan.setCode("EP");
+        epPlan.setName("European Plan (Room Only)");
+        when(ratePlanRepository.findByRoomCategoryIdAndIsActiveTrue(1L)).thenReturn(List.of(epPlan));
+
+        PriceCalculationResult priceResult = new PriceCalculationResult(
+                new BigDecimal("19000.00"),
+                BigDecimal.ZERO,
+                new BigDecimal("19000.00"),
+                new BigDecimal("12.00"),
+                new BigDecimal("2280.00"),
+                new BigDecimal("21280.00"),
+                "UNVERIFIED",
+                null
+        );
+        when(pricingService.calculatePrice(anyList(), eq(epPlan), eq(1), isNull())).thenReturn(priceResult);
+
+        Enquiry enquiry = new Enquiry();
+        enquiry.setCategory(EnquiryCategory.ROOM_BOOKING);
+        enquiry.setRawMessage("Looking for a room from 14 Nov to 16 Nov 2026");
+        enquiry.setExtractedCheckIn(checkIn);
+        enquiry.setExtractedCheckOut(checkOut);
+        enquiry.setExtractedNights(2);
+
+        String rawDraft = "Dear Guest, Thank you for contacting us.\n\n{{RATE_TABLE_QUOTE_BLOCK}}\n\nBest regards.";
+        QuoteInjectorService.InjectedQuote result = service.injectDatabaseQuote(rawDraft, enquiry);
+
+        assertNotNull(result);
+        verify(pricingService).calculatePrice(anyList(), eq(epPlan), eq(1), isNull());
+
+        // 1. Must NOT claim taxes are confirmed or that total is inclusive of taxes
+        assertFalse(result.finalDraftBody().contains("inclusive of applicable taxes"),
+                "Unverified draft must not claim total is inclusive of applicable taxes");
+        assertFalse(result.finalDraftBody().contains("confirmed"),
+                "Unverified draft must not imply taxes are confirmed");
+
+        // 2. Must label tax as provisional and pending property verification
+        assertTrue(result.finalDraftBody().contains("₹19000.00 base tariff"),
+                "Draft must present base tariff explicitly");
+        assertTrue(result.finalDraftBody().contains("applicable GST of ₹2280.00 at 12.00% is provisional and pending property verification"),
+                "Draft must label tax amount as provisional and pending property verification");
+        assertTrue(result.finalDraftBody().contains("provisional total: ₹21280.00"),
+                "Total must be qualified as provisional");
+        assertTrue(result.finalDraftBody().contains("Coffee Cottage"));
+
+        // 3. Must preserve breakdown JSON with UNVERIFIED status
+        assertNotNull(result.quotedRateBreakdownJson());
+        assertTrue(result.quotedRateBreakdownJson().contains("\"gst_status\":\"UNVERIFIED\""));
+        assertTrue(result.quotedRateBreakdownJson().contains("21280.00"));
+    }
+
+    @Test
+    @DisplayName("QuoteInjectorService should safely treat null GST status as unverified")
+    void testQuoteInjectorServiceWithNullGstStatusDefaultsToUnverified() {
+        QuoteInjectorService service = new QuoteInjectorService(
+                roomCategoryRepository, dailyInventoryRateRepository, blackoutDateRepository,
+                ratePlanRepository, pricingService, objectMapper
+        );
+
+        RoomCategory cottage = new RoomCategory();
+        cottage.setId(1L);
+        cottage.setCode("ROOM");
+        cottage.setName("Coffee Cottage");
+
+        when(roomCategoryRepository.findByCode("ROOM")).thenReturn(Optional.of(cottage));
+        when(blackoutDateRepository.findConflictingBlackouts(eq(1L), any(), any())).thenReturn(Collections.emptyList());
+
+        DailyInventoryRate rate1 = new DailyInventoryRate();
+        rate1.setBaseRateInr(new BigDecimal("9500.00"));
+
+        LocalDate checkIn = LocalDate.of(2026, 11, 14);
+        LocalDate checkOut = LocalDate.of(2026, 11, 15);
+
+        when(dailyInventoryRateRepository.findByRoomCategoryIdAndStayDateRange(eq(1L), eq(checkIn), eq(checkOut)))
+                .thenReturn(List.of(rate1));
+
+        RatePlan epPlan = new RatePlan();
+        epPlan.setId(1L);
+        epPlan.setCode("EP");
+        epPlan.setName("European Plan (Room Only)");
+        when(ratePlanRepository.findByRoomCategoryIdAndIsActiveTrue(1L)).thenReturn(List.of(epPlan));
+
+        PriceCalculationResult priceResult = new PriceCalculationResult(
+                new BigDecimal("9500.00"),
+                BigDecimal.ZERO,
+                new BigDecimal("9500.00"),
+                new BigDecimal("12.00"),
+                new BigDecimal("1140.00"),
+                new BigDecimal("10640.00"),
+                null,
+                null
+        );
+        when(pricingService.calculatePrice(anyList(), eq(epPlan), eq(1), isNull())).thenReturn(priceResult);
+
+        Enquiry enquiry = new Enquiry();
+        enquiry.setCategory(EnquiryCategory.ROOM_BOOKING);
+        enquiry.setRawMessage("Looking for 1 night stay 14 Nov 2026");
+        enquiry.setExtractedCheckIn(checkIn);
+        enquiry.setExtractedCheckOut(checkOut);
+        enquiry.setExtractedNights(1);
+
+        String rawDraft = "{{RATE_TABLE_QUOTE_BLOCK}}";
+        QuoteInjectorService.InjectedQuote result = service.injectDatabaseQuote(rawDraft, enquiry);
+
+        assertNotNull(result);
+        assertFalse(result.finalDraftBody().contains("inclusive of applicable taxes"));
+        assertTrue(result.finalDraftBody().contains("is provisional and pending property verification"));
+        assertTrue(result.finalDraftBody().contains("provisional total: ₹10640.00"));
     }
 
     @Test
