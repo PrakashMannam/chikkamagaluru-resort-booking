@@ -414,3 +414,95 @@
     flex-direction: row;
   }
 }
+
+/* 7. Top Navigation & Route Back Links */
+.enquiry-top-nav {
+  max-width: 52rem;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--space-3) var(--space-4) 0;
+}
+
+.enquiry-back-link {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--text-small);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color var(--motion-fast) ease;
+  min-height: var(--tap-min);
+}
+
+.enquiry-back-link:hover {
+  color: var(--color-accent);
+}
+
+/* 8. Accommodation 3-Option Choice Grid */
+.enquiry-accommodation-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+@media (min-width: 640px) {
+  .enquiry-accommodation-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.enquiry-acc-option {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  cursor: pointer;
+  transition: all var(--motion-fast) ease-in-out;
+  min-height: var(--tap-min);
+}
+
+.enquiry-acc-option:hover:not(:disabled) {
+  border-color: var(--color-border-input);
+  box-shadow: var(--shadow-subtle);
+}
+
+.enquiry-acc-option:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.enquiry-acc-option--active {
+  border-color: var(--color-accent);
+  background-color: #F4F1EA;
+  box-shadow: 0 0 0 1px var(--color-accent);
+}
+
+.enquiry-acc-option__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.enquiry-acc-option__title {
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+.enquiry-acc-option__radio {
+  font-size: 1rem;
+  color: var(--color-accent);
+}
+
+.enquiry-acc-option__desc {
+  font-size: var(--text-small);
+  color: var(--color-text-muted);
+  line-height: 1.35;
+  margin-top: var(--space-1);
+}

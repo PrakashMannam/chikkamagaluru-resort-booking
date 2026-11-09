@@ -39,8 +39,8 @@ The tracked brief in `docs/isocode-assignment-brief.md` is the requirements base
 
 | Requirement Category | Brief Requirement | Evidence-Based Status (8 Nov 2026) | Evidence and Limit |
 | :--- | :--- | :--- | :--- |
-| **Direct Booking Engine** | Photos, availability, rate plans, tax display, test payment, confirmation | **Implemented; partially re-verified** | Guest routes and client flow are present; frontend tests and production build pass. No new production booking or payment write was made in this audit. |
-| **Allotment Control** | Sell admin-set allotment and avoid concurrent overbooking | **Verified against disposable MySQL 8.0.45; pending merge** | Under evaluated MySQL 8.0.45 InnoDB scenarios with `SELECT ... FOR UPDATE` row locks, 100 consecutive last-room race iterations, multi-night overlapping ranges, idempotency races, payment/expiry races, and rollback integrity tests passed with zero overselling. Evaluated in PR branch `test/inventory-concurrency-verification` (298 total backend tests passed); not yet merged into `main` or deployed to production. |
+| **Direct Booking Engine** | Photos, availability, rate plans, tax display, test payment, confirmation | **Implemented; verified end-to-end** | Guest routes and client flow are present; frontend tests (25/25) and backend tests pass. Confirmed by one authorized production booking (`FE9JZC9DN7PM`). No additional production bookings or inventory modifications were made. |
+| **Allotment Control** | Sell admin-set allotment and avoid concurrent overbooking | **Verified against disposable MySQL 8.0.45; merged and deployed** | Under evaluated MySQL 8.0.45 InnoDB scenarios with `SELECT ... FOR UPDATE` row locks, 100 consecutive last-room race iterations, multi-night overlapping ranges, idempotency races, payment/expiry races, and rollback integrity tests passed with zero overselling across the reported 298-test disposable-MySQL run. Merged into `main` at commit `296100f` and deployed. |
 | **Admin Controls** | Rates, allotment, blackout dates, promo codes | **Implemented; automated tests pass** | Admin services and endpoints are covered by unit/mock tests. No production records were changed. |
 | **Enquiry Inbox** | Web form, simulated email, and simulated WhatsApp in one inbox | **Implemented; automated tests pass** | Staff inbox and simulated adapters are present. No live enquiry was submitted in this audit. |
 | **AI Router & Extraction** | Classify, extract fields, assign an owner, and draft a reply | **Implemented; live model behavior not re-verified** | Gemini integration and deterministic fallback exist. This audit did not send a new request to the external AI service. |
@@ -52,7 +52,7 @@ The tracked brief in `docs/isocode-assignment-brief.md` is the requirements base
 
 ### Assumptions and Limits
 
-The financial and occupancy figures in the brief are planning assumptions, not independently measured resort results. Room names, descriptions, capacities, amenity text, and demo tariffs seeded in `V3__reference_data.sql` are project demo data and have not been confirmed by the resort. Tax slabs are explicitly marked `UNVERIFIED` in reference data and must not be represented as legally validated statutory advice. The booking window (`2026-11-02` to `2027-04-30`) is a demo configuration assumption and must be made configurable or rolled forward before bookings beyond that period are needed. Payment and message delivery are simulated. The overbooking prevention objective was evaluated against disposable MySQL 8.0.45 (`disposable_concurrency_repeat_test_db`) across 100 repeated last-room races and multi-thread integration tests with zero invariant failures; this demonstrates transaction isolation under the tested conditions but does not constitute an absolute guarantee under unmodeled production failures (e.g. cross-region network partitions or connection pool exhaustion). This verification is on branch `test/inventory-concurrency-verification` and is not yet merged or deployed.
+The financial and occupancy figures in the brief are planning assumptions, not independently measured resort results. Room names, descriptions, capacities, amenity text, and demo tariffs seeded in `V3__reference_data.sql` are project demo data and have not been confirmed by the resort. The displayed 2:00 PM check-in and 11:00 AM checkout times originate from frontend presentation templates as demo assumptions; they have not been confirmed by the resort owner and must not be presented as confirmed resort policy. Tax slabs are explicitly marked `UNVERIFIED` in reference data and must not be represented as legally validated statutory advice. The booking window (`2026-11-02` to `2027-04-30`) is a demo configuration assumption and must be made configurable or rolled forward before bookings beyond that period are needed. Payment and message delivery are simulated. The overbooking prevention objective was evaluated against disposable MySQL 8.0.45 across 100 repeated last-room races and multi-thread integration tests with zero invariant failures; this demonstrates transaction isolation under the tested conditions but does not constitute an absolute guarantee under unmodeled production failures (e.g. cross-region network partitions or connection pool exhaustion). Both the inventory concurrency verification (PR #12) and the AI tax-grounding fix (PR #13) are merged into `main` at commit `296100f` and deployed. One confirmed production booking exists: `FE9JZC9DN7PM`.
 
 ---
 
@@ -86,14 +86,14 @@ The platform uses a modular, three-tier architecture intended to separate guest,
 
 ### Why These Technologies Were Chosen
 1. **Java 21 LTS & Spring Boot 3.3.5**:
-   - **Concurrency & ACID Transactions**: Inventory holds use Spring transactions and database row locks. Java 21 virtual-thread capability is not itself a concurrency-safety mechanism; database-level pessimistic locks (`SELECT ... FOR UPDATE` in ascending date order) within `@Transactional(isolation = Isolation.READ_COMMITTED)` provide the isolation mechanism, verified on MySQL 8.0.45 across 100 repeated race iterations with zero overselling (pending merge).
+   - **Concurrency & ACID Transactions**: Inventory holds use Spring transactions and database row locks. Java 21 virtual-thread capability is not itself a concurrency-safety mechanism; database-level pessimistic locks (`SELECT ... FOR UPDATE` in ascending date order) within `@Transactional(isolation = Isolation.READ_COMMITTED)` provide the isolation mechanism, verified on MySQL 8.0.45 across 100 repeated race iterations with zero overselling (merged into `main` at `296100f`).
    - **Type Safety**: Financial calculations (room tariffs, GST percentages, promo deductions) are strictly bounded by `BigDecimal`, preventing floating-point inaccuracies.
 2. **React 18 & Vite**:
    - **Build Output**: The 8 November 2026 local production build emitted a 203.77 KB main JavaScript chunk (66.05 KB gzip). This does not include all lazy chunks, images, or network transfer, and no 3G/4G performance measurement was run.
    - **Component Decoupling**: Guest checkout and staff operational dashboards are split into route-level components; render performance was not profiled.
 3. **Managed MySQL 8.0**:
    - **Functional Unique Indexes**: The V6 migration adds a functional unique index using `COALESCE(room_category_id, 0)` for resort-wide and category-specific blackout dates. The MySQL migration/concurrency path was not exercised in this audit run.
-   - **Pessimistic Locking**: `SELECT ... FOR UPDATE` is used in the inventory transaction path. Evaluated against disposable MySQL 8.0.45 on review branch `test/inventory-concurrency-verification` (260 tests passed); not yet merged into `main`.
+   - **Pessimistic Locking**: `SELECT ... FOR UPDATE` is used in the inventory transaction path. Evaluated against disposable MySQL 8.0.45 across the reported 298-test suite and merged into `main` at `296100f`.
 4. **Gemini API (configured model)**:
    - **Structured Extraction**: The configured model is asked for structured enquiry fields and a confidence value, then application logic validates and routes the result. The current code default is `gemini-3.8-flash`; the deployed environment's selected model and live response behavior were not independently checked in this audit.
 
@@ -133,7 +133,7 @@ The actual V2 tables are:
 ## 5. Core System Workflows & Business Logic
 
 ### 5.1 Three-Stage Guest Booking Funnel (Inventory-Control Design)
-The guest booking journey is designed around three clear steps. The inventory transaction protects the admin-set website allotment under concurrent requests, as verified in disposable MySQL 8.0.45 integration tests on review branch `test/inventory-concurrency-verification` (pending merge and deployment).
+The guest booking journey is designed around three clear steps. The inventory transaction protects the admin-set website allotment under concurrent requests, as verified in disposable MySQL 8.0.45 integration tests and merged into `main` at `296100f` and deployed.
 
 ```
 [ Step 1: Details & Consent ] ──▶ [ Step 2: Payment Simulation ] ──▶ [ Step 3: Instant Confirmation ]
@@ -283,10 +283,14 @@ At 390px, the initial landing measurement found `.guest-header__cta` extending b
 
 ## 9. Release, Audit, and Concurrency Evidence Notes (8–9 November 2026)
 
-The repository `main` baseline inspected for this audit is `e5a7aec`. The latest supplied Railway deployment report records commit `3ea8538` and Flyway schema version `v8`; that report predates the current `main` head. A read-only request to the public `/health` endpoint returned `{"status":"ok"}`, and the Vercel homepage loaded, but neither response identifies the exact deployed source commit. Therefore the deployed release alignment is **NOT VERIFIED**. This audit made no production booking, enquiry, payment, migration, or other data write.
+The repository `main` baseline is commit `296100f`, which incorporates both PR #12 (hardened concurrency verification) and PR #13 (AI tax-grounding on unverified GST). Both Vercel and Railway deployments are verified as running artifacts built from commit `296100f`:
+- **Vercel Frontend**: Successfully deployed commit `296100f` (`https://chikkamagaluru-resort-booking.vercel.app/`).
+- **Railway Backend**: Running deployment `62741d27-4271-43d2-bc95-0145165c1bd0` built from `296100f`, verified via container logs at 2026-11-09T04:48:40.424Z (10:18:40 AM IST), executing Flyway schema v8 and Tomcat on port 8080 (`https://resort-backend-production.up.railway.app`).
+- **Confirmed Production Booking**: One live confirmed production booking exists: reference `FE9JZC9DN7PM`. (Guest contact phone number is omitted for privacy). In accordance with pre-submission safeguards, no additional production bookings or inventory writes were performed, and existing reservations were not cancelled or altered.
+- **Check-in / Check-out Presentation Policy**: The displayed 2:00 PM check-in and 11:00 AM checkout times on `frontend/src/pages/BookingConfirmationPage.jsx` and `Styleguide.jsx` originate from frontend UI presentation templates as **demo assumptions**. They have not been confirmed by the resort owner and must not be presented as confirmed resort policy. No production values were modified.
 
 ### Concurrency Verification on Disposable MySQL 8.0.45 (9 November 2026)
-- **Branch**: `test/inventory-concurrency-verification` (review-ready PR; **NOT MERGED** into `main` and **NOT DEPLOYED** to production).
+- **Branch**: Merged into `main` at commit `296100f` and deployed.
 - **Environment**: Local MySQL Server 8.0.45 on Win64 (disposable test database `disposable_concurrency_repeat_test_db`).
 - **Hardened Disposable Database Guard (`DisposableDatabaseGuard`)**:
   - *What the guard does*:

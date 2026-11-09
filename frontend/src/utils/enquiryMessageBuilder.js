@@ -4,6 +4,7 @@
  */
 
 export const DEFAULT_OFFSITE_CONFERENCE_HALL_SELECTION = 'unspecified';
+export const DEFAULT_ACCOMMODATION_CHOICE = '';
 
 /**
  * Builds the composite raw message string submitted to the concierge/enquiry API.
@@ -19,6 +20,7 @@ export const DEFAULT_OFFSITE_CONFERENCE_HALL_SELECTION = 'unspecified';
  * @param {string} [params.organization] - Company or organizing body name
  * @param {string} [params.needsConferenceHall] - 'unspecified' | 'no' | 'yes'
  * @param {string} [params.stayPreference] - 'VILLA' | 'ROOM'
+ * @param {string} [params.accommodationChoice] - 'yes' | 'no' | 'not_sure' | ''
  * @returns {string} Sanitized formatted message
  */
 export function buildRawEnquiryMessage({
@@ -32,13 +34,20 @@ export function buildRawEnquiryMessage({
   organization,
   needsConferenceHall = DEFAULT_OFFSITE_CONFERENCE_HALL_SELECTION,
   stayPreference = 'VILLA',
+  accommodationChoice = '',
 } = {}) {
+  const isNoStay = accommodationChoice === 'no';
+  const isUndecidedStay = accommodationChoice === 'not_sure';
+  const requiresStay = !isNoStay && !isUndecidedStay && (enquiryType === 'ROOM_BOOKING' || accommodationChoice === 'yes' || Boolean(nights));
+
   if (enquiryType === 'WEDDING') {
     const parts = [
       `Venue for my wedding on ${eventDate}`,
-      nights ? `${nights} nights` : null,
       guestsCount ? `about ${guestsCount} guests` : null,
-      roomsCount ? `${roomsCount} rooms` : null,
+      requiresStay && nights ? `${nights} nights` : null,
+      requiresStay && roomsCount ? `${roomsCount} rooms` : null,
+      isNoStay ? 'Day event only (no overnight accommodation required)' : null,
+      isUndecidedStay ? 'Overnight accommodation: to be decided' : null,
       budget ? `Approximate budget: ${budget}` : null,
       additionalMessage ? `Event details: ${additionalMessage}` : null,
     ].filter(Boolean);
@@ -50,8 +59,10 @@ export function buildRawEnquiryMessage({
       organization ? `Corporate offsite for ${organization}` : `Corporate offsite inquiry`,
       guestsCount ? `Team of ${guestsCount}` : null,
       `wants an offsite on ${eventDate}`,
-      nights ? `for ${nights} nights` : null,
-      roomsCount ? `with ${roomsCount} rooms` : null,
+      requiresStay && nights ? `for ${nights} nights` : null,
+      requiresStay && roomsCount ? `with ${roomsCount} rooms` : null,
+      isNoStay ? 'Day event only (no overnight accommodation required)' : null,
+      isUndecidedStay ? 'Overnight accommodation: to be decided' : null,
       needsConferenceHall === 'yes' ? 'with a conference hall' : null,
       budget ? `Approximate budget: ${budget}` : null,
       additionalMessage ? `Requirements: ${additionalMessage}` : null,
