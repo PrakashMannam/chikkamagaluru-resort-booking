@@ -156,15 +156,38 @@ export default function LandingPage() {
         <div className="lp-hero-wrapper">
           {/* Background image & gradient blend */}
           <div className="lp-hero-bg">
-            <img
-              src="/images/hero-estate.webp"
-              srcSet="/images/hero-estate-800w.webp 800w, /images/hero-estate.webp 1600w"
-              sizes="100vw"
-              alt="Chikkamagaluru coffee estate cottage veranda overlooking misty mountains"
-              className="lp-hero-img"
-              fetchpriority="high"
-            />
-            <div className="lp-hero-gradient" />
+            <picture className="lp-hero-picture">
+              <source
+                type="image/webp"
+                media="(max-width: 640px)"
+                srcSet="/images/hero-estate-800w.webp"
+              />
+              <source
+                type="image/webp"
+                srcSet="/images/hero-estate.webp 1600w, /images/hero-estate-800w.webp 800w"
+                sizes="(min-width: 1024px) 1280px, 100vw"
+              />
+              <img
+                src="/images/hero-estate.png"
+                alt="Chikkamagaluru coffee estate cottage veranda overlooking misty mountains"
+                className="lp-hero-img"
+                fetchpriority="high"
+                decoding="async"
+                width="1600"
+                height="900"
+                onError={(e) => {
+                  if (!e.currentTarget.dataset.fallbackTried) {
+                    e.currentTarget.dataset.fallbackTried = 'true';
+                    const p = e.currentTarget.parentElement;
+                    if (p && p.tagName.toLowerCase() === 'picture') {
+                      p.querySelectorAll('source').forEach((s) => s.remove());
+                    }
+                    e.currentTarget.src = '/images/hero-estate.png';
+                  }
+                }}
+              />
+            </picture>
+            <div className="lp-hero-gradient" aria-hidden="true" />
           </div>
 
           {/* Left Content Column */}
