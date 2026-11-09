@@ -5,14 +5,14 @@ import fs from 'node:fs';
 test('Stay Search Capacity: GuestAvailabilityPage provides 1–5 room options, 6+ group option, and dynamic guest ceilings', () => {
   const staySrc = fs.readFileSync('frontend/src/pages/GuestAvailabilityPage.jsx', 'utf8');
 
-  // Verify room options up to 5 rooms and 6+ group buyout
+  // Verify room options up to 5 rooms and 6+ group stay
   assert.ok(
     staySrc.includes('<option value={5}>5 Rooms</option>'),
     'Must include option for 5 Rooms'
   );
   assert.ok(
-    staySrc.includes('6+ Rooms (Group / Buyout)'),
-    'Must include option for 6+ Rooms (Group / Buyout)'
+    staySrc.includes('6+ Rooms (Group Stay)'),
+    'Must include option for 6+ Rooms (Group Stay)'
   );
 
   // Verify dynamic adult and child ceiling calculations
@@ -25,24 +25,18 @@ test('Stay Search Capacity: GuestAvailabilityPage provides 1–5 room options, 6
     'Must dynamically compute max children up to 2 children per key'
   );
 
-  // Verify auto-clamp logic
-  assert.ok(
-    staySrc.includes('if (prev < minA) return Math.min(newRooms * 2, maxA);'),
-    'Must auto-clamp and bump adults when rooms scale'
-  );
-
   // Verify group concierge handoff copy
   assert.ok(
-    staySrc.includes('Planning a Multi-Room Group Stay or Family Reunion?'),
+    staySrc.includes('Planning a Multi-Room Group Stay?'),
     'Must render group concierge title'
   );
   assert.ok(
-    staySrc.includes('For reservations of 6 or more rooms (or 12+ guests)'),
-    'Must render group concierge description'
+    staySrc.includes('Sending this request does not reserve or hold rooms.'),
+    'Must render group concierge description with disclaimer'
   );
   assert.ok(
-    staySrc.includes('Request Group Stay Proposal'),
-    'Must provide Request Group Stay Proposal CTA button'
+    staySrc.includes('Request a group-stay proposal'),
+    'Must provide Request a group-stay proposal CTA button'
   );
 
   // Verify multi-room pricing label

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { submitPublicEnquiry } from '../api/enquiryApi';
 import { Button, Input, Card, Badge, ErrorBanner } from '../components/ui';
+import { calculateNights } from '../utils/dateUtils';
 import {
   buildRawEnquiryMessage,
   DEFAULT_OFFSITE_CONFERENCE_HALL_SELECTION,
@@ -41,8 +42,21 @@ function mapQueryType(param) {
   return null;
 }
 
-function getPageContent(enquiryType, rawTypeParam) {
+function getPageContent(enquiryType, rawTypeParam, isGroupMode) {
   const normParam = rawTypeParam ? rawTypeParam.toLowerCase().trim() : '';
+
+  if (isGroupMode) {
+    return {
+      isRouteSpecific: true,
+      kicker: 'Mullayanagiri Foothills, Chikkamagaluru',
+      title: 'Request a Group Stay Proposal',
+      subtitle: 'For family getaways, multi-room bookings, and extended plantation retreats, our reservations team will review your request.',
+      backLink: '/stay',
+      backLabel: '← Back to Stay',
+      step3Title: 'Stay Preferences',
+      step3Desc: 'Sharing your stay dates, group size, and room preferences helps our reservations team check allocations across Estate Rooms and Private Villas.',
+    };
+  }
 
   // 1. Wedding route: /enquire?type=wedding
   if (normParam === 'wedding' || normParam === 'weddings') {
@@ -142,7 +156,8 @@ export function PublicEnquiryPage() {
   const [successData, setSuccessData] = useState(null);
   const [copiedCode, setCopiedCode] = useState(false);
 
-  const pageContent = getPageContent(enquiryType, rawTypeParam);
+  const isGroupMode = (mappedType === 'ROOM_BOOKING' || rawTypeParam === 'room' || rawTypeParam === 'rooms' || rawTypeParam === 'stay') && (searchParams.get('group') === '1' || searchParams.get('group') === 'true');
+  const pageContent = getPageContent(enquiryType, rawTypeParam, isGroupMode);
 
   // Switch type and reset form counts
   const handleTypeChange = (typeId) => {
@@ -198,6 +213,29 @@ export function PublicEnquiryPage() {
       setAccommodationChoice('yes');
     } else if (mapped) {
       setAccommodationChoice(DEFAULT_ACCOMMODATION_CHOICE);
+    }
+
+    if ((mapped === 'ROOM_BOOKING' || typeParam === 'room') && (searchParams.get('group') === '1' || searchParams.get('group') === 'true')) {
+      const qCheckIn = searchParams.get('checkIn');
+      const qCheckOut = searchParams.get('checkOut');
+      const qGuests = searchParams.get('guests');
+
+      if (qCheckIn) {
+        setEventDate(qCheckIn);
+      }
+      if (qCheckIn && qCheckOut) {
+        const calculatedNights = calculateNights(qCheckIn, qCheckOut);
+        if (calculatedNights >= 1) {
+          setNights(String(calculatedNights));
+        }
+      }
+      if (qGuests) {
+        const parsedGuests = parseInt(qGuests, 10);
+        if (!isNaN(parsedGuests) && parsedGuests >= 1) {
+          setGuestsCount(String(parsedGuests));
+        }
+      }
+      setAdditionalMessage((prev) => (prev ? prev : 'Group stay request: 6+ rooms requested.'));
     }
   }, [searchParams]);
 
@@ -362,7 +400,7 @@ export function PublicEnquiryPage() {
   const showAccommodationInputs = isRoomBooking || accommodationChoice === 'yes';
 
   return (
-    <div className="enquiry-page">
+    <div className={`enquiry-page ${isGroupMode ? 'enquiry-page--group' : ''}`}>
       {/* Route-Aware Utility Navigation */}
       <div className="enquiry-top-nav">
         <Link to={pageContent.backLink} className="enquiry-back-link">
@@ -479,6 +517,7 @@ export function PublicEnquiryPage() {
             )}
 
             {/* Occasion Category Selector */}
+            {!isGroupMode && (
             <Card className="enquiry-card" padding="large">
               <div className="enquiry-card__header">
                 <span className="enquiry-card__step">Select Experience</span>
@@ -536,6 +575,8 @@ export function PublicEnquiryPage() {
               </div>
             </Card>
 
+            )}
+
             {/* Prompt when no category is selected yet */}
             {!enquiryType && (
               <div className="enquiry-unselected-prompt">
@@ -544,7 +585,7 @@ export function PublicEnquiryPage() {
             )}
 
             {/* If Stay is selected, provide direct instant reservation portal link */}
-            {isRoomBooking && (
+            {!isGroupMode && isRoomBooking && (
               <div className="enquiry-stay-direct-banner">
                 <div>
                   <h3 className="enquiry-stay-direct-banner__title">Looking for Immediate Room Bookings?</h3>
@@ -561,12 +602,14 @@ export function PublicEnquiryPage() {
             {enquiryType && (
             <>
               {/* Step 2: Guest Contact Details */}
-            <Card className="enquiry-card" padding="large">
+            <Card className={`enquiry-card ${isGroupMode ? 'enquiry-card--group' : ''}`} padding="large">
               <div className="enquiry-card__header">
-                <span className="enquiry-card__step">Contact Details</span>
+                {!isGroupMode && <span className="enquiry-card__step">Contact Details</span>}
                 <h2 className="enquiry-card__title">Your Contact Information</h2>
                 <p className="enquiry-card__description">
-                  {isRoomBooking
+                  {isGroupMode
+                    ? 'Our reservations team will reach out directly to review your group allocation and preferences.'
+                    : isRoomBooking
                     ? 'Our reservations team will reach out directly with rate plans and estate availability.'
                     : 'Our event specialist will reach out directly to discuss dates, venues, and custom catering arrangements.'}
                 </p>
@@ -615,10 +658,10 @@ export function PublicEnquiryPage() {
             </Card>
 
             {/* Step 3: Event & Stay Specifications */}
-            <Card className="enquiry-card" padding="large">
+            <Card className={`enquiry-card ${isGroupMode ? 'enquiry-card--group' : ''}`} padding="large">
               <div className="enquiry-card__header">
-                <span className="enquiry-card__step">Specifications</span>
-                <h2 className="enquiry-card__title">{pageContent.step3Title}</h2>
+                {!isGroupMode && <span className="enquiry-card__step">Specifications</span>}
+                <h2 className="enquiry-card__title">{isGroupMode ? 'Stay Preferences' : pageContent.step3Title}</h2>
                 <p className="enquiry-card__description">{pageContent.step3Desc}</p>
               </div>
 
@@ -823,10 +866,12 @@ export function PublicEnquiryPage() {
                   disabled={isSubmitting}
                   className="enquiry-submit-btn"
                 >
-                  {isSubmitting ? 'Dispatching Enquiry...' : 'Submit Enquiry'}
+                  {isSubmitting ? 'Dispatching Request...' : isGroupMode ? 'Send group-stay request' : 'Submit Enquiry'}
                 </Button>
                 <p className="enquiry-form__disclaimer">
-                  By submitting this enquiry, you agree to allow our reservations team to contact you regarding your request. We respect your privacy and never share your details with third parties.
+                  {isGroupMode
+                    ? 'Sending this enquiry does not reserve or hold rooms. Our reservations team will review your dates, group size, and room preferences.'
+                    : 'By submitting this enquiry, you agree to allow our reservations team to contact you regarding your request. We respect your privacy and never share your details with third parties.'}
                 </p>
               </div>
             </Card>
