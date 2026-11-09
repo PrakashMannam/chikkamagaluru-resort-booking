@@ -179,13 +179,14 @@ export function WeddingsPage() {
       <section className="weddings-hero">
         <div className="weddings-hero__media">
           <img
-            src="/images/wedding-lawn-estate.jpg"
+            src="/images/wedding-lawn.jpg"
             alt="Outdoor floral mandap and estate lawn in Chikkamagaluru"
             className="weddings-hero__img"
             loading="eager"
             fetchPriority="high"
-            width="1440"
-            height="500"
+            decoding="async"
+            width="1200"
+            height="750"
           />
           <div className="weddings-hero__overlay" />
         </div>

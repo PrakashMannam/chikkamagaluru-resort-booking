@@ -185,13 +185,14 @@ export function OffsitesPage() {
       <section className="offsites-hero">
         <div className="offsites-hero__media">
           <img
-            src="/images/corporate-offsite-estate.jpg"
+            src="/images/corporate-dining.jpg"
             alt="Open-air timber pavilion with boardroom table overlooking lush coffee hills"
             className="offsites-hero__img"
             loading="eager"
             fetchPriority="high"
-            width="1440"
-            height="500"
+            decoding="async"
+            width="1200"
+            height="750"
           />
           <div className="offsites-hero__overlay" />
         </div>
@@ -253,12 +254,13 @@ export function OffsitesPage() {
       <section className="offsites-feature-media">
         <div className="offsites-feature-media__container">
           <img
-            src="/images/hills-panoramic.jpg"
-            alt="Scenic terrace overlooking Western Ghats misty mountain peaks"
+            src="/images/corporate-offsite-estate.jpg"
+            alt="Scenic terrace and lawns overlooking Western Ghats misty mountain peaks"
             className="offsites-feature-media__img"
             loading="lazy"
+            decoding="async"
             width="1200"
-            height="480"
+            height="670"
           />
         </div>
       </section>

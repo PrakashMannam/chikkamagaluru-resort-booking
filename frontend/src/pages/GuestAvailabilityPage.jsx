@@ -421,12 +421,13 @@ export function GuestAvailabilityPage() {
           <article className="stay-discovery-card">
             <div className="stay-discovery-card__media">
               <img
-                src="/images/room-canopy.webp"
+                src="/images/estate-room.jpg"
                 alt="Estate Room with teakwood canopy bed and garden views"
                 className="stay-discovery-card__img"
                 loading="lazy"
-                width="420"
-                height="260"
+                decoding="async"
+                width="600"
+                height="375"
               />
             </div>
             <div className="stay-discovery-card__content">
@@ -458,12 +459,13 @@ export function GuestAvailabilityPage() {
           <article className="stay-discovery-card">
             <div className="stay-discovery-card__media">
               <img
-                src="/images/villa-pool.webp"
+                src="/images/coffee-villa.jpg"
                 alt="Private Villa with plunge pool and panoramic hill views"
                 className="stay-discovery-card__img"
                 loading="lazy"
-                width="420"
-                height="260"
+                decoding="async"
+                width="600"
+                height="375"
               />
             </div>
             <div className="stay-discovery-card__content">

@@ -355,7 +355,7 @@ export default function LandingPage() {
           >
             <div className="lp-exp-card__media">
               <img
-                src="/images/wedding-lawn-estate.jpg"
+                src="/images/wedding-lawn.jpg"
                 alt="Outdoor floral mandap and estate lawn setup in Chikkamagaluru"
                 className="lp-exp-card__img"
                 loading="lazy"
@@ -388,7 +388,7 @@ export default function LandingPage() {
           >
             <div className="lp-exp-card__media">
               <img
-                src="/images/corporate-offsite-estate.jpg"
+                src="/images/corporate-dining.jpg"
                 alt="Executive retreat pavilion overlooking lush coffee hills"
                 className="lp-exp-card__img"
                 loading="lazy"
@@ -490,7 +490,7 @@ export default function LandingPage() {
           <article className="lp-card-stay">
             <div className="lp-card-stay__media">
               <img
-                src="/images/room-canopy.webp"
+                src="/images/estate-room.jpg"
                 alt="Estate Room with teakwood canopy bed and garden views"
                 className="lp-card-stay__img"
                 loading="eager"
@@ -532,7 +532,7 @@ export default function LandingPage() {
           <article className="lp-card-stay">
             <div className="lp-card-stay__media">
               <img
-                src="/images/villa-pool.webp"
+                src="/images/coffee-villa.jpg"
                 alt="Private villa terrace with plunge pool overlooking misty Western Ghats hills"
                 className="lp-card-stay__img"
                 loading="eager"
@@ -572,95 +572,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 6. More Than a Stay (Weddings & Corporate Offsites) */}
-      <section className="lp-section lp-more-section">
-        <h2 className="lp-section-title lp-section-title--space">More Than a Stay</h2>
 
-        {/* 2-Column Split Event Cards */}
-        <div className="lp-events-grid">
-          {/* Event 1: Weddings */}
-          <article className="lp-event-card">
-            <div className="lp-event-card__info">
-              <div>
-                <h3 className="lp-event-card__title">Weddings</h3>
-                <p className="lp-event-card__desc">
-                  Open lawns for celebrations and memorable gatherings.
-                </p>
-              </div>
-              <div className="lp-event-card__actions">
-                <Link
-                  to="/weddings"
-                  className="lp-event-card__link"
-                >
-                  Plan a Wedding &rarr;
-                </Link>
-                <Link
-                  to="/weddings"
-                  className="lp-event-card__btn"
-                  aria-label="Plan a destination wedding"
-                >
-                  <ArrowRightIcon />
-                </Link>
-              </div>
-            </div>
-            <div className="lp-event-card__media">
-              <img
-                src="/images/wedding-lawn-estate.jpg"
-                alt="Open lawns and wedding mandap on coffee estate grounds"
-                className="lp-event-card__img"
-                loading="eager"
-                decoding="async"
-                width="600"
-                height="400"
-                onError={(e) => {
-                  e.currentTarget.style.opacity = '0';
-                }}
-              />
-            </div>
-          </article>
-
-          {/* Event 2: Corporate Offsites */}
-          <article className="lp-event-card">
-            <div className="lp-event-card__info">
-              <div>
-                <h3 className="lp-event-card__title">Corporate Offsites</h3>
-                <p className="lp-event-card__desc">
-                  A setting for teams to gather, connect and work together.
-                </p>
-              </div>
-              <div className="lp-event-card__actions">
-                <Link
-                  to="/offsites"
-                  className="lp-event-card__link"
-                >
-                  Plan an Offsite &rarr;
-                </Link>
-                <Link
-                  to="/offsites"
-                  className="lp-event-card__btn"
-                  aria-label="Plan a corporate offsite"
-                >
-                  <ArrowRightIcon />
-                </Link>
-              </div>
-            </div>
-            <div className="lp-event-card__media">
-              <img
-                src="/images/corporate-offsite-estate.jpg"
-                alt="Open-air executive retreat pavilion overlooking misty coffee hills"
-                className="lp-event-card__img"
-                loading="eager"
-                decoding="async"
-                width="600"
-                height="400"
-                onError={(e) => {
-                  e.currentTarget.style.opacity = '0';
-                }}
-              />
-            </div>
-          </article>
-        </div>
-      </section>
 
       {/* 7. Bottom CTA Banner */}
       <section className="lp-cta-banner-wrapper">
