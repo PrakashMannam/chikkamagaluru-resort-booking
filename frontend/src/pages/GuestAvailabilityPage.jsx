@@ -638,9 +638,47 @@ export function GuestAvailabilityPage() {
 
 
 
+      {/* 3-Column Highlights Strip (Matching Weddings & Offsites) */}
+      {!datesSelected && (
+        <section className="stay-highlights" aria-label="Estate Accommodation Highlights">
+          <div className="stay-highlights__inner">
+            <div className="stay-highlight-card">
+              <div className="stay-highlight-card__icon">
+                <BedIcon size={26} color="#1E3A2F" />
+              </div>
+              <h3 className="stay-highlight-card__title">64 Estate Rooms</h3>
+              <p className="stay-highlight-card__desc">
+                Canopy-level rooms with private verandas, teakwood furnishings, and tranquil forest views.
+              </p>
+            </div>
+
+            <div className="stay-highlight-card">
+              <div className="stay-highlight-card__icon">
+                <MountainIcon size={26} color="#1E3A2F" />
+              </div>
+              <h3 className="stay-highlight-card__title">12 Private Villas</h3>
+              <p className="stay-highlight-card__desc">
+                Hillside estate villas featuring private plunge pools, sun decks, and Western Ghats vistas.
+              </p>
+            </div>
+
+            <div className="stay-highlight-card">
+              <div className="stay-highlight-card__icon">
+                <CoffeeLeafIcon size={26} color="#1E3A2F" />
+              </div>
+              <h3 className="stay-highlight-card__title">Estate Inclusions</h3>
+              <p className="stay-highlight-card__desc">
+                Complimentary plantation nature trails, curated bean-to-cup coffee tastings, and daily breakfast.
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
 {/* 4. Explore Our Accommodation Discovery Section (Matches Panel 2) */}
       <section className="stay-discovery-section" id="explore-accommodation" aria-labelledby="stay-explore-title">
         <div className="stay-discovery-header">
+          <span className="stay-discovery-eyebrow">OUR KEYS</span>
           <h2 id="stay-explore-title" className="stay-discovery-title">Explore Our Accommodation</h2>
           <p className="stay-discovery-sub">
             Choose from thoughtfully designed rooms and private villas, perfect for a peaceful estate escape.

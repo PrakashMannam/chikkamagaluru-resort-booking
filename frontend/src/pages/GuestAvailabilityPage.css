@@ -94,11 +94,11 @@
 
 /* Expanded Modification Form */
 .stay-search-edit {
-  background-color: #FAF8F5;
-  border: 1px solid #E7E2DA;
-  border-radius: 6px;
-  padding: 1.25rem 1.5rem;
-  margin: 0.25rem 0;
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
   animation: stayFadeIn 0.2s ease-out;
 }
 
@@ -1083,18 +1083,18 @@
    -------------------------------------------------------------------------- */
 .stay-hero {
   position: relative;
-  min-height: 17rem;
+  min-height: 24rem; /* 384px */
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding: 2.5rem var(--space-4) 3.5rem;
+  padding: 4rem var(--space-4) 5.5rem;
   background-color: #1E3A2F;
 }
 
 @media (min-width: 640px) {
   .stay-hero {
-    min-height: 18rem;
-    padding: 3rem var(--space-6) 4rem;
+    min-height: 27.5rem; /* 440px */
+    padding: 5rem var(--space-6) 6.5rem;
   }
 }
 
@@ -1179,6 +1179,75 @@
   border: 1px solid #E5E0D8;
   border-radius: 1rem;
   box-shadow: 0 10px 30px rgba(28, 25, 23, 0.08);
+}
+
+/* --------------------------------------------------------------------------
+   3-Column Highlights Row (Matching Weddings & Offsites Editorial Strip)
+   -------------------------------------------------------------------------- */
+.stay-highlights {
+  padding: 3.5rem var(--space-4);
+  border-bottom: 1px solid #E5E0D8;
+  background-color: #F7F4EE;
+  margin-bottom: 3.5rem;
+}
+
+.stay-highlights__inner {
+  max-width: 68rem;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  text-align: center;
+}
+
+@media (min-width: 640px) {
+  .stay-highlights__inner {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2.5rem;
+  }
+}
+
+.stay-highlight-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stay-highlight-card__icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 9999px;
+  background-color: #EFECE6;
+  border: 1px solid #E5E0D8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.stay-highlight-card__title {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1C1917;
+  margin-bottom: 0.5rem;
+}
+
+.stay-highlight-card__desc {
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: #5C5852;
+  max-width: 20rem;
+}
+
+.stay-discovery-eyebrow {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #1E3A2F;
+  margin-bottom: 0.5rem;
 }
 
 /* --------------------------------------------------------------------------
