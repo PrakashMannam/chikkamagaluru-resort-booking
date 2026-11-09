@@ -3,6 +3,9 @@
   flex-direction: column;
   gap: var(--space-6);
   padding-bottom: var(--space-7);
+  overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* 1. Hero Section */
@@ -54,6 +57,7 @@
   width: 100%;
   margin: 0 auto;
   padding: 0 var(--space-4);
+  box-sizing: border-box;
 }
 
 .enquiry-form {
@@ -247,6 +251,8 @@
   background-color: var(--color-surface);
   text-align: center;
   padding: var(--space-6) var(--space-4);
+  box-sizing: border-box;
+  width: 100%;
 }
 
 @media (min-width: 640px) {
@@ -297,7 +303,9 @@
   border-radius: var(--radius-md);
   padding: var(--space-4);
   max-width: 28rem;
+  width: 100%;
   margin: var(--space-5) auto;
+  box-sizing: border-box;
 }
 
 .enquiry-success__reference-label {
@@ -329,11 +337,17 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border-input);
   border-radius: var(--radius-sm);
-  padding: 0.25rem 0.6rem;
+  padding: 0.5rem 0.875rem;
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: var(--text-small);
   font-weight: var(--weight-medium);
   cursor: pointer;
   transition: all var(--motion-fast);
+  box-sizing: border-box;
 }
 
 .enquiry-success__copy-btn:hover {
@@ -350,19 +364,30 @@
 
 .enquiry-success__summary-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: var(--space-3);
   max-width: 32rem;
+  width: 100%;
   margin: var(--space-4) auto;
   text-align: left;
   border-top: 1px solid var(--color-border);
   border-bottom: 1px solid var(--color-border);
   padding: var(--space-4) 0;
+  box-sizing: border-box;
+}
+
+@media (min-width: 480px) {
+  .enquiry-success__summary-grid {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .enquiry-success__summary-item {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .enquiry-success__meta-label {
@@ -373,6 +398,8 @@
 .enquiry-success__meta-value {
   font-weight: var(--weight-medium);
   color: var(--color-text);
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .enquiry-success__timeline {

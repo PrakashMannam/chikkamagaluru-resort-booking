@@ -156,6 +156,14 @@ test('Source Contract: PublicEnquiryPage route-specific content & umbrella headi
     pageSrc.includes('Estate Stays & Room Enquiries'),
     'Must define room booking-specific heading'
   );
+  assert.ok(
+    pageSrc.includes('Estate Concierge & Event Enquiries'),
+    'Must define general concierge heading for generic /enquire route'
+  );
+  assert.ok(
+    pageSrc.includes("backLink: '/'") && pageSrc.includes("backLabel: '← Back to Estate'"),
+    'Must link back to / on generic /enquire route'
+  );
 
   // Must have back links to parent event pages
   assert.ok(
@@ -319,5 +327,48 @@ test('Source Contract: Bounded guest count and room count inputs with inventory 
   assert.ok(
     pageSrc.includes("['e', 'E', '+', '-', '.'].includes(e.key)"),
     'Numeric inputs must block exponential, sign, and decimal characters on keydown'
+  );
+});
+
+test('Audit Refinements: CTA dimensions, 44px tap targets, and overflow guards', () => {
+  const landingJsx = fs.readFileSync('frontend/src/pages/LandingPage.jsx', 'utf8');
+  const landingCss = fs.readFileSync('frontend/src/pages/LandingPage.css', 'utf8');
+  const enquiryCss = fs.readFileSync('frontend/src/pages/PublicEnquiryPage.css', 'utf8');
+  const guestLayoutCss = fs.readFileSync('frontend/src/components/layout/GuestLayout.css', 'utf8');
+
+  // 1. Bottom CTA Banner image has explicit dimensions (prevents CLS)
+  assert.ok(
+    landingJsx.includes('width="800"') && landingJsx.includes('height="400"'),
+    'Bottom CTA banner image must have explicit width="800" and height="400"'
+  );
+
+  // 2. Landing search inputs & selects have 44px (2.75rem) minimum touch height
+  assert.ok(
+    landingCss.includes('min-height: 2.75rem;'),
+    'Landing search inputs must enforce at least 2.75rem (44px) touch target'
+  );
+
+  // 3. Card circle buttons are 44px (2.75rem)
+  assert.ok(
+    landingCss.includes('width: 2.75rem;') && landingCss.includes('height: 2.75rem;'),
+    'Stay and event card action buttons must be 44px (2.75rem)'
+  );
+
+  // 4. Footer link tap target is 44px
+  assert.ok(
+    guestLayoutCss.includes('min-height: 2.75rem;'),
+    'Footer links must enforce at least 2.75rem (44px) tap target'
+  );
+
+  // 5. Enquiry success copy button is 44px
+  assert.ok(
+    enquiryCss.includes('.enquiry-success__copy-btn') && enquiryCss.includes('min-height: 44px;'),
+    'Enquiry success copy button must have min-height: 44px'
+  );
+
+  // 6. Enquiry page has overflow-x: hidden guard
+  assert.ok(
+    enquiryCss.includes('overflow-x: hidden;'),
+    'Enquiry page must have overflow-x: hidden guard to prevent sub-pixel mobile overflow'
   );
 });

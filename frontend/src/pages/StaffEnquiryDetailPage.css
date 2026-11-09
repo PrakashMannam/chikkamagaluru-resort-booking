@@ -183,6 +183,7 @@
 .staff-form-select {
   width: 100%;
   padding: 0.5rem 0.65rem;
+  min-height: 2.75rem;
   border: 1px solid #D7CCC8;
   border-radius: 6px;
   background-color: #FAF7F2;

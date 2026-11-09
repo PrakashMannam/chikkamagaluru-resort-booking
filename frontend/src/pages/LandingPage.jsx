@@ -411,10 +411,13 @@ export default function LandingPage() {
                 src="/images/room-canopy.webp"
                 alt="Estate Room with teakwood canopy bed and garden views"
                 className="lp-card-stay__img"
-                loading="lazy"
+                loading="eager"
                 decoding="async"
                 width="600"
                 height="400"
+                onError={(e) => {
+                  e.currentTarget.style.opacity = '0';
+                }}
               />
             </div>
             <div className="lp-card-stay__body">
@@ -450,10 +453,13 @@ export default function LandingPage() {
                 src="/images/villa-pool.webp"
                 alt="Private villa terrace with plunge pool overlooking misty Western Ghats hills"
                 className="lp-card-stay__img"
-                loading="lazy"
+                loading="eager"
                 decoding="async"
                 width="600"
                 height="400"
+                onError={(e) => {
+                  e.currentTarget.style.opacity = '0';
+                }}
               />
             </div>
             <div className="lp-card-stay__body">
@@ -524,6 +530,9 @@ export default function LandingPage() {
                 decoding="async"
                 width="600"
                 height="400"
+                onError={(e) => {
+                  e.currentTarget.style.opacity = '0';
+                }}
               />
             </div>
           </article>
@@ -562,6 +571,9 @@ export default function LandingPage() {
                 decoding="async"
                 width="600"
                 height="400"
+                onError={(e) => {
+                  e.currentTarget.style.opacity = '0';
+                }}
               />
             </div>
           </article>
@@ -577,6 +589,8 @@ export default function LandingPage() {
             className="lp-cta-banner__bg"
             loading="lazy"
             decoding="async"
+            width="800"
+            height="400"
           />
           <div className="lp-cta-banner__overlay" />
           <div className="lp-cta-banner__content">

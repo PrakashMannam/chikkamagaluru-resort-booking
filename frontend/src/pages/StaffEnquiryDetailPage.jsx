@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, Navigate } from 'react-router-dom';
 import { useStaffAuth } from '../context/StaffAuthContext';
 import {
   fetchAdminEnquiryDetail,
@@ -25,7 +25,7 @@ const CATEGORIES = [
 
 export function StaffEnquiryDetailPage() {
   const { id } = useParams();
-  const { token, user } = useStaffAuth();
+  const { token, user, loading: authLoading } = useStaffAuth();
 
   const [enquiry, setEnquiry] = useState(null);
   const [staffList, setStaffList] = useState([]);
@@ -139,6 +139,10 @@ export function StaffEnquiryDetailPage() {
     if (isNaN(num)) return null;
     return `₹${num.toLocaleString('en-IN')}`;
   };
+
+  if (!authLoading && !token) {
+    return <Navigate to="/staff/login" state={{ from: `/staff/enquiries/${id}` }} replace />;
+  }
 
   if (loading) {
     return (

@@ -254,14 +254,15 @@
 .lp-search-select {
   border: none;
   background: transparent;
-  padding: 0;
+  padding: 0.375rem 0;
   font-family: var(--font-body);
   font-size: 0.875rem;
   font-weight: 600;
   color: #1C1917;
   outline: none;
-  min-height: 1.5rem;
+  min-height: 2.75rem;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .lp-search-input::placeholder {
@@ -637,10 +638,10 @@
 }
 
 .lp-card-stay__btn {
-  width: 2.5rem; /* w-10 = 40px */
-  height: 2.5rem; /* h-10 = 40px */
-  border-radius: 9999px; /* rounded-full */
-  background-color: #1E3A2F; /* bg-[#1E3A2F] */
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 9999px;
+  background-color: #1E3A2F;
   color: #FFFFFF;
   display: flex;
   align-items: center;
@@ -738,10 +739,10 @@
 }
 
 .lp-event-card__btn {
-  width: 2.5rem; /* w-10 = 40px */
-  height: 2.5rem; /* h-10 = 40px */
-  border-radius: 9999px; /* rounded-full */
-  background-color: #1E3A2F; /* bg-[#1E3A2F] */
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 9999px;
+  background-color: #1E3A2F;
   color: #FFFFFF;
   display: flex;
   align-items: center;

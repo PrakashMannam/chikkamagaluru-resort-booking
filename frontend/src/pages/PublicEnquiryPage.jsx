@@ -44,9 +44,10 @@ function mapQueryType(param) {
 function getPageContent(enquiryType, rawTypeParam) {
   const normParam = rawTypeParam ? rawTypeParam.toLowerCase().trim() : '';
 
-  if (normParam === 'wedding' || normParam === 'weddings' || (!normParam && enquiryType === 'WEDDING')) {
+  // 1. Wedding route: /enquire?type=wedding
+  if (normParam === 'wedding' || normParam === 'weddings') {
     return {
-      isRouteSpecific: Boolean(normParam),
+      isRouteSpecific: true,
       kicker: 'Mullayanagiri Foothills, Chikkamagaluru',
       title: 'Weddings & Celebrations Enquiry',
       subtitle: 'Plan your sacred ceremonies and destination celebrations amidst coffee gardens and Western Ghats panoramas. Our wedding specialists will craft a tailored proposal.',
@@ -57,9 +58,10 @@ function getPageContent(enquiryType, rawTypeParam) {
     };
   }
 
-  if (normParam === 'offsite' || normParam === 'offsites' || normParam === 'corporate' || normParam === 'corporate_offsite' || (!normParam && enquiryType === 'CORPORATE_OFFSITE')) {
+  // 2. Offsite route: /enquire?type=offsite
+  if (normParam === 'offsite' || normParam === 'offsites' || normParam === 'corporate' || normParam === 'corporate_offsite') {
     return {
-      isRouteSpecific: Boolean(normParam),
+      isRouteSpecific: true,
       kicker: 'Mullayanagiri Foothills, Chikkamagaluru',
       title: 'Corporate Offsites & Leadership Retreats',
       subtitle: 'Design focused executive programs, team offsites, and strategy retreats on our coffee estate. Our corporate coordinator will tailor dates and venue spaces to your schedule.',
@@ -70,9 +72,10 @@ function getPageContent(enquiryType, rawTypeParam) {
     };
   }
 
-  if (normParam === 'room' || normParam === 'rooms' || normParam === 'stay' || (!normParam && enquiryType === 'ROOM_BOOKING')) {
+  // 3. Room booking route: /enquire?type=room
+  if (normParam === 'room' || normParam === 'rooms' || normParam === 'stay') {
     return {
-      isRouteSpecific: Boolean(normParam),
+      isRouteSpecific: true,
       kicker: 'Mullayanagiri Foothills, Chikkamagaluru',
       title: 'Estate Stays & Room Enquiries',
       subtitle: 'For custom stay requests, family getaways, and extended plantation retreats, our reservations team will assist with your reservation.',
@@ -83,6 +86,7 @@ function getPageContent(enquiryType, rawTypeParam) {
     };
   }
 
+  // 4. General / Umbrella enquiry: /enquire (no route parameter)
   return {
     isRouteSpecific: false,
     kicker: 'Mullayanagiri Foothills, Chikkamagaluru',
@@ -90,8 +94,16 @@ function getPageContent(enquiryType, rawTypeParam) {
     subtitle: 'Whether planning an intimate destination wedding, leadership offsite, or bespoke plantation retreat, our dedicated reservations concierge will craft a tailored proposal.',
     backLink: '/',
     backLabel: '← Back to Estate',
-    step3Title: 'Event & Stay Specifications',
-    step3Desc: 'Sharing your estimated date and guest count helps our reservations team check venue availability and prepare a tailored proposal.',
+    step3Title: enquiryType === 'WEDDING'
+      ? 'Wedding & Celebration Details'
+      : enquiryType === 'CORPORATE_OFFSITE'
+      ? 'Retreat & Offsite Specifications'
+      : 'Room Booking & Stay Preferences',
+    step3Desc: enquiryType === 'WEDDING'
+      ? 'Sharing your estimated date and guest count helps our wedding specialists check venue availability and prepare a tailored proposal.'
+      : enquiryType === 'CORPORATE_OFFSITE'
+      ? 'Sharing your estimated date and attendee count helps our coordinator check conference facilities and prepare a tailored proposal.'
+      : 'Sharing your stay dates and guest count helps our reservations team check cottage and villa availability.',
   };
 }
 
