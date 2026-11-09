@@ -12,18 +12,23 @@
    1. Compact Search Strip
    -------------------------------------------------------------------------- */
 .stay-search-strip {
-  background-color: #FFFFFF;
-  border-bottom: 1px solid var(--color-border, #E7E2DA);
-  position: sticky;
-  top: 4rem; /* Below fixed/sticky navbar */
-  z-index: 30;
-  box-shadow: 0 2px 12px rgba(28, 25, 23, 0.03);
+  background-color: transparent;
+  position: relative;
+  z-index: 25;
+  margin-top: -2.5rem;
+  margin-bottom: 3.5rem;
+  border-bottom: none;
+  box-shadow: none;
 }
 
 .stay-search-strip__inner {
   max-width: 72rem;
   margin: 0 auto;
   padding: 0.875rem 1.5rem;
+  background-color: #FFFFFF;
+  border: 1px solid #E5E0D8;
+  border-radius: 1rem;
+  box-shadow: 0 10px 30px rgba(28, 25, 23, 0.08);
 }
 
 /* Collapsed Search Summary Bar */
@@ -238,7 +243,7 @@
 .stay-content {
   max-width: 72rem;
   margin: 0 auto;
-  padding: 2.5rem 1.5rem 0;
+  padding: 0 1.5rem;
 }
 
 .stay-heading-row {
@@ -532,7 +537,7 @@
 
 /* Right: Pricing & CTA Column */
 .stay-room-card__pricing {
-  padding: 1.75rem 1.5rem;
+  padding: 1.25rem 1.25rem;
   border-left: 1px solid var(--color-border, #E7E2DA);
   display: flex;
   flex-direction: column;
@@ -861,7 +866,8 @@
 /* Tablet (<= 768px) */
 @media (max-width: 768px) {
   .stay-search-strip {
-    top: 4rem;
+    margin-top: -1.75rem;
+    margin-bottom: 2.5rem;
   }
 
   .stay-search-strip__inner {
@@ -890,7 +896,7 @@
   }
 
   .stay-content {
-    padding: 1.75rem 1rem 0;
+    padding: 0 1rem;
   }
 
   .stay-heading-row {
@@ -1166,6 +1172,7 @@
 /* Overlapping search strip adjustment */
 .stay-search-strip {
   margin-top: -2.5rem;
+  margin-bottom: 3.5rem;
   position: relative;
   z-index: 25;
   background-color: transparent;

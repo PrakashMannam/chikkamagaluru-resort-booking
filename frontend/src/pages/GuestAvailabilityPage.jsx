@@ -543,11 +543,7 @@ export function GuestAvailabilityPage() {
                             <span className="stay-badge stay-badge--warning">
                               Only {availableCount} {availableCount === 1 ? 'room' : 'rooms'} left
                             </span>
-                          ) : (
-                            <span className="stay-badge stay-badge--success">
-                              {availableCount} available
-                            </span>
-                          )}
+                          ) : null}
                         </div>
                       </div>
 
