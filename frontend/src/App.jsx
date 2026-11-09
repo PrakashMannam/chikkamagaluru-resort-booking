@@ -29,7 +29,6 @@ function ScrollToTop() {
   const { pathname, hash } = useLocation();
 
   useEffect(() => {
-    document.body.style.overflow = '';
     if (!hash) {
       window.scrollTo(0, 0);
     }

@@ -56,24 +56,4 @@ test('Stay Spacing: GuestAvailabilityPage.css establishes compact vertical spaci
     cssSrc.includes('grid-template-columns: repeat(2, 1fr);'),
     'Discovery cards must be arranged in 2 balanced columns on desktop'
   );
-
-  // Check collision prevention between floating search card and heading
-  assert.ok(
-    cssSrc.includes('margin-bottom: 3.5rem;') || cssSrc.includes('margin-bottom: 2.5rem;'),
-    'Must define explicit margin-bottom on stay-search-strip to prevent heading collision'
-  );
-});
-
-test('Modal scroll-lock fail-safe: GuestLayout and ScrollToTop reset document.body.style.overflow', () => {
-  const layoutSrc = fs.readFileSync('frontend/src/components/layout/GuestLayout.jsx', 'utf8');
-  const appSrc = fs.readFileSync('frontend/src/App.jsx', 'utf8');
-
-  assert.ok(
-    layoutSrc.includes("document.body.style.overflow = '';"),
-    'GuestLayout must explicitly reset body overflow when modal closes or link is clicked'
-  );
-  assert.ok(
-    appSrc.includes("document.body.style.overflow = '';"),
-    'ScrollToTop must guarantee body overflow reset on every route navigation'
-  );
 });

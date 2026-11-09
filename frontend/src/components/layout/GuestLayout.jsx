@@ -12,11 +12,6 @@ export function GuestLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dpdpModalOpen, setDpdpModalOpen] = useState(false);
 
-  const closeDpdpModal = useCallback(() => {
-    setDpdpModalOpen(false);
-    document.body.style.overflow = '';
-  }, []);
-
   const scrollToAnchor = useCallback((targetId) => {
     const elem = document.getElementById(targetId);
     if (elem) {
@@ -192,7 +187,7 @@ export function GuestLayout() {
       {dpdpModalOpen && (
         <Modal
           isOpen={dpdpModalOpen}
-          onClose={closeDpdpModal}
+          onClose={() => setDpdpModalOpen(false)}
           title="Guest Privacy & Check-in Compliance"
         >
           <div style={{ padding: '0.5rem 0', color: '#1C1917', lineHeight: '1.6' }}>
@@ -213,7 +208,7 @@ export function GuestLayout() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
               <Link
                 to="/privacy"
-                onClick={closeDpdpModal}
+                onClick={() => setDpdpModalOpen(false)}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -227,7 +222,7 @@ export function GuestLayout() {
               </Link>
               <button
                 type="button"
-                onClick={closeDpdpModal}
+                onClick={() => setDpdpModalOpen(false)}
                 style={{
                   padding: '0.5rem 1.25rem',
                   backgroundColor: '#1E3A2F',
