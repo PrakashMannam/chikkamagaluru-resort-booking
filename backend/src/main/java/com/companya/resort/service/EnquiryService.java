@@ -335,7 +335,9 @@ public class EnquiryService {
                         ? ruleExt.getSuggestedReply()
                         : "Dear Guest,\n\nWe sincerely apologize for your experience. Your feedback has been escalated directly to our General Manager, who will personally follow up with you.\n\nWarm regards,\nManagement Team";
             } else {
-                templateReply = "Dear Guest,\n\nThank you for reaching out to us. We have received your enquiry and our reservations team will get in touch with you shortly with full details.\n\nWarm regards,\nEstate Reservations Team";
+                templateReply = (ruleExt.getSuggestedReply() != null && !ruleExt.getSuggestedReply().isBlank())
+                        ? ruleExt.getSuggestedReply()
+                        : "Dear Guest,\n\nThank you for reaching out to us. We have received your enquiry and our team will get in touch with you shortly with full details.\n\nWarm regards,\nEstate Team";
             }
 
             QuoteInjectorService.InjectedQuote quote = quoteInjectorService.injectDatabaseQuote(templateReply, enquiry);

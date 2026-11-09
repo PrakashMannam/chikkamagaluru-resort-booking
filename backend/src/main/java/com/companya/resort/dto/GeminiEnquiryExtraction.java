@@ -44,6 +44,9 @@ public class GeminiEnquiryExtraction {
     @JsonProperty("is_unsure")
     private Boolean isUnsure;
 
+    @JsonProperty("accommodation_requirement")
+    private String accommodationRequirement;
+
     @JsonProperty("suggested_reply")
     private String suggestedReply;
 
@@ -144,6 +147,14 @@ public class GeminiEnquiryExtraction {
 
     public void setIsUnsure(Boolean isUnsure) {
         this.isUnsure = isUnsure;
+    }
+
+    public String getAccommodationRequirement() {
+        return accommodationRequirement;
+    }
+
+    public void setAccommodationRequirement(String accommodationRequirement) {
+        this.accommodationRequirement = accommodationRequirement;
     }
 
     public String getSuggestedReply() {

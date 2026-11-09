@@ -321,21 +321,36 @@ The application uses the following managed-provider topology; availability guara
 
 ---
 
-## 10. Demo Login Accounts
+## 10. Staff Authentication & Reviewer Access Provisioning
 
-When running with `SPRING_PROFILES_ACTIVE=demo`, the backend automatically seeds four staff accounts with password:
-```text
-DEMO-ONLY-NOT-REAL-PASS-2026!
-```
+### 10.1 Shared Demo Accounts Decommissioning (Security Hardening)
+In response to the security audit finding, all shared public demo accounts have been permanently decommissioned and deactivated from the production environment:
+- **Flyway Migration V9**: Added `is_active BOOLEAN NOT NULL DEFAULT TRUE` and deactivated all 4 shared demo accounts (`gm.demo@...`, `rooms.demo@...`, `weddings.demo@...`, `offsites.demo@...` set to `is_active = FALSE`).
+- **Frontend Hardening**: Removed all demo account quick-fill buttons and hardcoded credentials from `StaffLoginPage.jsx`. Production bundles contain zero demo credentials.
+- **Backend Token & Login Rejection**: `AuthController` rejects authentication for inactive users, and `JwtAuthenticationFilter` validates `is_active` on every authenticated request, rejecting old/replayed JWTs from disabled accounts with HTTP 401.
+- **Seeder Safety**: `DemoDataSeeder` is guarded with `isProductionEnvironment()`; it will never seed or reactivate shared demo accounts in cloud/production environments.
 
-> **Demo-only security warning**: This shared password is public in this repository. Do not run the `demo` profile against any database containing real guest or staff data. For production, disable demo seeding and provision named staff accounts with unique credentials. If a public portfolio demo keeps these accounts enabled, use synthetic-only data and treat the staff portal as publicly accessible.
+### 10.2 Reviewer Access Provisioning (Safe Administrative Action)
+Legitimate staff and auditor review access must be provisioned individually with dedicated credentials. To provision reviewer access on the production Railway instance without committing secrets to the repository:
 
-| Email | Full Name | Role | Specialty Lane | Permissions & Scope |
-| :--- | :--- | :--- | :--- | :--- |
-| `rooms.demo@companya-estate.test` | Ananya Hegde (Reservations) | `STAFF` | `ROOM` | Front Office reservations, rate quotes, draft approval, and enquiry simulator |
-| `gm.demo@companya-estate.test` | Vikram Rao (GM) | `STAFF` | `GM_ESCALATION` (`is_gm=true`) | Full management access, GM alert banner, guest complaints queue (`COMPLAINT`), and escalation approval |
-| `weddings.demo@companya-estate.test` | Karthik Urs (Weddings) | `STAFF` | `WEDDING` | Wedding and banquet lawn enquiries |
-| `offsites.demo@companya-estate.test` | Meera Nair (Corporate Offsites) | `STAFF` | `OFFSITE` | Corporate offsite and retreat enquiries |
+1. **Via Railway Environment Variables (Automated Bootstrap)**:
+   In the Railway project dashboard under the backend service **Variables** tab, set:
+   - `REVIEWER_EMAIL`: e.g. `reviewer@resort-audit.internal`
+   - `REVIEWER_PASSWORD`: `<strong-unique-password>` (e.g. 16+ character random secret)
+   - `REVIEWER_NAME`: `Auditor / Reviewer` (optional, default: "Auditor / Reviewer")
+   - `REVIEWER_LANE`: `GM_ESCALATION` (optional, default: "GM_ESCALATION")
+   - `REVIEWER_IS_GM`: `true` (optional, default: true)
+
+   On container startup, `ReviewerAccountBootstrap` (`@Order(1)`) securely hashes the password using BCrypt and provisions/updates the active reviewer account.
+
+2. **Via Railway MySQL CLI (Direct Admin Action)**:
+   If preferred, run this administrative query directly on the production database using the Railway MySQL CLI:
+   ```sql
+   -- Generate BCrypt hash externally and run:
+   INSERT INTO users (email, password_hash, full_name, role, specialty_lane, is_gm, is_active, created_at, updated_at)
+   VALUES ('reviewer@resort-audit.internal', '$2a$10$YourBcryptHashHere...', 'Auditor / Reviewer', 'STAFF', 'GM_ESCALATION', 1, 1, NOW(), NOW())
+   ON DUPLICATE KEY UPDATE is_active = 1, password_hash = VALUES(password_hash);
+   ```
 
 Staff portal login: `/staff/login`.
 

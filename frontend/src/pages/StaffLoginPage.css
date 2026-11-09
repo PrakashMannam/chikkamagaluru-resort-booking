@@ -116,80 +116,6 @@
   to { transform: rotate(360deg); }
 }
 
-/* Quick demo account picker */
-.staff-demo-box {
-  margin-top: 1.75rem;
-  padding-top: 1.5rem;
-  border-top: 1px dashed #EFE7E1;
-}
-
-.staff-demo-box__header {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 0.75rem;
-}
-
-.staff-demo-box__title {
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: #3E2723;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.staff-demo-box__subtitle {
-  font-size: 0.75rem;
-  color: #8D6E63;
-}
-
-.staff-demo-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.625rem;
-}
-
-.staff-demo-btn {
-  background-color: #FAF7F2;
-  border: 1px solid #EFE7E1;
-  border-radius: 6px;
-  padding: 0.625rem 0.75rem;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.staff-demo-btn:hover:not(:disabled) {
-  background-color: #EFE7E1;
-  border-color: #3E2723;
-  transform: translateY(-1px);
-}
-
-.staff-demo-btn__top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.25rem;
-}
-
-.staff-demo-btn__badge {
-  font-size: 0.6875rem;
-  color: #3E2723;
-}
-
-.staff-demo-btn__name {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #3E2723;
-}
-
-.staff-demo-btn__lane {
-  font-size: 0.6875rem;
-  color: #6D4C41;
-}
-
 .staff-login-footer {
   text-align: center;
 }
@@ -204,10 +130,4 @@
 .staff-login-footer__link:hover {
   color: #3E2723;
   text-decoration: underline;
-}
-
-@media (max-width: 480px) {
-  .staff-demo-grid {
-    grid-template-columns: 1fr;
-  }
 }

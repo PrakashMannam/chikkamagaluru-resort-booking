@@ -52,16 +52,19 @@ public class EnquiryRoutingService {
     }
 
     public User findStaffByLane(SpecialtyLane lane) {
-        return userRepository.findFirstBySpecialtyLaneOrderByIdAsc(lane)
+        return userRepository.findFirstBySpecialtyLaneAndIsActiveTrueOrderByIdAsc(lane)
+                .or(() -> userRepository.findFirstBySpecialtyLaneOrderByIdAsc(lane))
                 .orElse(null);
     }
 
     public User findGeneralManager() {
-        Optional<User> gm = userRepository.findFirstByIsGmTrueOrderByIdAsc();
+        Optional<User> gm = userRepository.findFirstByIsGmTrueAndIsActiveTrueOrderByIdAsc()
+                .or(userRepository::findFirstByIsGmTrueOrderByIdAsc);
         if (gm.isPresent()) {
             return gm.get();
         }
-        return userRepository.findFirstBySpecialtyLaneOrderByIdAsc(SpecialtyLane.GM_ESCALATION)
+        return userRepository.findFirstBySpecialtyLaneAndIsActiveTrueOrderByIdAsc(SpecialtyLane.GM_ESCALATION)
+                .or(() -> userRepository.findFirstBySpecialtyLaneOrderByIdAsc(SpecialtyLane.GM_ESCALATION))
                 .orElse(null);
     }
 }

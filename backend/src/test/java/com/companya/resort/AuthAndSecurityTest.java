@@ -365,4 +365,50 @@ class AuthAndSecurityTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error").value("Unauthorized"));
     }
+
+    @Test
+    void disabledDemoAccountCannotLogin() throws Exception {
+        User disabledUser = new User(
+                "gm.demo@companya-estate.test",
+                passwordEncoder.encode("DEMO-ONLY-NOT-REAL-PASS-2026!"),
+                "Vikram Rao (Disabled)",
+                Role.STAFF,
+                SpecialtyLane.GM_ESCALATION,
+                true,
+                false
+        );
+        disabledUser.setId(99L);
+        when(userRepository.findByEmail("gm.demo@companya-estate.test")).thenReturn(Optional.of(disabledUser));
+
+        LoginRequest request = new LoginRequest("gm.demo@companya-estate.test", "DEMO-ONLY-NOT-REAL-PASS-2026!");
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Invalid email or password"));
+    }
+
+    @Test
+    void oldJwtFromDisabledAccountIsRejected() throws Exception {
+        User disabledUser = new User(
+                "gm.demo@companya-estate.test",
+                passwordEncoder.encode("DEMO-ONLY-NOT-REAL-PASS-2026!"),
+                "Vikram Rao (Disabled)",
+                Role.STAFF,
+                SpecialtyLane.GM_ESCALATION,
+                true,
+                false
+        );
+        disabledUser.setId(99L);
+
+        String token = jwtService.generateToken(disabledUser);
+
+        when(userRepository.findById(99L)).thenReturn(Optional.of(disabledUser));
+
+        mockMvc.perform(get("/api/v1/admin/me")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Account is disabled or does not exist"));
+    }
 }
