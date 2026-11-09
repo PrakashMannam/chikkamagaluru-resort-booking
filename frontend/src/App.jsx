@@ -4,7 +4,7 @@ import { GuestLayout } from './components/layout/GuestLayout';
 import { StaffLayout } from './components/staff/StaffLayout';
 import { ProtectedRoute } from './components/staff/ProtectedRoute';
 import { StaffAuthProvider } from './context/StaffAuthContext';
-import { Skeleton } from './components/ui';
+import { Skeleton, ErrorBoundary } from './components/ui';
 
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const GuestAvailabilityPage = lazy(() => import('./pages/GuestAvailabilityPage'));
@@ -35,6 +35,7 @@ export function App() {
   return (
     <BrowserRouter>
       <StaffAuthProvider>
+        <ErrorBoundary>
         <Suspense fallback={<PageFallback />}>
           <Routes>
             {/* Guest Public Flow */}
@@ -92,6 +93,7 @@ export function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
+      </ErrorBoundary>
       </StaffAuthProvider>
     </BrowserRouter>
   );

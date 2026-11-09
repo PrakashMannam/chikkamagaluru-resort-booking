@@ -122,7 +122,7 @@ export function PublicEnquiryPage() {
   // Event / Stay details
   const [eventDate, setEventDate] = useState('');
   const [accommodationChoice, setAccommodationChoice] = useState(
-    initialType === 'ROOM_BOOKING' ? 'yes' : DEFAULT_ACCOMMODATION_CHOICE
+    mappedType === 'ROOM_BOOKING' ? 'yes' : DEFAULT_ACCOMMODATION_CHOICE
   );
   const [nights, setNights] = useState('');
   const [guestsCount, setGuestsCount] = useState('');
