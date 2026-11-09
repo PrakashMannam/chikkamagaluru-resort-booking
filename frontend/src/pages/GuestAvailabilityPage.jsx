@@ -94,8 +94,6 @@ export function GuestAvailabilityPage() {
   const loadAvailability = useCallback(async () => {
     // Do not silently fetch with absent dates — show the date-first prompt instead.
     if (!checkIn || !checkOut) {
-      setIsLoading(false);
-      setData(null);
       return;
     }
     setIsLoading(true);

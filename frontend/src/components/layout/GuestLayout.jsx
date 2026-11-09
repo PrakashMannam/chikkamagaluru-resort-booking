@@ -24,21 +24,15 @@ export function GuestLayout() {
   useEffect(() => {
     if ((location.pathname === '/' || location.pathname === '') && (location.hash === '#about' || location.hash === '#estate')) {
       const targetId = location.hash.replace('#', '');
-      if (!scrollToAnchor(targetId)) {
-        const observer = new MutationObserver((mutations, obs) => {
-          if (scrollToAnchor(targetId)) {
-            obs.disconnect();
-          }
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
-        const timer = setTimeout(() => observer.disconnect(), 2000);
-        return () => {
-          observer.disconnect();
-          clearTimeout(timer);
-        };
-      }
+      const timer = setTimeout(() => {
+        const elem = document.getElementById(targetId);
+        if (elem) {
+          elem.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+      return () => clearTimeout(timer);
     }
-  }, [location.pathname, location.hash, scrollToAnchor]);
+  }, [location.pathname, location.hash]);
 
   useEffect(() => {
     setMobileMenuOpen(false);

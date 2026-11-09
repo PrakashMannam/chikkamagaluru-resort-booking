@@ -22,6 +22,7 @@ const StaffEnquiriesPage = lazy(() => import('./pages/StaffEnquiriesPage').then(
 const StaffEnquiryDetailPage = lazy(() => import('./pages/StaffEnquiryDetailPage').then(m => ({ default: m.StaffEnquiryDetailPage })));
 const StaffInventoryPage = lazy(() => import('./pages/staff/StaffInventoryPage').then(m => ({ default: m.StaffInventoryPage })));
 const Styleguide = lazy(() => import('./styleguide/Styleguide'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 function PageFallback() {
   return (
@@ -94,7 +95,7 @@ export function App() {
             <Route path="/styleguide" element={<Styleguide />} />
 
             {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Suspense>
       </ErrorBoundary>
