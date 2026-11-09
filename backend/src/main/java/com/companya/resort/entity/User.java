@@ -37,16 +37,24 @@ public class User {
     @Column(name = "is_gm", nullable = false)
     private Boolean isGm = false;
 
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
+
     public User() {
     }
 
     public User(String email, String passwordHash, String fullName, Role role, SpecialtyLane specialtyLane, Boolean isGm) {
+        this(email, passwordHash, fullName, role, specialtyLane, isGm, true);
+    }
+
+    public User(String email, String passwordHash, String fullName, Role role, SpecialtyLane specialtyLane, Boolean isGm, Boolean isActive) {
         this.email = email;
         this.passwordHash = passwordHash;
         this.fullName = fullName;
         this.role = role;
         this.specialtyLane = specialtyLane;
         this.isGm = isGm != null ? isGm : false;
+        this.isActive = isActive != null ? isActive : true;
     }
 
     public Long getId() {
@@ -102,6 +110,14 @@ public class User {
     }
 
     public void setIsGm(Boolean isGm) {
-        this.isGm = isGm;
+        this.isGm = isGm != null ? isGm : false;
+    }
+
+    public Boolean getIsActive() {
+        return isActive;
+    }
+
+    public void setIsActive(Boolean isActive) {
+        this.isActive = isActive != null ? isActive : true;
     }
 }

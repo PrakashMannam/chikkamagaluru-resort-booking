@@ -7,41 +7,6 @@ import { Input } from '../components/ui/Input';
 import { ErrorBanner } from '../components/ui/ErrorBanner';
 import './StaffLoginPage.css';
 
-const DEMO_ACCOUNTS = [
-  {
-    role: 'General Manager',
-    name: 'Vikram Rao',
-    lane: 'All Enquiries & Escalations',
-    email: 'gm.demo@companya-estate.test',
-    password: 'DEMO-ONLY-NOT-REAL-PASS-2026!',
-    badge: '👑 GM Access',
-  },
-  {
-    role: 'Weddings Specialist',
-    name: 'Karthik Urs',
-    lane: 'Weddings Lane Only',
-    email: 'weddings.demo@companya-estate.test',
-    password: 'DEMO-ONLY-NOT-REAL-PASS-2026!',
-    badge: '💍 Weddings',
-  },
-  {
-    role: 'Corporate Offsites',
-    name: 'Meera Nair',
-    lane: 'Offsites Lane Only',
-    email: 'offsites.demo@companya-estate.test',
-    password: 'DEMO-ONLY-NOT-REAL-PASS-2026!',
-    badge: '💼 Offsites',
-  },
-  {
-    role: 'Room Reservations',
-    name: 'Ananya Hegde',
-    lane: 'Room Booking Lane Only',
-    email: 'rooms.demo@companya-estate.test',
-    password: 'DEMO-ONLY-NOT-REAL-PASS-2026!',
-    badge: '🛏️ Rooms',
-  },
-];
-
 export function StaffLoginPage() {
   const { login, isAuthenticated } = useStaffAuth();
   const navigate = useNavigate();
@@ -60,13 +25,6 @@ export function StaffLoginPage() {
       navigate(destination, { replace: true });
     }
   }, [isAuthenticated, navigate, destination]);
-
-  const handleQuickFill = (acc) => {
-    setEmail(acc.email);
-    setPassword(acc.password);
-    setErrors({});
-    setLoginError(null);
-  };
 
   const validate = () => {
     const newErrors = {};
@@ -132,7 +90,7 @@ export function StaffLoginPage() {
               <Input
                 label="Staff Email Address *"
                 type="email"
-                placeholder="e.g. gm.demo@companya-estate.test"
+                placeholder="name@resort.internal"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
@@ -181,31 +139,6 @@ export function StaffLoginPage() {
               </Button>
             </div>
           </form>
-
-          {/* Evaluator Quick Demo Accounts */}
-          <div className="staff-demo-box">
-            <div className="staff-demo-box__header">
-              <span className="staff-demo-box__title">Demo Quick-Select Accounts</span>
-              <span className="staff-demo-box__subtitle">Click an account to autofill credentials</span>
-            </div>
-            <div className="staff-demo-grid">
-              {DEMO_ACCOUNTS.map((acc) => (
-                <button
-                  key={acc.email}
-                  type="button"
-                  className="staff-demo-btn"
-                  onClick={() => handleQuickFill(acc)}
-                  disabled={isSubmitting}
-                >
-                  <div className="staff-demo-btn__top">
-                    <span className="staff-demo-btn__badge">{acc.badge}</span>
-                    <strong className="staff-demo-btn__name">{acc.name}</strong>
-                  </div>
-                  <span className="staff-demo-btn__lane">{acc.lane}</span>
-                </button>
-              ))}
-            </div>
-          </div>
         </Card>
 
         {/* Footer Link */}

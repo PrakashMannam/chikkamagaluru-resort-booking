@@ -40,6 +40,12 @@ public class AuthController {
         }
 
         User user = userOpt.get();
+        // Guard against disabled or deactivated accounts
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "Invalid email or password"));
+        }
+
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("message", "Invalid email or password"));

@@ -13,13 +13,23 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByEmail(String email);
 
+    Optional<User> findByEmailAndIsActiveTrue(String email);
+
     boolean existsByEmail(String email);
 
     List<User> findBySpecialtyLaneOrderByIdAsc(SpecialtyLane specialtyLane);
 
+    List<User> findBySpecialtyLaneAndIsActiveTrueOrderByIdAsc(SpecialtyLane specialtyLane);
+
     List<User> findByIsGmTrueOrderByIdAsc();
+
+    List<User> findByIsGmTrueAndIsActiveTrueOrderByIdAsc();
 
     Optional<User> findFirstBySpecialtyLaneOrderByIdAsc(SpecialtyLane specialtyLane);
 
+    Optional<User> findFirstBySpecialtyLaneAndIsActiveTrueOrderByIdAsc(SpecialtyLane specialtyLane);
+
     Optional<User> findFirstByIsGmTrueOrderByIdAsc();
+
+    Optional<User> findFirstByIsGmTrueAndIsActiveTrueOrderByIdAsc();
 }

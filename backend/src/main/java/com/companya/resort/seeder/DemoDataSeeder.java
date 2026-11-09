@@ -74,21 +74,38 @@ public class DemoDataSeeder implements CommandLineRunner {
         this.enquiryDraftRepository = enquiryDraftRepository;
     }
 
+    public boolean isProductionEnvironment() {
+        String railwayEnv = System.getenv("RAILWAY_ENVIRONMENT");
+        String railwayProject = System.getenv("RAILWAY_PROJECT_ID");
+        String appEnv = System.getenv("APP_ENV");
+        String env = System.getenv("ENVIRONMENT");
+        return (railwayEnv != null && !railwayEnv.isBlank()) ||
+               (railwayProject != null && !railwayProject.isBlank()) ||
+               "production".equalsIgnoreCase(appEnv) ||
+               "production".equalsIgnoreCase(env);
+    }
+
     @Override
     public void run(String... args) {
+        if (isProductionEnvironment()) {
+            return;
+        }
         seedDemoUsers();
         seedDemoInventoryRates();
         seedDemoEnquiries();
     }
 
     public void seedDemoUsers() {
+        if (isProductionEnvironment()) {
+            return;
+        }
         String encodedPassword = passwordEncoder.encode(DEMO_PASSWORD);
 
         List<User> demoUsers = List.of(
-                new User("gm.demo@companya-estate.test", encodedPassword, "Vikram Rao (GM)", Role.STAFF, SpecialtyLane.GM_ESCALATION, true),
-                new User("rooms.demo@companya-estate.test", encodedPassword, "Ananya Hegde (Reservations)", Role.STAFF, SpecialtyLane.ROOM, false),
-                new User("weddings.demo@companya-estate.test", encodedPassword, "Karthik Urs (Weddings)", Role.STAFF, SpecialtyLane.WEDDING, false),
-                new User("offsites.demo@companya-estate.test", encodedPassword, "Meera Nair (Corporate Offsites)", Role.STAFF, SpecialtyLane.OFFSITE, false)
+                new User("gm.demo@companya-estate.test", encodedPassword, "Vikram Rao (GM)", Role.STAFF, SpecialtyLane.GM_ESCALATION, true, false),
+                new User("rooms.demo@companya-estate.test", encodedPassword, "Ananya Hegde (Reservations)", Role.STAFF, SpecialtyLane.ROOM, false, false),
+                new User("weddings.demo@companya-estate.test", encodedPassword, "Karthik Urs (Weddings)", Role.STAFF, SpecialtyLane.WEDDING, false, false),
+                new User("offsites.demo@companya-estate.test", encodedPassword, "Meera Nair (Corporate Offsites)", Role.STAFF, SpecialtyLane.OFFSITE, false, false)
         );
 
         for (User user : demoUsers) {
